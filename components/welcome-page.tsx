@@ -1,52 +1,50 @@
 import Link from "next/link";
-import { ArrowRight, BellRing, BookOpenCheck, CalendarClock, CheckCircle2, ChevronRight, FileSearch, GraduationCap, Languages, ShieldCheck, TicketCheck } from "lucide-react";
+import { ArrowUpRight, BellRing, BookOpenCheck, CalendarDays, Check, ChevronDown, FileSearch, GraduationCap, Languages, MapPin, MessageCircleMore, ShieldCheck, Sparkles, TicketCheck } from "lucide-react";
 
-const services = [
-  { icon: FileSearch, title: "Ask trusted questions", description: "Get answers from official DeKUT documents, with sources shown for every response." },
-  { icon: CalendarClock, title: "Stay ahead of deadlines", description: "Turn your timetable and university dates into personal reminders." },
-  { icon: TicketCheck, title: "Reach the right office", description: "Send and track support requests to Finance, ICT, Accommodation, Registrar, and more." },
+const outcomes = [
+  ["01", "Ask", "Find a grounded answer from an official DeKUT source."],
+  ["02", "Plan", "Keep your classes, notices, and university deadlines in view."],
+  ["03", "Act", "Get support from the right office, without guessing where to go."],
 ];
 
 export function WelcomePage() {
-  return <main className="min-h-screen overflow-hidden bg-[#f7f9fd] text-ink">
-    <div className="absolute inset-x-0 top-0 -z-10 h-[590px] bg-[radial-gradient(circle_at_15%_12%,rgba(111,166,255,.32),transparent_28%),radial-gradient(circle_at_83%_13%,rgba(199,255,98,.20),transparent_24%),linear-gradient(150deg,#f7faff_0%,#e8f1ff_52%,#f9fbff_100%)]" />
-    <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
-      <Link href="/" className="flex items-center gap-3" aria-label="KiliGuide home">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-lg font-black text-lime shadow-soft">K</span>
-        <span><strong className="block text-lg leading-5 tracking-tight">KiliGuide</strong><small className="block text-xs font-medium text-slate-500">by KiliMind AI · DeKUT</small></span>
-      </Link>
-      <div className="flex items-center gap-3">
-        <Link href="/login" className="hidden text-sm font-bold text-ink hover:text-blue-700 sm:block">Sign in</Link>
-        <Link href="/login" className="rounded-xl bg-ink px-4 py-2.5 text-sm font-bold text-white shadow-soft transition hover:-translate-y-0.5">Get started <ArrowRight className="ml-1 inline" size={15} /></Link>
-      </div>
-    </header>
+  return <main className="min-h-screen bg-[#f4f2ec] text-[#112956]">
+    <section className="relative isolate overflow-hidden bg-[#0a1e46] text-white">
+      <div className="absolute inset-0 -z-10 opacity-70 [background-image:linear-gradient(rgba(255,255,255,.075)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.075)_1px,transparent_1px)];[background-size:72px_72px]" />
+      <div className="absolute -right-24 top-8 -z-10 h-80 w-80 rounded-full bg-[#3b6fe7] blur-[100px]" />
+      <div className="absolute -bottom-36 left-[28%] -z-10 h-72 w-72 rounded-full bg-[#b7ff63]/20 blur-[90px]" />
+      <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
+        <Link href="/" className="flex items-center gap-3" aria-label="KiliGuide home"><span className="grid h-10 w-10 place-items-center rounded-lg bg-[#c7ff62] text-lg font-black text-[#0a1e46]">K</span><span><strong className="block text-lg leading-5 tracking-tight">KiliGuide</strong><small className="block text-[11px] font-bold tracking-[.12em] text-blue-200">DEKUT · KILIMIND AI</small></span></Link>
+        <Link href="/login" className="rounded-full border border-white/25 px-4 py-2 text-sm font-bold transition hover:border-[#c7ff62] hover:bg-[#c7ff62] hover:text-[#0a1e46]">Sign in <ArrowUpRight className="ml-1 inline" size={15}/></Link>
+      </header>
 
-    <section className="mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-14 sm:px-8 sm:pt-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-10 lg:pb-28">
-      <div className="max-w-2xl">
-        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-3 py-1.5 text-xs font-bold tracking-wide text-blue-700"><GraduationCap size={15} /> YOUR DEKUT CAMPUS COMPANION</p>
-        <h1 className="text-4xl font-black leading-[1.06] tracking-tight text-ink sm:text-5xl lg:text-6xl">Campus answers, <span className="text-blue-600">without the runaround.</span></h1>
-        <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">KiliGuide helps Dedan Kimathi University students and staff find verified information, keep up with deadlines, and reach the right university office.</p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-6 py-3.5 font-bold text-white shadow-soft transition hover:-translate-y-0.5">Sign in to KiliGuide <ArrowRight size={18} /></Link>
-          <a href="#how-it-works" className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-6 py-3.5 font-bold text-ink hover:border-blue-300">Explore the platform <ChevronRight size={18} /></a>
+      <div className="mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-10 lg:pb-24">
+        <div className="max-w-2xl">
+          <p className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-[#c7ff62]"><Sparkles size={15}/> The DeKUT digital campus guide</p>
+          <h1 className="text-5xl font-black leading-[.96] tracking-[-.055em] sm:text-6xl lg:text-7xl">Find your way.<br/><span className="text-[#c7ff62]">Move forward.</span></h1>
+          <p className="mt-7 max-w-lg text-base leading-7 text-blue-100 sm:text-lg">One trusted place for university knowledge, personal deadlines, and campus support—built for the Dedan Kimathi community.</p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row"><Link href="/login" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#c7ff62] px-6 py-3.5 font-bold text-[#0a1e46] transition hover:bg-white">Enter KiliGuide <ArrowUpRight className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" size={18}/></Link><a href="#discover" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 px-6 py-3.5 font-bold text-white transition hover:bg-white/10">Discover the platform <ChevronDown size={17}/></a></div>
+          <div className="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-blue-200"><span className="flex items-center gap-1.5"><ShieldCheck size={15} className="text-[#c7ff62]"/> Official sources first</span><span className="flex items-center gap-1.5"><Languages size={15} className="text-[#c7ff62]"/> English & Kiswahili</span></div>
         </div>
-        <p className="mt-5 flex items-center gap-2 text-sm text-slate-500"><ShieldCheck size={17} className="text-blue-600" /> Secure university access · English and Kiswahili</p>
-      </div>
 
-      <div className="relative mx-auto w-full max-w-lg">
-        <div className="absolute -inset-5 -z-10 rounded-[2.5rem] bg-blue-300/20 blur-2xl" />
-        <div className="rounded-[1.7rem] border border-white/90 bg-white p-4 shadow-[0_28px_80px_rgba(24,61,125,.16)] sm:p-5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-ink font-black text-lime">K</span><span className="text-sm font-bold">Ask KiliGuide</span></div><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">Official sources only</span></div>
-          <div className="mt-5 rounded-2xl bg-sky p-4"><p className="text-xs font-bold uppercase tracking-wide text-blue-700">You asked</p><p className="mt-1 font-semibold">“When is the fee payment deadline?”</p></div>
-          <div className="mt-3 rounded-2xl border border-blue-100 p-4"><div className="flex items-start gap-3"><span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-ink text-xs font-black text-lime">K</span><div><p className="font-semibold leading-6">Here is the relevant guidance from the Finance notice.</p><div className="mt-3 flex items-center gap-2"><span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">Finance notice</span><span className="text-[11px] font-bold text-slate-400">Source cited</span></div></div></div></div>
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-400"><FileSearch size={17} /> Ask about registration, accommodation, exams…</div>
+        <div className="relative mx-auto w-full max-w-md pb-6 pt-8 lg:pt-0">
+          <p className="absolute left-0 top-0 text-[10px] font-bold uppercase tracking-[.18em] text-blue-200">A clearer route through campus</p>
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-[#12356f] p-5 shadow-[0_30px_70px_rgba(0,0,0,.28)] sm:p-6">
+            <div className="absolute right-0 top-0 h-44 w-44 rounded-full border-[28px] border-[#c7ff62]/15" />
+            <div className="relative flex items-center justify-between"><span className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold">TODAY AT DEKUT</span><MapPin size={18} className="text-[#c7ff62]"/></div>
+            <div className="relative mt-9"><p className="text-sm text-blue-200">Your next step</p><h2 className="mt-1 text-2xl font-black tracking-tight">Academic registration</h2><p className="mt-2 text-sm leading-6 text-blue-100">Check requirements, deadlines, and the official guidance before you begin.</p></div>
+            <div className="relative mt-7 space-y-3 border-l border-dashed border-[#c7ff62]/55 pl-5"><div className="relative"><i className="absolute -left-[27px] top-1 h-3 w-3 rounded-full bg-[#c7ff62] ring-4 ring-[#12356f]"/><p className="text-xs font-bold text-[#c7ff62]">ASK KILIGUIDE</p><p className="text-sm font-semibold">What documents do I need?</p></div><div className="relative"><i className="absolute -left-[27px] top-1 h-3 w-3 rounded-full bg-white ring-4 ring-[#12356f]"/><p className="text-xs font-bold text-blue-200">SET REMINDER</p><p className="text-sm font-semibold">Registration closes Friday</p></div><div className="relative"><i className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border border-blue-200 bg-[#12356f] ring-4 ring-[#12356f]"/><p className="text-xs font-bold text-blue-200">GET SUPPORT</p><p className="text-sm font-semibold">Connect with Registrar AA&amp;R</p></div></div>
+            <div className="relative mt-8 flex items-center gap-3 rounded-2xl bg-white p-3 text-[#112956]"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#dce8ff]"><FileSearch size={19}/></span><span><b className="block text-sm">Source-backed guidance</b><small className="text-xs text-slate-500">No source? KiliGuide says so.</small></span></div>
+          </div>
+          <div className="absolute -bottom-2 -right-3 flex items-center gap-2 rounded-xl bg-[#f4f2ec] px-3 py-2 text-[#112956] shadow-lg"><BellRing size={16} className="text-blue-700"/><span className="text-xs font-bold">Deadline kept in view</span></div>
         </div>
-        <div className="absolute -bottom-5 -left-3 flex items-center gap-3 rounded-2xl border border-white bg-white px-4 py-3 shadow-soft"><span className="grid h-9 w-9 place-items-center rounded-xl bg-lime"><BellRing size={18} /></span><span><b className="block text-sm">Deadline reminder</b><small className="text-xs text-slate-500">Fee payment · Tomorrow</small></span></div>
       </div>
     </section>
 
-    <section id="how-it-works" className="border-y border-blue-100 bg-white py-16 sm:py-20"><div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10"><div className="max-w-xl"><p className="text-sm font-bold uppercase tracking-[.14em] text-blue-600">Built for campus life</p><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Everything you need, connected to the university.</h2></div><div className="mt-10 grid gap-4 md:grid-cols-3">{services.map(({icon:Icon,title,description})=><article key={title} className="rounded-2xl border border-slate-100 bg-[#fbfcff] p-6"><span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-100 text-blue-700"><Icon size={22}/></span><h3 className="mt-5 text-lg font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{description}</p></article>)}</div></div></section>
+    <section id="discover" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10"><div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr]"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">The KiliGuide way</p><h2 className="mt-4 text-4xl font-black leading-[1.02] tracking-[-.04em]">Less searching.<br/>More certainty.</h2><p className="mt-5 max-w-sm leading-7 text-slate-600">Campus information should be easy to find and safe to act on. KiliGuide makes the next right action obvious.</p></div><div className="divide-y divide-[#d7d5cd] border-y border-[#d7d5cd]">{outcomes.map(([number,title,detail])=><article key={number} className="grid grid-cols-[50px_1fr_auto] gap-3 py-6 sm:grid-cols-[70px_1fr_auto] sm:gap-6"><span className="text-sm font-black text-blue-700">{number}</span><div><h3 className="text-xl font-black tracking-tight">{title}</h3><p className="mt-1 max-w-md text-sm leading-6 text-slate-600">{detail}</p></div><ArrowUpRight className="text-blue-700" size={20}/></article>)}</div></div></section>
 
-    <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-10"><div className="grid gap-7 rounded-[2rem] bg-ink px-6 py-10 text-white sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center"><div><div className="flex items-center gap-2 text-lime"><BookOpenCheck size={19}/><span className="text-sm font-bold">SOURCE-GROUNDED AI</span></div><h2 className="mt-3 text-3xl font-black tracking-tight">A safer way to get campus information.</h2><p className="mt-3 max-w-2xl leading-7 text-blue-100">KiliGuide shows the document behind its answer. When the official knowledge base does not contain an answer, it will tell you plainly.</p></div><Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-xl bg-lime px-6 py-3.5 font-bold text-ink hover:bg-[#d5ff8c]">Access KiliGuide <ArrowRight size={18}/></Link></div><p className="mt-7 flex items-center justify-center gap-2 text-center text-xs text-slate-500"><CheckCircle2 size={14} className="text-emerald-600"/> For the DeKUT community · Powered by KiliMind AI <Languages size={14}/></p></section>
+    <section className="bg-[#e3e8f0] px-5 py-16 sm:px-8 lg:px-10"><div className="mx-auto max-w-7xl"><p className="text-center text-xs font-bold uppercase tracking-[.18em] text-blue-700">Designed around real student needs</p><div className="mt-8 grid gap-4 md:grid-cols-3"><article className="bg-[#fffdf8] p-6 sm:p-7"><CalendarDays className="text-blue-700"/><h3 className="mt-10 text-2xl font-black tracking-tight">Your time matters.</h3><p className="mt-3 text-sm leading-6 text-slate-600">Bring in your timetable and receive timely class and deadline reminders.</p></article><article className="bg-[#c7ff62] p-6 sm:p-7"><BookOpenCheck className="text-[#112956]"/><h3 className="mt-10 text-2xl font-black tracking-tight">Answers need evidence.</h3><p className="mt-3 text-sm leading-6 text-[#28405f]">Every AI answer is grounded in retrieved university sources that you can inspect.</p></article><article className="bg-[#12356f] p-6 text-white sm:p-7"><MessageCircleMore className="text-[#c7ff62]"/><h3 className="mt-10 text-2xl font-black tracking-tight">Support should feel human.</h3><p className="mt-3 text-sm leading-6 text-blue-100">Open a ticket, follow updates, and know which department is handling it.</p></article></div></div></section>
+
+    <footer className="bg-[#0a1e46] px-5 py-12 text-white sm:px-8 lg:px-10"><div className="mx-auto flex max-w-7xl flex-col gap-8 sm:flex-row sm:items-end sm:justify-between"><div><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#c7ff62] font-black text-[#0a1e46]">K</span><b className="text-lg">KiliGuide</b></div><p className="mt-3 text-sm text-blue-200">A smarter path through DeKUT.</p></div><div className="flex flex-col items-start gap-3 sm:items-end"><Link href="/login" className="inline-flex items-center gap-2 rounded-full bg-[#c7ff62] px-5 py-3 font-bold text-[#0a1e46]">Sign in to your workspace <ArrowUpRight size={17}/></Link><p className="flex items-center gap-1.5 text-xs text-blue-200"><Check size={14} className="text-[#c7ff62]"/> KiliMind AI · Built for the DeKUT community</p></div></div></footer>
   </main>;
 }
