@@ -118,6 +118,8 @@ The UI can be explored without credentials using preview data. Authentication an
    supabase functions deploy save-push-subscription
    ```
 
+7. After the initial administrator has signed up, run `supabase/scripts/assign_initial_administrator.sql` once in the Supabase SQL Editor. This is a one-time bootstrap action, not a permanent email-based privilege rule.
+
 ## Document ingestion contract
 
 Upload the original PDF, DOCX, or TXT file to the private `documents` Storage bucket, create the corresponding row in `documents`, extract text using a worker or trusted server process, then call `ingest-document` with:
