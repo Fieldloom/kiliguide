@@ -1,3 +1,3 @@
-import { CampusHome } from "../components/campus-home";
+import { WelcomePage } from "../components/welcome-page";
 
-export default function Home() { return <CampusHome />; }
+export default function Home() { return <WelcomePage />; }
