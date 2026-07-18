@@ -28,6 +28,9 @@ Deno.serve(async (req) => {
     if (!document) return Response.json({ error: "Document not found." }, { status: 404, headers: CORS });
     await supabase.from("document_chunks").delete().eq("document_id", documentId);
     const chunks = chunkText(text);
+    if (chunks.length === 0) {
+      return Response.json({ error: "Extracted text was too short or just whitespace. Text was: " + text.slice(0, 200) }, { status: 400, headers: CORS });
+    }
     for (let index = 0; index < chunks.length; index++) {
       const { data: inserted, error } = await supabase.from("document_chunks").insert({ document_id: documentId, content: chunks[index], page_number: pageNumber ?? null, chunk_index: index }).select("id").single();
       if (error) throw error;
