@@ -20,6 +20,7 @@ create index documents_processing_status_idx on public.documents(processing_stat
 alter table public.trusted_source_domains enable row level security;
 create policy "trusted sources authenticated read" on public.trusted_source_domains for select to authenticated using(approved or public.is_admin());
 create policy "administrators manage trusted sources" on public.trusted_source_domains for all to authenticated using(public.is_admin()) with check(public.is_admin());
+create policy "administrators delete document files" on storage.objects for delete to authenticated using(bucket_id = 'documents' and public.is_admin());
 
 insert into public.trusted_source_domains (domain, organisation, notes) values
   ('dkut.ac.ke', 'Dedan Kimathi University of Technology', 'Official university domain'),
