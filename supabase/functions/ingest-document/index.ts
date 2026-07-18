@@ -15,7 +15,7 @@ async function embed(text: string) {
   const response = await geminiFetch(gemini, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: { parts: [{ text: `Represent this university document for retrieval: ${text}` }] }, output_dimensionality: 768 }) });
   if (!response.ok) throw new Error("Embedding request failed");
   const body = await response.json();
-  return body.embeddings?.[0]?.values as number[];
+  return (body.embedding?.values || body.embeddings?.[0]?.values) as number[];
 }
 
 Deno.serve(async (req) => {
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       const { error: vectorError } = await supabase.from("embeddings").insert({ chunk_id: inserted.id, embedding: vector });
       if (vectorError) throw vectorError;
     }
-    await supabase.from("documents").update({ metadata: { processing_status: "ready", chunk_count: chunks.length } }).eq("id", documentId);
+    await supabase.from("documents").update({ processing_status: "ready", chunk_count: chunks.length }).eq("id", documentId);
     const { data: publication } = await supabase.from("documents").select("notify_on_ready").eq("id", documentId).single();
     if (publication?.notify_on_ready) {
       await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/publish-update`, { method: "POST", headers: { "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`, "Content-Type": "application/json" }, body: JSON.stringify({ documentId }) });
