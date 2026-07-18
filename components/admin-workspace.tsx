@@ -1,30 +1,659 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, BarChart3, Bell, Bot, Check, ChevronDown, ChevronRight, CircleHelp, FileText, LayoutDashboard, Menu, MessageSquareText, Search, Settings, ShieldCheck, Ticket, Upload, Users, X } from "lucide-react";
+import {
+  Activity, BarChart3, Bell, Bot, Check, ChevronDown, ChevronRight,
+  FileText, LayoutDashboard, Menu, MessageSquareText, Search,
+  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
-
-type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health";
-const nav: {label:Tab;icon:typeof LayoutDashboard}[] = [
-  {label:"Overview",icon:LayoutDashboard},{label:"AI Assistant",icon:MessageSquareText},
-  {label:"Documents",icon:FileText},{label:"Notices",icon:Bell},{label:"Tickets",icon:Ticket},
-  {label:"Users",icon:Users},{label:"Analytics",icon:BarChart3},{label:"System Health",icon:Settings},
-];
-const actions = ["Review knowledge-base processing queue","Assign user roles for new staff","Check weekly service analytics","Verify outdated documents"];
-const activities = ["New document uploaded · Finance Policy 2026.pdf","Ticket resolved · #TK-2481 Hostel issue","New user registered · john.mutua@dkut.ac.ke","Notice published · Examination Timetable"];
-
-export function AdminWorkspace(){const [tab,setTab]=useState<Tab>("Overview"),[menu,setMenu]=useState(false),[query,setQuery]=useState(""),[done,setDone]=useState<number[]>([]),[notice,setNotice]=useState(3),[composer,setComposer]=useState(false);const results=useMemo(()=>activities.filter(x=>x.toLowerCase().includes(query.toLowerCase())),[query]);const go=(next:Tab)=>{setTab(next);setMenu(false)};return <main className="min-h-screen bg-[#f6f8fc] text-[#14264d]"><aside className={`fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-[#071a3c] p-5 text-white transition-transform lg:translate-x-0 ${menu?"translate-x-0":"-translate-x-full"}`}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="grid h-10 w-10 overflow-hidden place-items-center rounded-xl bg-white"><img src="/logo.png" alt="KiliGuide" className="w-full h-full object-cover scale-[1.3] pt-1" /></span><span><strong className="block text-lg">KiliGuide</strong><small className="text-[10px] font-bold tracking-wider text-[#c7ff62]">ADMINISTRATION</small></span></div><button className="lg:hidden" onClick={()=>setMenu(false)}><X/></button></div><p className="mt-12 px-3 text-[10px] font-bold tracking-widest text-blue-300">WORKSPACE</p><nav className="mt-3 space-y-1">{nav.map(({label,icon:Icon})=><button key={label} onClick={()=>go(label)} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${tab===label?"bg-white/15 text-white shadow-sm":"text-blue-100 hover:bg-white/10"}`}><Icon size={17}/>{label}</button>)}</nav><div className="mt-auto rounded-2xl bg-white/5 p-4"><p className="flex items-center gap-2 text-sm font-bold"><CircleHelp size={16} className="text-[#c7ff62]"/> Need help?</p><p className="mt-2 text-xs leading-5 text-blue-200">KiliGuide AI is here to help you manage campus operations.</p><button onClick={()=>go("AI Assistant")} className="mt-4 w-full rounded-xl border border-[#c7ff62]/60 py-2.5 text-xs font-bold text-[#c7ff62]">Ask AI Assistant</button></div><button className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5 text-left"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#6855e8] text-xs font-bold">GW</span><span><b className="block text-sm">Griffin Wekesa</b><small className="text-xs text-blue-200">Super Administrator</small></span><ChevronDown className="ml-auto" size={16}/></button></aside>{menu&&<button className="fixed inset-0 z-40 bg-slate-950/45 lg:hidden" onClick={()=>setMenu(false)} aria-label="Close menu"/>}<section className="lg:ml-[260px]"><header className="sticky top-0 z-30 flex h-[69px] items-center gap-3 border-b border-[#dfe6f3] bg-white/95 px-4 backdrop-blur sm:px-8"><button onClick={()=>setMenu(true)} className="rounded-lg p-2 lg:hidden"><Menu/></button><label className="hidden max-w-xl flex-1 items-center gap-3 rounded-xl bg-[#f4f7fc] px-4 py-2.5 md:flex"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Search anything in KiliGuide…"/><kbd className="rounded bg-white px-1.5 py-0.5 text-[10px] text-slate-400">⌘ K</kbd></label><div className="ml-auto flex items-center gap-4"><button onClick={()=>setNotice(0)} className="relative rounded-lg p-2"><Bell size={19}/>{notice>0&&<i className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-[#6556e8] text-[9px] font-bold text-white">{notice}</i>}</button><button className="grid h-9 w-9 place-items-center rounded-full bg-[#43b581] text-xs font-bold text-white">GW</button><ChevronDown size={16}/></div></header><div className="mx-auto max-w-[1440px] p-4 pb-24 sm:p-8">{query&&<div className="mb-5 rounded-xl border border-blue-100 bg-white p-4 text-sm"><b>Search results</b>{results.length?results.map(x=><p key={x} className="mt-2 text-slate-600">{x}</p>):<p className="mt-2 text-slate-500">No matching activity.</p>}</div>}{tab==="Overview"?<Overview done={done} setDone={setDone} onTab={go}/>:<WorkspaceTab tab={tab} onCompose={()=>setComposer(true)}/>}</div></section>{composer&&<Compose onClose={()=>setComposer(false)} />}</main>}
-
-function Overview({done,setDone,onTab}:{done:number[];setDone:(x:number[])=>void;onTab:(x:Tab)=>void}){const mark=(index:number)=>setDone(done.includes(index)?done.filter(x=>x!==index):[...done,index]);return <><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold text-slate-500">Welcome back, <b className="text-[#14264d]">Griffin</b> 👋</p><h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">A healthier, more informed campus.</h1><p className="mt-2 text-slate-500">Manage people, knowledge and service delivery across the university.</p></div><button className="rounded-xl border border-[#dce3f1] bg-white px-4 py-2.5 text-sm font-bold">This week <ChevronDown className="ml-1 inline" size={15}/></button></div><div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Metric icon={Users} color="bg-lime-50 text-lime-600" value="2,481" label="Active users" change="↑ 12.5%"/><Metric icon={FileText} color="bg-blue-50 text-blue-600" value="48" label="Live documents" change="↑ 8.1%"/><Metric icon={MessageSquareText} color="bg-violet-50 text-violet-600" value="1,842" label="AI queries answered" change="↑ 15.3%"/><Metric icon={ShieldCheck} color="bg-amber-50 text-amber-600" value="96%" label="Grounded answer rate" change="↑ 4.7%"/></div><div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_.78fr_.7fr]"><Chart/><Health/><ActivityList onTab={onTab}/></div><div className="mt-5 grid gap-5 xl:grid-cols-[.92fr_.92fr_.7fr]"><section className="rounded-2xl border border-[#e2e8f3] bg-white p-5"><div className="flex justify-between"><h2 className="font-bold">Priority actions</h2><button onClick={()=>onTab("Documents")} className="rounded-lg border px-3 py-1.5 text-xs font-bold">View all tasks</button></div><div className="mt-4 space-y-2">{actions.map((task,i)=><button onClick={()=>mark(i)} key={task} className="flex w-full items-center gap-3 rounded-xl bg-[#f8faff] p-3 text-left text-xs font-semibold"><span className={`grid h-5 w-5 place-items-center rounded-full border ${done.includes(i)?"border-emerald-500 bg-emerald-500 text-white":"border-[#b4c3dd]"}`}>{done.includes(i)&&<Check size={13}/>}</span><span className="flex-1">{task}</span><span className="hidden rounded-md bg-violet-50 px-2 py-1 text-[10px] text-violet-700 sm:block">{i===0?"High":i===2?"Low":"Medium"}</span><ChevronRight size={15}/></button>)}</div></section><DepartmentChart/><SystemStatus/></div></>}
-function Metric({icon:Icon,color,value,label,change}:{icon:any;color:string;value:string;label:string;change:string}){return <article className="rounded-2xl border border-[#e2e8f3] bg-white p-5"><div className="flex items-center gap-3"><span className={`grid h-11 w-11 place-items-center rounded-2xl ${color}`}><Icon size={21}/></span><div><p className="text-xs font-semibold text-slate-500">{label}</p><b className="mt-1 block text-2xl">{value} <small className="ml-2 text-[11px] text-emerald-600">{change}</small></b></div></div><p className="mt-2 pl-14 text-[11px] text-slate-400">vs last week</p></article>}
-function Chart(){return <section className="rounded-2xl border border-[#e2e8f3] bg-white p-5"><div className="flex justify-between"><h2 className="font-bold">AI queries over time</h2><button className="rounded-lg border px-3 py-1 text-xs font-bold">7 days⌄</button></div><div className="relative mt-6 h-48 overflow-hidden"><div className="absolute inset-x-0 top-[18%] border-t border-dashed"/><div className="absolute inset-x-0 top-[50%] border-t border-dashed"/><svg viewBox="0 0 600 200" className="h-full w-full"><defs><linearGradient id="a" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#6158ed" stopOpacity=".25"/><stop offset="1" stopColor="#6158ed" stopOpacity="0"/></linearGradient></defs><path d="M0 150 L75 150 L150 105 L225 126 L300 60 L375 125 L450 90 L525 122 L600 28 V200 H0Z" fill="url(#a)"/><path d="M0 150 L75 150 L150 105 L225 126 L300 60 L375 125 L450 90 L525 122 L600 28" fill="none" stroke="#6158ed" strokeWidth="3"/>{[0,75,150,225,300,375,450,525,600].map((x,i)=><circle key={x} cx={x} cy={[150,150,105,126,60,125,90,122,28][i]} r="4" fill="#6158ed"/>)}</svg></div><div className="flex justify-between text-[10px] text-slate-500"><span>May 11</span><span>May 12</span><span>May 13</span><span>May 14</span><span>May 15</span><span>May 16</span><span>May 17</span></div></section>}
-function Health(){return <section className="rounded-2xl border border-[#e2e8f3] bg-white p-5"><h2 className="font-bold">Knowledge base health</h2><div className="mt-7 flex items-center gap-5"><div className="grid h-28 w-28 shrink-0 place-items-center rounded-full border-[9px] border-[#63bf56] text-center"><b>Excellent<br/><span className="text-emerald-600">96/100</span></b></div><div className="min-w-0 flex-1 space-y-4">{["Documents processed","Chunks indexed","Embeddings up to date","Retrieval accuracy"].map((x,i)=><div key={x}><div className="flex justify-between text-[11px] font-semibold"><span>{x}</span><span>{98-i}%</span></div><div className="mt-1 h-1 rounded bg-slate-100"><i className="block h-full rounded bg-[#63bf56]" style={{width:`${98-i}%`}}/></div></div>)}</div></div></section>}
-function ActivityList({onTab}:{onTab:(x:Tab)=>void}){return <section className="rounded-2xl border border-[#e2e8f3] bg-white p-5"><div className="flex justify-between"><h2 className="font-bold">Recent activity</h2><button onClick={()=>onTab("Documents")} className="text-xs font-bold">View all</button></div><div className="mt-4 space-y-4">{activities.map((x,i)=><button onClick={()=>onTab(i===1?"Tickets":i===3?"Notices":"Documents")} key={x} className="flex gap-3 text-left"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600"><Activity size={15}/></span><span className="text-xs"><b className="block leading-5">{x}</b><small className="text-slate-400">{i+1}h ago</small></span></button>)}</div></section>}
-function DepartmentChart(){return <section className="rounded-2xl border border-[#e2e8f3] bg-white p-5"><h2 className="font-bold">Top departments by tickets</h2><div className="mt-5 space-y-4">{[["Student Welfare",90],["ICT Services",70],["Finance Office",52],["Accommodation",39],["Registrar (AA&R)",28]].map(([x,w]:any)=><div key={x} className="grid grid-cols-[95px_1fr_24px] items-center gap-2 text-[11px]"><span>{x}</span><i className="h-1 rounded bg-[#e5e6ff]"><b className="block h-full rounded bg-[#7466ed]" style={{width:`${w}%`}}/></i><span>{Math.round(w/3)}</span></div>)}</div></section>}
-function SystemStatus(){return <section className="rounded-2xl border border-[#e2e8f3] bg-white p-5"><h2 className="font-bold">System status</h2><div className="mt-4 space-y-3">{["AI Assistant","Document Ingestion","Vector Database","Storage","Authentication"].map(x=><p key={x} className="flex justify-between text-xs"><span>{x}</span><b className="text-emerald-600">Operational ●</b></p>)}</div></section>}
-function WorkspaceTab({tab,onCompose}:{tab:Tab;onCompose:()=>void}){return <section><div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-bold tracking-widest text-blue-700">ADMINISTRATION</p><h1 className="mt-2 text-3xl font-black">{tab}</h1><p className="mt-2 text-slate-500">Manage your university {tab.toLowerCase()} from this workspace.</p></div><button onClick={onCompose} className="rounded-xl bg-[#0b2860] px-4 py-3 text-sm font-bold text-white"><Upload className="mr-2 inline" size={16}/> {tab==="Documents"?"Upload document":`Create ${tab.slice(0,-1)}`}</button></div>{tab==="Documents"?<><OfficialSourceImport/><DocumentLibrary/></>:<div className="mt-7 rounded-2xl border border-[#e2e8f3] bg-white p-8 text-center"><Bot className="mx-auto text-blue-600"/><h2 className="mt-3 text-lg font-bold">{tab} workspace</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">This section is ready for live Supabase records. Use the create action to begin a new item, or return to Overview to monitor operations.</p></div>}</section>}
 import { scrapeDeKut } from "../app/actions";
 
-function OfficialSourceImport(){const [url,setUrl]=useState("https://www.dkut.ac.ke/"),[title,setTitle]=useState("DeKUT registration rules"),[file,setFile]=useState<File|null>(null),[status,setStatus]=useState(""),[busy,setBusy]=useState(false);const ingest=async()=>{if(!supabase){setStatus("Supabase is not configured in this deployment.");return}setBusy(true);setStatus("Fetching the official page using Next.js backend...");const result=await scrapeDeKut(url);if(result.error){setBusy(false);setStatus(`Failed: ${result.error}`);return;}setStatus("Saving document record securely...");const {data:{user}}=await supabase.auth.getUser();if(!user){setBusy(false);setStatus("Your session has expired. Please sign in again.");return}const path=`admin/${user.id}/${crypto.randomUUID()}.txt`;const textToUpload = result.text || ""; const {error:storageError}=await supabase.storage.from("documents").upload(path,textToUpload,{contentType:"text/plain"});if(storageError){setBusy(false);setStatus(storageError.message);return}const {data:document,error:documentError}=await supabase.from("documents").insert({title:result.title||"DeKUT Webpage",category:"Administration",source_url:url,storage_path:path,file_type:"txt",uploaded_by:user.id,metadata:{processing_status:"processing"}}).select("id").single();if(documentError){setBusy(false);setStatus(documentError.message);return}setStatus("Creating embeddings...");const {data,error}=await supabase.functions.invoke("ingest-document",{body:{documentId:document.id,text:textToUpload}});setBusy(false);if(error){setStatus(`Uploaded, but indexing failed: ${error.message}`);}else{setStatus(`Ready: "${result.title}" was scraped and successfully added!`);}};const upload=async()=>{if(!supabase||!file)return;setBusy(true);setStatus("Uploading the document securely…");const {data:{user}}=await supabase.auth.getUser();if(!user){setBusy(false);setStatus("Your session has expired. Please sign in again.");return}const extension=file.name.split(".").pop()?.toLowerCase()||"file";const path=`admin/${user.id}/${crypto.randomUUID()}.${extension}`;const {error:storageError}=await supabase.storage.from("documents").upload(path,file,{contentType:file.type||"application/octet-stream"});if(storageError){setBusy(false);setStatus(storageError.message);return}const {data:document,error:documentError}=await supabase.from("documents").insert({title:file.name.replace(/\.[^.]+$/, ""),category:"Administration",storage_path:path,file_type:extension,uploaded_by:user.id,metadata:{processing_status:extension==="txt"?"processing":"uploaded_pending_extraction",original_name:file.name}}).select("id,title").single();if(documentError){setBusy(false);setStatus(documentError.message);return}if(extension==="txt"){const text=await file.text();const {data,error}=await supabase.functions.invoke("ingest-document",{body:{documentId:document.id,text}});setStatus(error?`Uploaded, but indexing failed: ${error.message}`:data?.error?`Indexing failed: ${data.error}`:`Ready: ${document.title} was indexed into ${data?.chunks||0} RAG chunks.`)}else{setStatus(`Extracting text from ${extension.toUpperCase()}...`);const {data,error}=await supabase.functions.invoke("process-document",{body:{documentId:document.id,storagePath:path,extension}});setStatus(error?`Extraction failed: ${error.message}`:data?.error?`Extraction failed: ${data.error}`:`Ready: ${document.title} was indexed into ${data?.chunks||0} RAG chunks.`)}setBusy(false)};return <div className="mt-7 grid gap-5 xl:grid-cols-[1.1fr_.9fr]"><section className="rounded-2xl border border-[#dce7f8] bg-white p-6"><p className="flex items-center gap-2 text-sm font-bold text-[#0b2860]"><ShieldCheck className="text-emerald-600" size={18}/> Import an official DeKUT source</p><p className="mt-2 text-sm leading-6 text-slate-500">KiliGuide accepts only official <b>dkut.ac.ke</b> webpages. It stores the source URL, extracts readable content, and creates RAG embeddings.</p><label className="mt-5 block text-xs font-bold">OFFICIAL URL<input value={url} onChange={e=>setUrl(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm font-normal outline-blue-500"/></label><button disabled={busy} onClick={ingest} className="mt-5 rounded-xl bg-[#0b2860] px-5 py-3 text-sm font-bold text-white disabled:opacity-60">{busy?"Indexing source…":"Scrape into knowledge base"}</button><div className="my-6 border-t"/><p className="flex items-center gap-2 text-sm font-bold text-[#0b2860]"><Upload size={17}/> Upload PDF, DOCX, or TXT</p><input onChange={e=>setFile(e.target.files?.[0]??null)} accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" type="file" className="mt-3 block w-full text-sm"/><button disabled={busy||!file} onClick={upload} className="mt-3 rounded-xl border border-[#0b2860] px-5 py-3 text-sm font-bold text-[#0b2860] disabled:opacity-50">{busy?"Working…":file?`Upload ${file.name}`:"Choose a file"}</button>{status&&<p className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-800">{status}</p>}</section><section className="rounded-2xl bg-[#0b2860] p-6 text-white"><p className="text-xs font-bold tracking-widest text-[#c7ff62]">SUGGESTED FIRST SOURCES</p><div className="mt-5 space-y-4 text-sm">{[["Registration rules","registration.dkut.ac.ke/index.php/international/admission/rules"],["University home","www.dkut.ac.ke/index.php"],["Admissions portal","admissions.dkut.ac.ke"]].map(([name,address])=><button key={address} onClick={()=>{setUrl(`https://${address}`);}} className="block w-full rounded-xl border border-white/10 p-3 text-left hover:bg-white/10"><b className="block">{name}</b><small className="mt-1 block text-blue-200">{address}</small></button>)}</div></section></div>}
-type ManagedDocument={id:string;title:string;category:string;file_type:string;status:string;processing_status?:string;source_url?:string|null;storage_path:string;chunk_count?:number;created_at:string;processing_error?:string|null};
-function DocumentLibrary(){const [documents,setDocuments]=useState<ManagedDocument[]>([]),[search,setSearch]=useState(""),[filter,setFilter]=useState("all"),[loading,setLoading]=useState(true),[notice,setNotice]=useState("");const load=async()=>{if(!supabase){setLoading(false);return}setLoading(true);const {data,error}=await supabase.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error").order("created_at",{ascending:false});setDocuments((data??[]) as ManagedDocument[]);setNotice(error?error.message:"");setLoading(false)};useEffect(()=>{load()},[]);const visible=documents.filter(d=>(filter==="all"||d.processing_status===filter||d.status===filter)&&`${d.title} ${d.category} ${d.source_url??""}`.toLowerCase().includes(search.toLowerCase()));const archive=async(d:ManagedDocument)=>{if(!supabase)return;const {error}=await supabase.from("documents").update({status:d.status==="archived"?"active":"archived",processing_status:d.status==="archived"?"ready":"archived"}).eq("id",d.id);setNotice(error?error.message:`${d.title} ${d.status==="archived"?"restored":"archived"}.`);load()};const remove=async(d:ManagedDocument)=>{if(!supabase||!confirm(`Delete ${d.title}? This permanently removes its RAG chunks.`))return;const {error}=await supabase.from("documents").delete().eq("id",d.id);if(!error)await supabase.storage.from("documents").remove([d.storage_path]);setNotice(error?error.message:`${d.title} deleted.`);load()};return <section className="mt-7 rounded-2xl border border-[#dce7f8] bg-white p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">Knowledge base documents</h2><p className="mt-1 text-sm text-slate-500">Review, archive, reprocess, or remove every approved source.</p></div><button onClick={load} className="rounded-xl border px-3 py-2 text-xs font-bold">Refresh</button></div><div className="mt-5 flex flex-col gap-3 sm:flex-row"><label className="flex flex-1 items-center gap-2 rounded-xl border px-3"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} className="w-full py-2.5 text-sm outline-none" placeholder="Search documents or source URL"/></label><select value={filter} onChange={e=>setFilter(e.target.value)} className="rounded-xl border px-3 py-2.5 text-sm"><option value="all">All statuses</option><option value="ready">Ready</option><option value="failed">Failed</option><option value="uploaded">Uploaded</option><option value="archived">Archived</option></select></div>{notice&&<p className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-800">{notice}</p>}<div className="mt-5 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b text-xs uppercase tracking-wide text-slate-400"><tr><th className="pb-3">Document</th><th className="pb-3">Source</th><th className="pb-3">Status</th><th className="pb-3">RAG</th><th className="pb-3 text-right">Controls</th></tr></thead><tbody>{loading?<tr><td colSpan={5} className="py-8 text-center text-slate-500">Loading knowledge base…</td></tr>:visible.length?visible.map(d=><tr key={d.id} className="border-b last:border-0"><td className="py-4 pr-4"><b className="block">{d.title}</b><small className="text-slate-500">{d.category} · {d.file_type.toUpperCase()} · {new Date(d.created_at).toLocaleDateString()}</small></td><td className="max-w-44 truncate py-4 pr-4 text-xs text-blue-700">{d.source_url??"Uploaded file"}</td><td className="py-4 pr-4"><span className={`rounded-full px-2 py-1 text-xs font-bold ${d.processing_status==="ready"?"bg-emerald-50 text-emerald-700":d.processing_status==="failed"?"bg-rose-50 text-rose-700":"bg-amber-50 text-amber-700"}`}>{d.status==="archived"?"Archived":d.processing_status??"Uploaded"}</span>{d.processing_error&&<small className="mt-1 block max-w-40 text-rose-600">{d.processing_error}</small>}</td><td className="py-4 pr-4 text-xs">{d.chunk_count??0} chunks</td><td className="py-4 text-right"><button onClick={()=>archive(d)} className="mr-2 rounded-lg border px-2.5 py-1.5 text-xs font-bold">{d.status==="archived"?"Restore":"Archive"}</button><button onClick={()=>remove(d)} className="rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-bold text-rose-600">Delete</button></td></tr>):<tr><td colSpan={5} className="py-8 text-center text-slate-500">No documents match this view.</td></tr>}</tbody></table></div></section>}
-function Compose({onClose}:{onClose:()=>void}){return <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/45 p-4"><section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex justify-between"><h2 className="text-xl font-black">Create an update</h2><button onClick={onClose}><X/></button></div><label className="mt-5 block text-sm font-bold">Title<input className="mt-2 w-full rounded-xl border p-3 font-normal outline-blue-500" placeholder="Add a clear title"/></label><label className="mt-4 block text-sm font-bold">Message<textarea className="mt-2 min-h-24 w-full rounded-xl border p-3 font-normal outline-blue-500" placeholder="What should the university community know?"/></label><button onClick={onClose} className="mt-5 w-full rounded-xl bg-[#0b2860] py-3 font-bold text-white">Save draft</button></section></div>}
+type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health";
+const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
+  { label: "Overview", icon: LayoutDashboard },
+  { label: "AI Assistant", icon: MessageSquareText },
+  { label: "Documents", icon: FileText },
+  { label: "Notices", icon: Bell },
+  { label: "Tickets", icon: Ticket },
+  { label: "Users", icon: Users },
+  { label: "Analytics", icon: BarChart3 },
+  { label: "System Health", icon: Settings },
+];
+
+const D = {
+  bg: "#212121",
+  sidebar: "#171717",
+  card: "#2a2a2a",
+  cardHover: "#303030",
+  border: "#2a2a2a",
+  muted: "#8e8ea0",
+  text: "#ececec",
+  accent: "#19c37d",
+};
+
+export function AdminWorkspace() {
+  const [tab, setTab] = useState<Tab>("Overview");
+  const [menu, setMenu] = useState(false);
+  const [query, setQuery] = useState("");
+  const [done, setDone] = useState<number[]>([]);
+  const [composer, setComposer] = useState(false);
+
+  const go = (next: Tab) => { setTab(next); setMenu(false); };
+
+  return (
+    <main style={{ minHeight: "100vh", background: D.bg, color: D.text, display: "flex" }}>
+      {/* Sidebar */}
+      <aside
+        style={{
+          width: 260, flexShrink: 0, background: D.sidebar,
+          borderRight: `1px solid ${D.border}`, display: "flex", flexDirection: "column",
+          position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 50,
+          transform: menu ? "translateX(0)" : undefined,
+          transition: "transform 0.3s"
+        }}
+        className={`lg:relative lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        {/* Logo */}
+        <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${D.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 36, height: 36, borderRadius: 10, overflow: "hidden", display: "grid", placeItems: "center", background: D.card, flexShrink: 0 }}>
+                <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.3) translateY(2px)" }} />
+              </span>
+              <div>
+                <strong style={{ fontSize: 15, display: "block", color: D.text }}>KiliGuide</strong>
+                <small style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: D.accent }}>ADMINISTRATION</small>
+              </div>
+            </div>
+            <button onClick={() => setMenu(false)} style={{ color: D.muted, padding: 4 }} className="lg:hidden">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: D.muted, padding: "4px 12px 8px" }}>WORKSPACE</p>
+          {nav.map(({ label, icon: Icon }) => (
+            <button
+              key={label}
+              onClick={() => go(label)}
+              style={{
+                display: "flex", width: "100%", alignItems: "center", gap: 10,
+                padding: "9px 12px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                background: tab === label ? D.card : "transparent",
+                color: tab === label ? D.text : D.muted,
+                cursor: "pointer", border: "none", transition: "all 0.15s",
+                marginBottom: 2
+              }}
+              onMouseEnter={e => { if (tab !== label) e.currentTarget.style.background = D.card; }}
+              onMouseLeave={e => { if (tab !== label) e.currentTarget.style.background = "transparent"; }}
+            >
+              <Icon size={16} />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {/* User */}
+        <div style={{ padding: "12px 16px", borderTop: `1px solid ${D.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 32, height: 32, borderRadius: "50%", background: "#6855e8", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>GW</span>
+            <div style={{ minWidth: 0 }}>
+              <b style={{ fontSize: 13, display: "block", color: D.text }}>Griffin Wekesa</b>
+              <small style={{ fontSize: 11, color: D.muted }}>Super Administrator</small>
+            </div>
+            <ChevronDown size={14} style={{ color: D.muted, marginLeft: "auto", flexShrink: 0 }} />
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile overlay */}
+      {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)" }} className="lg:hidden" />}
+
+      {/* Main */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }} className="lg:ml-[260px]">
+        {/* Header */}
+        <header style={{ height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 24px", borderBottom: `1px solid ${D.border}`, background: D.sidebar, flexShrink: 0, position: "sticky", top: 0, zIndex: 30 }}>
+          <button onClick={() => setMenu(true)} style={{ color: D.muted, padding: 6, borderRadius: 8 }} className="lg:hidden">
+            <Menu size={20} />
+          </button>
+          {/* Search */}
+          <label style={{ flex: 1, maxWidth: 420, display: "flex", alignItems: "center", gap: 10, borderRadius: 10, background: D.card, padding: "8px 14px", cursor: "text" }}>
+            <Search size={16} style={{ color: D.muted, flexShrink: 0 }} />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: D.text }}
+              placeholder="Search in KiliGuide Admin…"
+            />
+          </label>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 32, height: 32, borderRadius: "50%", background: D.accent, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "#000" }}>GW</span>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 80px" }}>
+          <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+            {tab === "Overview" ? (
+              <Overview done={done} setDone={setDone} onTab={go} />
+            ) : (
+              <WorkspaceTab tab={tab} onCompose={() => setComposer(true)} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {composer && <Compose onClose={() => setComposer(false)} />}
+    </main>
+  );
+}
+
+// ── Metric card ─────────────────────────────────────────────────────────
+function Metric({ icon: Icon, value, label, change, color }: { icon: any; value: string; label: string; change: string; color: string }) {
+  return (
+    <article style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 42, height: 42, borderRadius: 10, background: color + "22", display: "grid", placeItems: "center" }}>
+          <Icon size={20} style={{ color }} />
+        </span>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, color: D.muted }}>{label}</p>
+          <b style={{ fontSize: 22, display: "flex", alignItems: "center", gap: 8 }}>
+            {value}
+            <small style={{ fontSize: 11, color: D.accent, fontWeight: 600 }}>{change}</small>
+          </b>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// ── Chart ────────────────────────────────────────────────────────────────
+function Chart() {
+  const pts = [150, 150, 105, 126, 60, 125, 90, 122, 28];
+  const xs = [0, 75, 150, 225, 300, 375, 450, 525, 600];
+  const path = xs.map((x, i) => `${i === 0 ? "M" : "L"}${x} ${pts[i]}`).join(" ");
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 style={{ fontWeight: 700, fontSize: 15 }}>AI queries over time</h2>
+        <button style={{ borderRadius: 8, border: `1px solid ${D.border}`, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: D.muted, background: "transparent" }}>7 days ⌄</button>
+      </div>
+      <div style={{ position: "relative", marginTop: 20, height: 160 }}>
+        <svg viewBox="0 0 600 200" style={{ width: "100%", height: "100%" }}>
+          <defs>
+            <linearGradient id="ga" x1="0" x2="0" y1="0" y2="1">
+              <stop stopColor="#19c37d" stopOpacity=".3" />
+              <stop offset="1" stopColor="#19c37d" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={`${path} V200 H0Z`} fill="url(#ga)" />
+          <path d={path} fill="none" stroke="#19c37d" strokeWidth="2.5" />
+          {xs.map((x, i) => <circle key={x} cx={x} cy={pts[i]} r="4" fill="#19c37d" />)}
+        </svg>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: D.muted, marginTop: 6 }}>
+        {["May 11", "May 12", "May 13", "May 14", "May 15", "May 16", "May 17"].map(d => <span key={d}>{d}</span>)}
+      </div>
+    </section>
+  );
+}
+
+// ── Health ───────────────────────────────────────────────────────────────
+function Health() {
+  const bars = ["Documents processed", "Chunks indexed", "Embeddings up to date", "Retrieval accuracy"];
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
+      <h2 style={{ fontWeight: 700, fontSize: 15 }}>Knowledge base health</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 20 }}>
+        <div style={{ width: 96, height: 96, borderRadius: "50%", border: `8px solid ${D.accent}`, display: "grid", placeItems: "center", flexShrink: 0, textAlign: "center" }}>
+          <div><b style={{ fontSize: 13 }}>Excellent</b><br /><span style={{ fontSize: 14, color: D.accent }}>96/100</span></div>
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+          {bars.map((x, i) => (
+            <div key={x}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: D.muted }}><span>{x}</span><span>{98 - i}%</span></div>
+              <div style={{ height: 4, borderRadius: 2, background: "#3a3a3a", marginTop: 4 }}>
+                <div style={{ height: "100%", borderRadius: 2, background: D.accent, width: `${98 - i}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Activity list ────────────────────────────────────────────────────────
+const activities = [
+  "New document uploaded · Finance Policy 2026.pdf",
+  "Ticket resolved · #TK-2481 Hostel issue",
+  "New user registered · john.mutua@dkut.ac.ke",
+  "Notice published · Examination Timetable"
+];
+function ActivityList({ onTab }: { onTab: (x: Tab) => void }) {
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 style={{ fontWeight: 700, fontSize: 15 }}>Recent activity</h2>
+        <button onClick={() => onTab("Documents")} style={{ fontSize: 12, fontWeight: 600, color: D.accent, background: "transparent", border: "none", cursor: "pointer" }}>View all</button>
+      </div>
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+        {activities.map((x, i) => (
+          <button key={x} onClick={() => onTab(i === 1 ? "Tickets" : i === 3 ? "Notices" : "Documents")}
+            style={{ display: "flex", gap: 10, textAlign: "left", background: "transparent", border: "none", cursor: "pointer" }}>
+            <span style={{ width: 32, height: 32, borderRadius: 8, background: "#19c37d22", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Activity size={14} style={{ color: D.accent }} />
+            </span>
+            <span>
+              <b style={{ display: "block", fontSize: 12, color: D.text, lineHeight: 1.5 }}>{x}</b>
+              <small style={{ fontSize: 11, color: D.muted }}>{i + 1}h ago</small>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Dept chart ────────────────────────────────────────────────────────────
+function DepartmentChart() {
+  const rows: [string, number][] = [["Student Welfare", 90], ["ICT Services", 70], ["Finance Office", 52], ["Accommodation", 39], ["Registrar (AA&R)", 28]];
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
+      <h2 style={{ fontWeight: 700, fontSize: 15 }}>Top departments by tickets</h2>
+      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+        {rows.map(([x, w]) => (
+          <div key={x} style={{ display: "grid", gridTemplateColumns: "110px 1fr 28px", alignItems: "center", gap: 8, fontSize: 11 }}>
+            <span style={{ color: D.muted }}>{x}</span>
+            <div style={{ height: 4, borderRadius: 2, background: "#3a3a3a" }}>
+              <div style={{ height: "100%", borderRadius: 2, background: "#7466ed", width: `${w}%` }} />
+            </div>
+            <span style={{ color: D.muted }}>{Math.round(w / 3)}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── System status ─────────────────────────────────────────────────────────
+function SystemStatus() {
+  const items = ["AI Assistant", "Document Ingestion", "Vector Database", "Storage", "Authentication"];
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
+      <h2 style={{ fontWeight: 700, fontSize: 15 }}>System status</h2>
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        {items.map(x => (
+          <div key={x} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+            <span style={{ color: D.muted }}>{x}</span>
+            <b style={{ color: D.accent }}>Operational ●</b>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Priority actions ──────────────────────────────────────────────────────
+const actionItems = ["Review knowledge-base processing queue", "Assign user roles for new staff", "Check weekly service analytics", "Verify outdated documents"];
+
+// ── Overview ──────────────────────────────────────────────────────────────
+function Overview({ done, setDone, onTab }: { done: number[]; setDone: (x: number[]) => void; onTab: (x: Tab) => void }) {
+  const mark = (i: number) => setDone(done.includes(i) ? done.filter(x => x !== i) : [...done, i]);
+  return (
+    <>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 13, color: D.muted }}>Welcome back, <b style={{ color: D.text }}>Griffin</b> 👋</p>
+        <h1 style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: D.text, letterSpacing: "-0.02em" }}>A healthier, more informed campus.</h1>
+        <p style={{ marginTop: 6, color: D.muted, fontSize: 14 }}>Manage people, knowledge and service delivery across the university.</p>
+      </div>
+
+      {/* Metrics */}
+      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", marginBottom: 20 }}>
+        <Metric icon={Users} color="#19c37d" value="2,481" label="Active users" change="↑ 12.5%" />
+        <Metric icon={FileText} color="#6366f1" value="48" label="Live documents" change="↑ 8.1%" />
+        <Metric icon={MessageSquareText} color="#f59e0b" value="1,842" label="AI queries answered" change="↑ 15.3%" />
+        <Metric icon={ShieldCheck} color="#ec4899" value="96%" label="Grounded answer rate" change="↑ 4.7%" />
+      </div>
+
+      {/* Charts row */}
+      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1.3fr 0.85fr 0.7fr", marginBottom: 20 }}
+        className="xl:grid-cols-[1.3fr_.85fr_.7fr] grid-cols-1">
+        <Chart />
+        <Health />
+        <ActivityList onTab={onTab} />
+      </div>
+
+      {/* Bottom row */}
+      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr 0.7fr" }}
+        className="xl:grid-cols-[1fr_1fr_.7fr] grid-cols-1">
+        {/* Priority actions */}
+        <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontWeight: 700, fontSize: 15 }}>Priority actions</h2>
+            <button onClick={() => onTab("Documents")} style={{ borderRadius: 8, border: `1px solid ${D.border}`, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: D.muted, background: "transparent", cursor: "pointer" }}>View all tasks</button>
+          </div>
+          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+            {actionItems.map((task, i) => (
+              <button key={task} onClick={() => mark(i)}
+                style={{ display: "flex", alignItems: "center", gap: 10, borderRadius: 8, background: done.includes(i) ? "#19c37d11" : "#ffffff08", padding: "10px 12px", textAlign: "left", border: "none", cursor: "pointer", width: "100%" }}>
+                <span style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${done.includes(i) ? D.accent : "#3a3a3a"}`, background: done.includes(i) ? D.accent : "transparent", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  {done.includes(i) && <Check size={12} color="#000" />}
+                </span>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: done.includes(i) ? D.muted : D.text, textDecoration: done.includes(i) ? "line-through" : "none" }}>{task}</span>
+                <span style={{ fontSize: 10, borderRadius: 4, padding: "2px 6px", fontWeight: 700, background: i === 0 ? "#ef444422" : i === 2 ? "#22c55e22" : "#f59e0b22", color: i === 0 ? "#ef4444" : i === 2 ? "#22c55e" : "#f59e0b" }}>
+                  {i === 0 ? "High" : i === 2 ? "Low" : "Med"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+        <DepartmentChart />
+        <SystemStatus />
+      </div>
+    </>
+  );
+}
+
+// ── Workspace Tab ─────────────────────────────────────────────────────────
+function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
+  return (
+    <section>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: D.accent }}>ADMINISTRATION</p>
+          <h1 style={{ fontSize: 28, fontWeight: 800, marginTop: 6, color: D.text, letterSpacing: "-0.02em" }}>{tab}</h1>
+          <p style={{ marginTop: 6, color: D.muted, fontSize: 14 }}>Manage your university {tab.toLowerCase()} from this workspace.</p>
+        </div>
+        <button onClick={onCompose} style={{ borderRadius: 10, background: D.accent, padding: "10px 18px", fontSize: 13, fontWeight: 700, color: "#000", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", border: "none" }}>
+          <Upload size={15} />
+          {tab === "Documents" ? "Upload document" : `Create ${tab.slice(0, -1)}`}
+        </button>
+      </div>
+      {tab === "Documents" ? (
+        <>
+          <OfficialSourceImport />
+          <DocumentLibrary />
+        </>
+      ) : (
+        <div style={{ borderRadius: 12, background: D.card, padding: 48, textAlign: "center", border: `1px solid ${D.border}` }}>
+          <Bot size={36} style={{ color: D.muted, margin: "0 auto 12px" }} />
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: D.text }}>{tab} workspace</h2>
+          <p style={{ marginTop: 8, maxWidth: 420, margin: "8px auto 0", fontSize: 13, color: D.muted, lineHeight: 1.7 }}>
+            This section is ready for live Supabase records. Use the create action to begin a new item, or return to Overview to monitor operations.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Official Source Import ─────────────────────────────────────────────────
+function OfficialSourceImport() {
+  const [url, setUrl] = useState("https://www.dkut.ac.ke/");
+  const [file, setFile] = useState<File | null>(null);
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const ingest = async () => {
+    if (!supabase) { setStatus("Supabase is not configured."); return; }
+    setBusy(true); setStatus("Fetching the official page...");
+    const result = await scrapeDeKut(url);
+    if (result.error) { setBusy(false); setStatus(`Failed: ${result.error}`); return; }
+    setStatus("Saving document record...");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
+    const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
+    const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
+    if (se) { setBusy(false); setStatus(se.message); return; }
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "DeKUT Webpage", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, metadata: { processing_status: "processing" } }).select("id").single();
+    if (de) { setBusy(false); setStatus(de.message); return; }
+    setStatus("Creating embeddings...");
+    const { error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });
+    setBusy(false);
+    setStatus(error ? `Uploaded, but indexing failed: ${error.message}` : `✓ "${result.title}" scraped and indexed!`);
+  };
+
+  const upload = async () => {
+    if (!supabase || !file) return;
+    setBusy(true); setStatus("Uploading document...");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
+    const ext = file.name.split(".").pop()?.toLowerCase() || "file";
+    const path = `admin/${user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error: se } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type || "application/octet-stream" });
+    if (se) { setBusy(false); setStatus(se.message); return; }
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: file.name.replace(/\.[^.]+$/, ""), category: "Administration", storage_path: path, file_type: ext, uploaded_by: user.id, metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } }).select("id,title").single();
+    if (de) { setBusy(false); setStatus(de.message); return; }
+    if (ext === "txt") {
+      const text = await file.text();
+      const { data, error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text } });
+      setStatus(error ? `Uploaded but indexing failed: ${error.message}` : `✓ ${doc.title} indexed into ${data?.chunks || 0} chunks.`);
+    } else {
+      setStatus(`Extracting text from ${ext.toUpperCase()}...`);
+      const { data, error } = await supabase.functions.invoke("process-document", { body: { documentId: doc.id, storagePath: path, extension: ext } });
+      setStatus(error ? `Extraction failed: ${error.message}` : `✓ ${doc.title} indexed into ${data?.chunks || 0} chunks.`);
+    }
+    setBusy(false);
+  };
+
+  const suggestions: [string, string][] = [
+    ["Registration rules", "registration.dkut.ac.ke/index.php/international/admission/rules"],
+    ["University home", "www.dkut.ac.ke/index.php"],
+    ["Admissions portal", "admissions.dkut.ac.ke"],
+  ];
+
+  return (
+    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1.1fr 0.9fr", marginBottom: 20 }} className="xl:grid-cols-[1.1fr_.9fr] grid-cols-1">
+      {/* Import form */}
+      <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
+        <p style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: D.text }}>
+          <ShieldCheck size={17} style={{ color: D.accent }} /> Import an official DeKUT source
+        </p>
+        <p style={{ marginTop: 8, fontSize: 13, color: D.muted, lineHeight: 1.7 }}>
+          Only official <b style={{ color: D.text }}>dkut.ac.ke</b> webpages. KiliGuide stores the source URL, extracts content, and creates RAG embeddings.
+        </p>
+        <label style={{ display: "block", marginTop: 18, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          OFFICIAL URL
+          <input value={url} onChange={e => setUrl(e.target.value)} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }}
+            onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
+            onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
+        </label>
+        <button disabled={busy} onClick={ingest} style={{ marginTop: 14, borderRadius: 8, background: busy ? D.card : D.accent, padding: "10px 18px", fontSize: 13, fontWeight: 700, color: busy ? D.muted : "#000", cursor: busy ? "not-allowed" : "pointer", border: "none" }}>
+          {busy ? "Indexing…" : "Scrape into knowledge base"}
+        </button>
+
+        <div style={{ margin: "20px 0", borderTop: `1px solid ${D.border}` }} />
+
+        <p style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: D.text }}>
+          <Upload size={15} /> Upload PDF, DOCX, or TXT
+        </p>
+        <input onChange={e => setFile(e.target.files?.[0] ?? null)} accept=".pdf,.docx,.txt" type="file"
+          style={{ display: "block", marginTop: 10, fontSize: 13, color: D.muted, width: "100%" }} />
+        <button disabled={busy || !file} onClick={upload} style={{ marginTop: 10, borderRadius: 8, border: `1px solid ${D.border}`, padding: "10px 18px", fontSize: 13, fontWeight: 700, color: busy || !file ? D.muted : D.text, cursor: busy || !file ? "not-allowed" : "pointer", background: "transparent" }}>
+          {busy ? "Working…" : file ? `Upload ${file.name}` : "Choose a file"}
+        </button>
+        {status && (
+          <p style={{ marginTop: 12, borderRadius: 8, padding: "10px 14px", fontSize: 13, background: status.startsWith("✓") ? "#19c37d22" : "#ef444422", color: status.startsWith("✓") ? D.accent : "#ef4444" }}>{status}</p>
+        )}
+      </section>
+
+      {/* Suggested sources */}
+      <section style={{ borderRadius: 12, background: "#19c37d15", padding: 24, border: `1px solid #19c37d33` }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: D.accent }}>SUGGESTED FIRST SOURCES</p>
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+          {suggestions.map(([name, address]) => (
+            <button key={address} onClick={() => setUrl(`https://${address}`)}
+              style={{ display: "block", width: "100%", borderRadius: 10, border: `1px solid #19c37d33`, padding: "12px 14px", textAlign: "left", background: "transparent", cursor: "pointer", color: D.text }}
+              onMouseEnter={e => (e.currentTarget.style.background = "#19c37d11")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              <b style={{ display: "block", fontSize: 13 }}>{name}</b>
+              <small style={{ marginTop: 2, display: "block", fontSize: 11, color: D.muted }}>{address}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ── Document Library ──────────────────────────────────────────────────────
+type ManagedDocument = { id: string; title: string; category: string; file_type: string; status: string; processing_status?: string; source_url?: string | null; storage_path: string; chunk_count?: number; created_at: string; processing_error?: string | null };
+
+function DocumentLibrary() {
+  const [documents, setDocuments] = useState<ManagedDocument[]>([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
+
+  const load = async () => {
+    if (!supabase) { setLoading(false); return; }
+    setLoading(true);
+    const { data, error } = await supabase.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error").order("created_at", { ascending: false });
+    setDocuments((data ?? []) as ManagedDocument[]);
+    setNotice(error ? error.message : "");
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const visible = documents.filter(d =>
+    (filter === "all" || d.processing_status === filter || d.status === filter) &&
+    `${d.title} ${d.category} ${d.source_url ?? ""}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const archive = async (d: ManagedDocument) => {
+    if (!supabase) return;
+    const { error } = await supabase.from("documents").update({ status: d.status === "archived" ? "active" : "archived", processing_status: d.status === "archived" ? "ready" : "archived" }).eq("id", d.id);
+    setNotice(error ? error.message : `${d.title} ${d.status === "archived" ? "restored" : "archived"}.`);
+    load();
+  };
+
+  const remove = async (d: ManagedDocument) => {
+    if (!supabase || !confirm(`Delete ${d.title}?`)) return;
+    const { error } = await supabase.from("documents").delete().eq("id", d.id);
+    if (!error) await supabase.storage.from("documents").remove([d.storage_path]);
+    setNotice(error ? error.message : `${d.title} deleted.`);
+    load();
+  };
+
+  const statusColor = (d: ManagedDocument) => {
+    if (d.status === "archived") return { bg: "#3a3a3a", text: D.muted };
+    if (d.processing_status === "ready") return { bg: "#19c37d22", text: D.accent };
+    if (d.processing_status === "failed") return { bg: "#ef444422", text: "#ef4444" };
+    return { bg: "#f59e0b22", text: "#f59e0b" };
+  };
+
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text }}>Knowledge base documents</h2>
+          <p style={{ marginTop: 4, fontSize: 13, color: D.muted }}>Review, archive, or remove every approved source.</p>
+        </div>
+        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 8, border: `1px solid ${D.border}`, padding: "7px 12px", fontSize: 12, fontWeight: 600, color: D.muted, background: "transparent", cursor: "pointer" }}>
+          <RefreshCw size={13} /> Refresh
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+        <label style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 8, borderRadius: 8, border: `1px solid ${D.border}`, padding: "8px 12px", background: D.bg }}>
+          <Search size={14} style={{ color: D.muted, flexShrink: 0 }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: D.text }} placeholder="Search documents or source URL" />
+        </label>
+        <select value={filter} onChange={e => setFilter(e.target.value)} style={{ borderRadius: 8, border: `1px solid ${D.border}`, padding: "8px 12px", fontSize: 13, background: D.bg, color: D.text, outline: "none" }}>
+          <option value="all">All statuses</option>
+          <option value="ready">Ready</option>
+          <option value="failed">Failed</option>
+          <option value="uploaded">Uploaded</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+
+      {notice && (
+        <p style={{ marginTop: 12, borderRadius: 8, padding: "10px 14px", fontSize: 13, background: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? "#19c37d22" : "#ef444422", color: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? D.accent : "#ef4444" }}>{notice}</p>
+      )}
+
+      {/* Table */}
+      <div style={{ marginTop: 16, overflowX: "auto" }}>
+        <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${D.border}` }}>
+              {["Document", "Source", "Status", "RAG", "Controls"].map((h, i) => (
+                <th key={h} style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: D.muted, textAlign: i === 4 ? "right" : "left" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} style={{ padding: "32px 0", textAlign: "center", color: D.muted }}>Loading knowledge base…</td></tr>
+            ) : visible.length ? visible.map(d => {
+              const sc = statusColor(d);
+              return (
+                <tr key={d.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+                  <td style={{ padding: "14px 16px 14px 0" }}>
+                    <b style={{ display: "block", color: D.text }}>{d.title}</b>
+                    <small style={{ color: D.muted }}>{d.category} · {d.file_type.toUpperCase()} · {new Date(d.created_at).toLocaleDateString()}</small>
+                  </td>
+                  <td style={{ padding: "14px 16px 14px 0", maxWidth: 160, fontSize: 12 }}>
+                    <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#6366f1" }}>{d.source_url ?? "Uploaded file"}</span>
+                  </td>
+                  <td style={{ padding: "14px 16px 14px 0" }}>
+                    <span style={{ borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.text }}>
+                      {d.status === "archived" ? "Archived" : d.processing_status ?? "Uploaded"}
+                    </span>
+                    {d.processing_error && <small style={{ display: "block", color: "#ef4444", marginTop: 3, maxWidth: 140 }}>{d.processing_error}</small>}
+                  </td>
+                  <td style={{ padding: "14px 16px 14px 0", fontSize: 12, color: D.muted }}>{d.chunk_count ?? 0} chunks</td>
+                  <td style={{ padding: "14px 0", textAlign: "right" }}>
+                    <button onClick={() => archive(d)} style={{ borderRadius: 6, border: `1px solid ${D.border}`, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: D.muted, background: "transparent", cursor: "pointer", marginRight: 6 }}>
+                      {d.status === "archived" ? "Restore" : "Archive"}
+                    </button>
+                    <button onClick={() => remove(d)} style={{ borderRadius: 6, border: "1px solid #ef444444", padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "#ef4444", background: "transparent", cursor: "pointer" }}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            }) : (
+              <tr><td colSpan={5} style={{ padding: "32px 0", textAlign: "center", color: D.muted }}>No documents match this view.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// ── Compose modal ─────────────────────────────────────────────────────────
+function Compose({ onClose }: { onClose: () => void }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.7)", padding: 16 }}>
+      <section style={{ width: "100%", maxWidth: 460, borderRadius: 14, background: D.card, padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Create an update</h2>
+          <button onClick={onClose} style={{ color: D.muted, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}><X size={18} /></button>
+        </div>
+        <label style={{ display: "block", marginTop: 20, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          TITLE
+          <input style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }} placeholder="Add a clear title"
+            onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
+            onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
+        </label>
+        <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          MESSAGE
+          <textarea style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", minHeight: 100, resize: "vertical" }} placeholder="What should the university community know?"
+            onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
+            onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
+        </label>
+        <button onClick={onClose} style={{ marginTop: 20, width: "100%", borderRadius: 8, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#000", cursor: "pointer", border: "none" }}>Save draft</button>
+      </section>
+    </div>
+  );
+}
