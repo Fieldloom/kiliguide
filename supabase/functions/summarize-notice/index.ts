@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   try {
     const { noticeId, body } = await req.json();
     if (typeof body !== "string" || body.length < 20) return Response.json({ error: "Notice content is required." }, { status: 400, headers: CORS });
-    const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: `Summarize this official university notice in no more than 5 concise bullet points. List explicit deadlines and dates separately. Do not add information. Return JSON only: {"summary":"...","dates":["..."]}.\n\nNOTICE:\n${body}` }] }], generationConfig: { temperature: 0, responseMimeType: "application/json" } }) });
+    const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: `Summarize this official university notice in no more than 5 concise bullet points. List explicit deadlines and dates separately. Do not add information. Return JSON only: {"summary":"...","dates":["..."]}.\n\nNOTICE:\n${body}` }] }], generationConfig: { temperature: 0, responseMimeType: "application/json" } }) });
     if (!response.ok) throw new Error("Gemini request failed");
     const result = await response.json();
     const json = JSON.parse(result.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}");
