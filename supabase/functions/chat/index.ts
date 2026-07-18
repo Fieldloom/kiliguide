@@ -32,7 +32,9 @@ Deno.serve(async (req) => {
     if (socialMessage.test(question.trim())) {
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
       const firstName = profile?.full_name?.trim().split(/\s+/)[0] || "there";
-      const answer = `Hi ${firstName}! I’m KiliGuide, your DeKUT campus assistant. How can I help today? You can ask about registration, fees, accommodation, timetables, examinations, notices, or support.`;
+      const welcome = await geminiJson("gemini-2.5-flash:generateContent", { system_instruction: { parts: [{ text: "You are KiliGuide, a warm DeKUT campus assistant. Reply naturally in the user's language, in at most two short sentences. You may greet and offer help, but do not state any factual university policy, date, fee, rule, or procedure because sources have not been retrieved yet." }] }, contents: [{ role: "user", parts: [{ text: `The signed-in user's first name is ${firstName}. Their message is: ${question}` }] }], generationConfig: { temperature: 0.5, maxOutputTokens: 120 } });
+      const answer = welcome.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!answer) throw new Error("Gemini did not return a conversational response.");
       if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: answer, sources: [], confidence: 1 }]);
       return Response.json({ answer, sources: [], confidence: 1, mode: "conversation" }, { headers: CORS });
     }
