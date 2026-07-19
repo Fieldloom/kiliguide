@@ -7,7 +7,7 @@ import {
   Bell, CalendarDays, FileText, Menu, MessageCircleMore,
   Send, ShieldCheck, Ticket, Trash2, Clock, MessageSquare,
   Settings, Home, Sparkles, GraduationCap, CircleDollarSign, Building2, Check,
-  ChevronRight, Lock, BookOpenCheck, PanelLeft, PanelLeftClose, Search, User, Zap, Wallet, Landmark, HeadphonesIcon, BookOpen, Download, LogOut, Plus, Image as ImageIcon, File as FileIcon, AlertCircle, CheckCircle2, Clock as ClockIcon, UploadCloud, X, Loader2, Volume2
+  ChevronRight, Lock, BookOpenCheck, PanelLeft, PanelLeftClose, Search, User, Zap, Wallet, Landmark, HeadphonesIcon, BookOpen, Download, LogOut, Plus, Image as ImageIcon, File as FileIcon, AlertCircle, CheckCircle2, Clock as ClockIcon, UploadCloud, X, Loader2, Volume2, VolumeX
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -90,6 +90,7 @@ export function StudentWorkspace() {
   const [ticketDesc, setTicketDesc] = useState("");
   const [creatingTicket, setCreatingTicket] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
   const messages = activeConv?.messages ?? [];
@@ -178,12 +179,19 @@ export function StudentWorkspace() {
     await supabase.from("profiles").update({ preferred_language: lang }).eq("id", profile.id);
   };
 
-  const readAloud = (text: string) => {
-    if ("speechSynthesis" in window) {
+  const toggleReadAloud = (msgId: string, text: string) => {
+    if (!("speechSynthesis" in window)) return;
+    if (readingMsgId === msgId) {
+      window.speechSynthesis.cancel();
+      setReadingMsgId(null);
+    } else {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = language === "sw" ? "sw-KE" : "en-US";
+      utterance.onend = () => setReadingMsgId(null);
+      utterance.onerror = () => setReadingMsgId(null);
       window.speechSynthesis.speak(utterance);
+      setReadingMsgId(msgId);
     }
   };
 
@@ -210,7 +218,7 @@ export function StudentWorkspace() {
     
     // Prefix Swahili if selected so KiliGuide answers appropriately
     const finalQuery = language === "sw" ? "(Please answer in Swahili) " + value : value;
-    const { data, error } = await supabase.functions.invoke("chat", { body: { question: finalQuery } });
+    const { data, error } = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId } });
     setAsking(false);
     
     let astMsg: Message;
@@ -596,8 +604,8 @@ export function StudentWorkspace() {
                           )}
 
                           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-                            <button onClick={() => readAloud(m.content)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 100, padding: "6px 12px", color: "#a1a1aa", fontSize: 12, cursor: "pointer", transition: "0.2s" }}>
-                              <Volume2 size={14} /> Read aloud
+                            <button onClick={() => toggleReadAloud(m.id, m.content)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 100, padding: "6px 12px", color: readingMsgId === m.id ? "#10b981" : "#a1a1aa", fontSize: 12, cursor: "pointer", transition: "0.2s" }}>
+                              {readingMsgId === m.id ? <VolumeX size={14} /> : <Volume2 size={14} />} {readingMsgId === m.id ? "Stop reading" : "Read aloud"}
                             </button>
                             <button onClick={() => escalateToHuman(m.content)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 100, padding: "6px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer", transition: "0.2s" }}>
                               <HeadphonesIcon size={14} /> Escalate to Human
