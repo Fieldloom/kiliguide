@@ -114,7 +114,8 @@ Rules for answering:
 3. If CONTEXT is provided below, use it to answer the question. Cite using [n] notation.
 4. If the CONTEXT does not contain relevant information for a factual university question, politely say you cannot find the answer and suggest they contact support. Set "escalate" to true.
 5. Never invent facts. Only answer from the CONTEXT or for greetings/general questions.
-6. Return your response strictly as JSON with this schema: {"answer":"your text response here", "escalate": boolean}
+6. **Premium Formatting**: Your responses must be beautifully formatted using Markdown. Use **bolding** for emphasis, bullet points or numbered lists for readability, and blockquotes where appropriate. Avoid giant walls of text. Make the response look state-of-the-art, highly readable, and premium.
+7. Return your response strictly as JSON with this schema: {"answer":"your beautifully formatted text response here", "escalate": boolean}
 
 CONTEXT:
 ${context || "(No relevant documents found for this question)"}`;
