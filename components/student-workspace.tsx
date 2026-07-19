@@ -944,16 +944,45 @@ export function StudentWorkspace() {
                             {/* Events */}
                             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                               {dayEvents.length === 0 ? (
-                                <div style={{ height: 60, borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.05)" }} />
+                                <div style={{ padding: "10px 6px", borderRadius: 8, textAlign: "center" }}>
+                                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", fontStyle: "italic" }}>Free</span>
+                                </div>
                               ) : dayEvents.map((ev, ei) => {
                                 const key = ev.title.split(" ").slice(0, 3).join(" ");
                                 const c = COLORS[courseColorMap[key] ?? 0];
+                                const startStr = fmtTime(ev.starts_at);
+                                const endStr = ev.ends_at ? fmtTime(ev.ends_at) : null;
                                 return (
-                                  <div key={ev.id ?? ei} style={{ padding: "8px 10px", borderRadius: 8, background: c.bg, border: `1px solid ${c.border}`, cursor: "default" }} title={ev.location ? `📍 ${ev.location}` : ""}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: c.text, lineHeight: 1.3, marginBottom: 4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{ev.title}</div>
-                                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", display: "flex", flexDirection: "column", gap: 2 }}>
-                                      <span>⏰ {fmtTime(ev.starts_at)}</span>
-                                      {ev.location && <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {ev.location}</span>}
+                                  <div key={ev.id ?? ei} style={{
+                                    padding: "10px 10px",
+                                    borderRadius: 10,
+                                    background: c.bg,
+                                    border: `1px solid ${c.border}`,
+                                    cursor: "default",
+                                    transition: "transform 0.15s, box-shadow 0.15s",
+                                  }}
+                                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${c.border}`; }}
+                                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = ""; }}
+                                  >
+                                    {/* Accent bar */}
+                                    <div style={{ width: 3, height: "100%", background: c.text, borderRadius: 2, float: "left", marginRight: 8, minHeight: 40 }} />
+                                    <div style={{ overflow: "hidden" }}>
+                                      {/* Course name */}
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: c.text, lineHeight: 1.35, marginBottom: 5 }}>
+                                        {ev.title}
+                                      </div>
+                                      {/* Time range */}
+                                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", display: "flex", alignItems: "center", gap: 3, marginBottom: ev.location ? 3 : 0 }}>
+                                        <span>🕐</span>
+                                        <span>{startStr}{endStr ? ` – ${endStr}` : ""}</span>
+                                      </div>
+                                      {/* Location */}
+                                      {ev.location && (
+                                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", gap: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          <span>📍</span>
+                                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.location}</span>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 );
