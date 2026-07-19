@@ -321,6 +321,18 @@ function TicketsWorkspace() {
     supabase?.from("tickets").select(`*, profiles:created_by(full_name, email), departments(name, email)`).order("created_at", { ascending: false }).limit(50).then(({ data }) => setTickets(data || []));
   }, []);
 
+  const updateStatus = async (id: string, status: string, creatorId: string, subject: string) => {
+    if(!supabase) return;
+    await supabase.from("tickets").update({ status }).eq("id", id);
+    setTickets(ts => ts.map(t => t.id === id ? { ...t, status } : t));
+    
+    if (status === "resolved") {
+      supabase.functions.invoke("send-push", {
+        body: { recipientId: creatorId, title: "Ticket Resolved", body: `Your ticket "${subject}" has been marked as resolved.`, url: "/portal/student", tag: `ticket-${id}` }
+      });
+    }
+  };
+
   const handleEscalate = async (t: any) => {
     if (!supabase) return;
     setEscalatingId(t.id);
@@ -348,9 +360,12 @@ function TicketsWorkspace() {
                 <b style={{ color: D.text, fontSize: 15, display: "block", marginBottom: 4 }}>{t.subject}</b>
                 <span style={{ fontSize: 12, color: D.muted }}>From: {t.profiles?.full_name || "Unknown"} | Dept: {t.departments?.name || "Unassigned"}</span>
               </div>
-              <span style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: t.status === "open" ? "#f59e0b22" : "#19c37d22", color: t.status === "open" ? "#f59e0b" : D.accent }}>
-                {t.status}
-              </span>
+              <select value={t.status} onChange={e => updateStatus(t.id, e.target.value, t.created_by, t.subject)} style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: t.status === "open" ? "#f59e0b22" : "#19c37d22", color: t.status === "open" ? "#f59e0b" : D.accent, outline: "none", border: "none", cursor: "pointer", appearance: "none" }}>
+                <option value="open">OPEN</option>
+                <option value="in_progress">IN PROGRESS</option>
+                <option value="resolved">RESOLVED</option>
+                <option value="closed">CLOSED</option>
+              </select>
             </div>
             <p style={{ fontSize: 13, color: D.text, whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.2)", padding: 12, borderRadius: 6 }}>{t.description}</p>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -739,13 +754,18 @@ function Compose({ onClose }: { onClose: () => void }) {
   const save = async () => {
     if(!supabase || !title.trim() || !body.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("notices").insert({
+    const { data } = await supabase.from("notices").insert({
       title,
       body,
       summary: body.substring(0, 100),
       author_id: user?.id,
       category: "General"
-    });
+    }).select("id").single();
+    if (data) {
+      supabase.functions.invoke("send-push", {
+        body: { recipientId: "all", title: "New Campus Notice", body: title, url: "/portal/student", tag: `notice-${data.id}` }
+      });
+    }
     onClose();
   };
 

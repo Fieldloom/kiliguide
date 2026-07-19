@@ -88,6 +88,10 @@ export function StudentWorkspace() {
   const [ticketDeptId, setTicketDeptId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [semesterStart, setSemesterStart] = useState("");
+  const [semesterEnd, setSemesterEnd] = useState("");
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
   const messages = activeConv?.messages ?? [];
@@ -167,6 +171,24 @@ export function StudentWorkspace() {
     setUploading(false);
   };
 
+  const handleAnalyzeTimetable = async (resourceId: string) => {
+    if (!supabase || !semesterStart || !semesterEnd) {
+      alert("Please enter semester start and end dates first.");
+      return;
+    }
+    setAnalyzingId(resourceId);
+    const { data, error } = await supabase.functions.invoke("analyze-timetable", {
+      body: { resourceId, semesterStart, semesterEnd }
+    });
+    setAnalyzingId(null);
+    if (error || data?.error) {
+      alert("AI Analysis failed: " + (error?.message || data?.error || "Unknown error"));
+    } else {
+      alert(`AI successfully analyzed your timetable and added ${data.eventsCreated || 0} classes to your schedule!`);
+      setTimetables(ts => ts.map(t => t.id === resourceId ? { ...t, processing_status: "ready" } : t));
+    }
+  };
+
   const handleSignOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -177,6 +199,43 @@ export function StudentWorkspace() {
     setLanguage(lang);
     if (!supabase || !profile) return;
     await supabase.from("profiles").update({ preferred_language: lang }).eq("id", profile.id);
+  };
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      navigator.serviceWorker.register("/sw.js");
+      navigator.serviceWorker.ready.then(reg => {
+        reg.pushManager.getSubscription().then(sub => setPushEnabled(!!sub));
+      });
+    }
+  }, []);
+
+  const handleTogglePush = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      alert("Push notifications are not supported by your browser.");
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+      setPushEnabled(false);
+    } else {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("Notification permission denied.");
+        return;
+      }
+      try {
+        const res = await supabase?.functions.invoke("get-vapid");
+        if (!res?.data?.publicKey) throw new Error("Missing VAPID Key");
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: res.data.publicKey });
+        await supabase?.functions.invoke("save-push-subscription", { body: { subscription: sub } });
+        setPushEnabled(true);
+      } catch (err: any) {
+        alert("Failed to subscribe: " + err.message);
+      }
+    }
   };
 
   const toggleReadAloud = (msgId: string, text: string) => {
@@ -724,8 +783,20 @@ export function StudentWorkspace() {
         ) : tab === "My timetable" ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
             <div style={{ maxWidth: 800, margin: "0 auto", paddingBottom: 100 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>My Timetable</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+                <div>
+                  <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>My Timetable</h2>
+                  <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+                    <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, color: "#a1a1aa" }}>
+                      Semester Start
+                      <input type="date" value={semesterStart} onChange={e => setSemesterStart(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 13 }} />
+                    </label>
+                    <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, color: "#a1a1aa" }}>
+                      Semester End
+                      <input type="date" value={semesterEnd} onChange={e => setSemesterEnd(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 13 }} />
+                    </label>
+                  </div>
+                </div>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, background: "#10b981", color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.7 : 1 }}>
                   {uploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
                   Upload Image/PDF
@@ -743,6 +814,12 @@ export function StudentWorkspace() {
                     <span style={{ fontSize: 12, color: "#8b5cf6", background: "rgba(139, 92, 246, 0.1)", padding: "4px 8px", borderRadius: 12, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6 }}>
                       <ClockIcon size={12} /> {t.processing_status}
                     </span>
+                    {t.processing_status !== "ready" && (
+                      <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: analyzingId === t.id ? "not-allowed" : "pointer", opacity: analyzingId === t.id ? 0.5 : 1 }}>
+                        {analyzingId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                        {analyzingId === t.id ? "Parsing with Vision AI..." : "Analyze with AI"}
+                      </button>
+                    )}
                   </div>
                 ))}
                 {timetables.length === 0 && (
@@ -779,6 +856,16 @@ export function StudentWorkspace() {
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
             <div style={{ maxWidth: 600, margin: "0 auto", paddingBottom: 100 }}>
               <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 32 }}>Settings</h2>
+              
+              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>Push Notifications</h3>
+                  <button onClick={handleTogglePush} style={{ width: 44, height: 24, borderRadius: 12, background: pushEnabled ? "#10b981" : "rgba(255,255,255,0.2)", position: "relative", cursor: "pointer", border: "none", transition: "0.2s" }}>
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: pushEnabled ? 22 : 2, transition: "0.2s" }} />
+                  </button>
+                </div>
+                <p style={{ color: "#a1a1aa", fontSize: 14 }}>Get real-time alerts when your tickets are resolved or a new notice is published.</p>
+              </div>
               
               <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Language & Localization</h3>
