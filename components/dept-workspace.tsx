@@ -86,6 +86,7 @@ export function DeptWorkspace() {
   const [creatingTicket, setCreatingTicket] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
+  const [escalatingId, setEscalatingId] = useState<string | null>(null);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
   const messages = activeConv?.messages ?? [];
@@ -160,6 +161,22 @@ export function DeptWorkspace() {
       if (dbData) setTimetables([dbData[0], ...timetables]);
     }
     setUploading(false);
+  };
+
+  const handleEscalate = async (t: any) => {
+    if (!supabase) return;
+    setEscalatingId(t.id);
+    const { data: departments } = await supabase.from("departments").select("id, name, email");
+    const { data, error } = await supabase.functions.invoke("escalate-ticket", {
+      body: { ticket: { subject: t.subject, description: t.description, authorName: t.profiles?.full_name || "Unknown" }, departments }
+    });
+    setEscalatingId(null);
+    if (error || !data || !data.department_email) {
+      alert("AI Escalation failed: " + (error?.message || "Unknown error"));
+      return;
+    }
+    const mailto = `mailto:${data.department_email}?subject=Ticket Escalation: ${encodeURIComponent(t.subject)}&body=${encodeURIComponent(data.body)}`;
+    window.location.href = mailto;
   };
 
   const handleSignOut = async () => {
@@ -744,12 +761,9 @@ export function DeptWorkspace() {
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }}>
-                      {t.departments?.email && (
-                        <a href={`mailto:${t.departments.email}?subject=Ticket Escalation: ${t.subject}&body=Ticket from ${t.profiles?.full_name || "Unknown"}%0A%0A${t.description}`} 
-                           style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
-                           Escalate via Email
-                        </a>
-                      )}
+                      <button onClick={() => handleEscalate(t)} disabled={escalatingId === t.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: "1px solid rgba(139, 92, 246, 0.2)", cursor: "pointer", opacity: escalatingId === t.id ? 0.5 : 1 }}>
+                        <Sparkles size={16} /> {escalatingId === t.id ? "Drafting..." : "Auto-Escalate with AI"}
+                      </button>
                     </div>
                   </div>
                 ))}
