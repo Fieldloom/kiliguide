@@ -21,21 +21,19 @@ async function geminiJson(path: string, body: unknown) {
   return response.json();
 }
 
-async function optimizeRetrievalQuery(question: string, recentTurns: string[]) {
-  // Bypassing AI optimization to save API rate limits (saves 1 request per chat)
-  return question;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const authorization = req.headers.get("Authorization");
     if (!authorization) return Response.json({ error: "Sign in is required." }, { status: 401, headers: CORS });
+    
     const authClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!, { global: { headers: { Authorization: authorization } } });
     const { data: { user }, error: authError } = await authClient.auth.getUser();
     if (authError || !user) return Response.json({ error: "Your sign-in session is invalid or expired." }, { status: 401, headers: CORS });
-    const { question, conversationId } = await req.json();
+    
+    const { question, conversationId, metadataFilter = {} } = await req.json();
     if (typeof question !== "string" || !question.trim() || question.length > 2000) return Response.json({ error: "Invalid question" }, { status: 400, headers: CORS });
+    
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     let recentTurns: string[] = [];
@@ -44,22 +42,66 @@ Deno.serve(async (req) => {
       recentTurns = (history ?? []).reverse().map((turn: any) => `${turn.role}: ${turn.content}`);
     }
 
-    const retrievalQuery = await optimizeRetrievalQuery(question, recentTurns);
-    const embedding = await geminiJson("gemini-embedding-2:embedContent", { content: { parts: [{ text: retrievalQuery }] }, output_dimensionality: 768 });
+    // Generate Embedding
+    const embedding = await geminiJson("gemini-embedding-2:embedContent", { content: { parts: [{ text: question }] }, output_dimensionality: 768 });
     const vector = embedding.embedding?.values || embedding.embeddings?.[0]?.values;
-    if (!vector) throw new Error("No embedding generated. Response: " + JSON.stringify(embedding));
+    if (!vector) throw new Error("No embedding generated.");
 
-    const { data: chunks, error } = await supabase.rpc("match_document_chunks", { query_embedding: vector, match_count: 6 });
+    // 1. Semantic Caching Check
+    const { data: cacheHit } = await supabase.rpc("match_cached_query", { query_embedding: vector, match_threshold: 0.95 });
+    if (cacheHit && cacheHit.length > 0) {
+      const hit = cacheHit[0];
+      if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: hit.answer, sources: hit.sources, confidence: hit.confidence }]);
+      return Response.json({ answer: hit.answer, sources: hit.sources, confidence: hit.confidence, escalate: false, debug: { provider: "CACHE", similarity: hit.similarity } }, { headers: CORS });
+    }
+
+    // 2. Hybrid Search (RRF)
+    const { data: rawChunks, error } = await supabase.rpc("hybrid_search_chunks", { query_text: question, query_embedding: vector, metadata_filter: metadataFilter, match_count: 15 });
     if (error) throw error;
+
+    // 3. Context Compression
+    let finalChunks: any[] = [];
+    if (rawChunks && rawChunks.length > 0) {
+      const docMap = new Map<string, any[]>();
+      for (const chunk of rawChunks) {
+        if (!docMap.has(chunk.document_id)) docMap.set(chunk.document_id, []);
+        docMap.get(chunk.document_id)!.push(chunk);
+      }
+      for (const [_, docChunks] of docMap.entries()) {
+        docChunks.sort((a, b) => a.chunk_index - b.chunk_index);
+        let currentChunk = { ...docChunks[0] };
+        for (let i = 1; i < docChunks.length; i++) {
+          const next = docChunks[i];
+          if (next.chunk_index === currentChunk.chunk_index + 1) {
+            currentChunk.content += "\n\n" + next.content;
+            currentChunk.chunk_index = next.chunk_index; 
+          } else {
+            finalChunks.push(currentChunk);
+            currentChunk = { ...next };
+          }
+        }
+        finalChunks.push(currentChunk);
+      }
+      finalChunks.sort((a, b) => b.similarity - a.similarity);
+      finalChunks = finalChunks.slice(0, 6);
+    }
 
     let context = "";
     let confidence = 0;
     let sources: any[] = [];
 
-    if (chunks?.length && chunks[0].similarity >= 0.4) {
-      context = chunks.map((chunk: any, index: number) => `[${index + 1}] ${chunk.content}`).join("\n\n");
-      confidence = chunks[0].similarity;
-      sources = chunks.map((chunk: any) => ({ title: chunk.title, page: chunk.page_number }));
+    if (finalChunks.length > 0 && finalChunks[0].similarity >= 0.05) { // Similarity threshold for RRF might differ from cosine
+      context = finalChunks.map((chunk: any, index: number) => `[${index + 1}] ${chunk.content}`).join("\n\n");
+      confidence = finalChunks[0].similarity;
+      sources = finalChunks.map((chunk: any) => ({ title: chunk.title, page: chunk.page_number }));
+    }
+
+    // 4. Confidence-based LLM Bypass
+    const isFactual = !/summarize|compare|list|explain|write|generate/i.test(question);
+    if (finalChunks.length > 0 && finalChunks[0].similarity > 0.85 && isFactual) {
+      const answer = `Extracted directly from documentation:\n\n${finalChunks[0].content}`;
+      if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: answer, sources, confidence }]);
+      return Response.json({ answer, sources, confidence, escalate: false, debug: { provider: "DIRECT_BYPASS", similarity: finalChunks[0].similarity } }, { headers: CORS });
     }
 
     const instruction = `You are KiliGuide, a smart-campus assistant for DeKUT (Dedan Kimathi University of Technology).
@@ -67,7 +109,7 @@ Your capabilities: You can answer questions about the university based on offici
 Rules for answering:
 1. **Multilingual**: You MUST reply in the EXACT same language that the user asks the question in (e.g., Swahili, French, English).
 2. If the user is just greeting you or asking what you can do, be friendly, concise, and explain your capabilities in their language.
-3. If CONTEXT is provided below, use it to answer the question. The context may have been extracted via OCR so it might contain minor formatting issues — do your best to interpret and use it. Cite using [n] notation.
+3. If CONTEXT is provided below, use it to answer the question. Cite using [n] notation.
 4. If the CONTEXT does not contain relevant information for a factual university question, politely say you cannot find the answer and suggest they contact support. Set "escalate" to true.
 5. Never invent facts. Only answer from the CONTEXT or for greetings/general questions.
 6. Return your response strictly as JSON with this schema: {"answer":"your text response here", "escalate": boolean}
@@ -78,7 +120,6 @@ ${context || "(No relevant documents found for this question)"}`;
     let jsonStr = "{}";
     let providerUsed = "none";
 
-    // 1. Try Groq (fast, generous free tier)
     const groqKey = Deno.env.get("GROQ_API_KEY");
     if (groqKey && providerUsed === "none") {
       try {
@@ -104,16 +145,10 @@ ${context || "(No relevant documents found for this question)"}`;
           const data = await groqRes.json();
           jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
           providerUsed = "GROQ";
-        } else {
-          const err = await groqRes.text();
-          console.error("Groq failed:", groqRes.status, err);
         }
-      } catch (e: any) {
-        console.error("Groq network error:", e.message);
-      }
+      } catch (e: any) {}
     }
 
-    // 2. Fallback to Gemini if Groq unavailable
     if (providerUsed === "none") {
       const contents = [
         ...recentTurns.map(t => {
@@ -128,8 +163,6 @@ ${context || "(No relevant documents found for this question)"}`;
     }
 
     const cleanJson = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    console.log(`RAW ${providerUsed} RESPONSE:`, jsonStr.slice(0, 500));
-    console.log("CONTEXT LENGTH:", context.length, "SIMILARITY:", confidence);
     let answer = unavailable;
     let escalate = false;
     let parseError = null;
@@ -139,18 +172,28 @@ ${context || "(No relevant documents found for this question)"}`;
       if (parsed.escalate) escalate = true;
     } catch (e: any) {
       parseError = e.message;
-      console.error("JSON parse failed:", cleanJson.slice(0, 200), e);
     }
-    // If Gemini said escalate but gave no useful answer, show a friendly default
+
     if (escalate && answer === unavailable) {
       answer = "I found your document in the knowledge base but could not extract a clear answer. Please try rephrasing your question or contact support for assistance.";
     }
 
+    // 5. Cache Write
+    if (answer !== unavailable && !escalate && providerUsed !== "none") {
+      supabase.from("query_cache").insert({
+        query: question,
+        embedding: vector,
+        answer,
+        sources,
+        confidence,
+        metadata: metadataFilter
+      }).then();
+    }
+
     if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: answer, sources, confidence }]);
-    return Response.json({ answer, sources, confidence, retrievalQuery, escalate, debug: { jsonStr: jsonStr.slice(0, 300), parseError, provider: providerUsed, contextLength: context.length } }, { headers: CORS });
+    return Response.json({ answer, sources, confidence, escalate, debug: { jsonStr: jsonStr.slice(0, 300), parseError, provider: providerUsed, contextLength: context.length } }, { headers: CORS });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to process request";
-    console.error("KiliGuide chat failed:", message);
     return Response.json({ error: message }, { status: 500, headers: CORS });
   }
 });
