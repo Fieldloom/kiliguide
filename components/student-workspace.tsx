@@ -592,7 +592,7 @@ export function StudentWorkspace() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 15, color: "#ececec", lineHeight: 1.7 }}><MarkdownMessage content={m.content} /></div>
                           
-                          {m.sources && m.sources.length > 0 && (
+                          {m.sources && m.sources.length > 0 ? (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
                               <span style={{ fontSize: 11, color: "#a1a1aa", display: "flex", alignItems: "center", gap: 4 }}><ShieldCheck size={12} /> Sources:</span>
                               {m.sources.map((s, idx) => (
@@ -601,11 +601,15 @@ export function StudentWorkspace() {
                                 </span>
                               ))}
                             </div>
+                          ) : m.role === "assistant" && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                              <span style={{ fontSize: 11, color: "#52525b", display: "flex", alignItems: "center", gap: 4 }}><ShieldCheck size={12} /> No official document sources found</span>
+                            </div>
                           )}
 
                           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-                            <button onClick={() => toggleReadAloud(m.id, m.content)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 100, padding: "6px 12px", color: readingMsgId === m.id ? "#10b981" : "#a1a1aa", fontSize: 12, cursor: "pointer", transition: "0.2s" }}>
-                              {readingMsgId === m.id ? <VolumeX size={14} /> : <Volume2 size={14} />} {readingMsgId === m.id ? "Stop reading" : "Read aloud"}
+                            <button onClick={() => toggleReadAloud(m.id, m.content)} title={readingMsgId === m.id ? "Stop reading" : "Read aloud"} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "50%", color: readingMsgId === m.id ? "#ef4444" : "#a1a1aa", cursor: "pointer", transition: "0.2s" }}>
+                              {readingMsgId === m.id ? <VolumeX size={16} /> : <Volume2 size={16} />}
                             </button>
                             <button onClick={() => escalateToHuman(m.content)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 100, padding: "6px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer", transition: "0.2s" }}>
                               <HeadphonesIcon size={14} /> Escalate to Human
