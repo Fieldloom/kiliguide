@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity, BarChart3, Bell, Bot, Check, ChevronDown, ChevronRight,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
-  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2
+  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
@@ -315,52 +315,53 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
 // ── TICKETS ─────────────────────────────────────────────────────────────
 function TicketsWorkspace() {
   const [tickets, setTickets] = useState<any[]>([]);
+  const [escalatingId, setEscalatingId] = useState<string | null>(null);
+
   useEffect(() => {
-    supabase?.from("tickets").select(`*, created_by(full_name)`).order("created_at", { ascending: false }).then(({ data }) => setTickets(data || []));
+    supabase?.from("tickets").select(`*, profiles:created_by(full_name, email), departments(name, email)`).order("created_at", { ascending: false }).limit(50).then(({ data }) => setTickets(data || []));
   }, []);
 
-  const updateStatus = async (id: string, status: string) => {
-    if(!supabase) return;
-    await supabase.from("tickets").update({ status }).eq("id", id);
-    setTickets(ts => ts.map(t => t.id === id ? { ...t, status } : t));
+  const handleEscalate = async (t: any) => {
+    if (!supabase) return;
+    setEscalatingId(t.id);
+    const { data: departments } = await supabase.from("departments").select("id, name, email");
+    const { data, error } = await supabase.functions.invoke("escalate-ticket", {
+      body: { ticket: { subject: t.subject, description: t.description, authorName: t.profiles?.full_name || "Unknown" }, departments }
+    });
+    setEscalatingId(null);
+    if (error || !data || !data.department_email) {
+      alert("AI Escalation failed: " + (error?.message || "Unknown error"));
+      return;
+    }
+    const mailto = `mailto:${data.department_email}?subject=Ticket Escalation: ${encodeURIComponent(t.subject)}&body=${encodeURIComponent(data.body)}`;
+    window.location.href = mailto;
   };
 
   return (
     <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
-      <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 13 }}>
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${D.border}` }}>
-            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>SUBJECT</th>
-            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>AUTHOR</th>
-            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>STATUS</th>
-            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "right" }}>ACTIONS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tickets.map(t => (
-            <tr key={t.id} style={{ borderBottom: `1px solid ${D.border}` }}>
-              <td style={{ padding: "14px 16px 14px 0" }}>
-                <b style={{ display: "block", color: D.text }}>{t.subject}</b>
-                <small style={{ color: D.muted }}>{t.description.substring(0, 50)}...</small>
-              </td>
-              <td style={{ padding: "14px 16px 14px 0", color: D.muted }}>{t.created_by?.full_name || "Unknown"}</td>
-              <td style={{ padding: "14px 16px 14px 0" }}>
-                <span style={{ borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, background: t.status === "open" ? "#ef444422" : t.status==="in_progress" ? "#f59e0b22" : "#19c37d22", color: t.status === "open" ? "#ef4444" : t.status==="in_progress" ? "#f59e0b" : D.accent }}>
-                  {t.status.toUpperCase()}
-                </span>
-              </td>
-              <td style={{ padding: "14px 0", textAlign: "right" }}>
-                <select value={t.status} onChange={e => updateStatus(t.id, e.target.value)} style={{ background: "transparent", border: `1px solid ${D.border}`, color: D.text, padding: "4px 8px", borderRadius: 4, outline: "none" }}>
-                  <option value="open">Open</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 16 }}>Support Tickets</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {tickets.map(t => (
+          <div key={t.id} style={{ padding: 20, borderRadius: 8, background: D.bg, border: `1px solid ${D.border}`, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <b style={{ color: D.text, fontSize: 15, display: "block", marginBottom: 4 }}>{t.subject}</b>
+                <span style={{ fontSize: 12, color: D.muted }}>From: {t.profiles?.full_name || "Unknown"} | Dept: {t.departments?.name || "Unassigned"}</span>
+              </div>
+              <span style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: t.status === "open" ? "#f59e0b22" : "#19c37d22", color: t.status === "open" ? "#f59e0b" : D.accent }}>
+                {t.status}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: D.text, whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.2)", padding: 12, borderRadius: 6 }}>{t.description}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => handleEscalate(t)} disabled={escalatingId === t.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#8b5cf622", color: "#8b5cf6", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "1px solid #8b5cf644", cursor: "pointer", opacity: escalatingId === t.id ? 0.5 : 1 }}>
+                <Sparkles size={14} /> {escalatingId === t.id ? "Drafting..." : "Auto-Escalate with AI"}
+              </button>
+            </div>
+          </div>
+        ))}
+        {tickets.length === 0 && <p style={{ color: D.muted, fontSize: 13 }}>No tickets found.</p>}
+      </div>
     </section>
   );
 }
