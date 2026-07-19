@@ -124,7 +124,7 @@ export default function LoginPage() {
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Email Address</label>
               <input 
                 required type="email" value={email} onChange={e => setEmail(e.target.value)} 
-                placeholder="you@students.dekut.ac.ke"
+                placeholder="you@example.com"
                 style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", transition: "border-color 0.2s" }} 
                 onFocus={e => (e.currentTarget.style.borderColor = "#19c37d")} onBlur={e => (e.currentTarget.style.borderColor = "#1A2A20")}
               />
