@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await auth.auth.getUser();
     if (!user) return Response.json({ error: "Authentication required." }, { status: 401, headers: CORS });
     
-    const { resourceId, semesterStart, semesterEnd, timezone = "Africa/Nairobi", reminderMinutes = 30 } = await req.json();
+    const { resourceId, semesterStart, semesterEnd, timezone = "Africa/Nairobi", reminderMinutes = 30, courses = "" } = await req.json();
     if (!resourceId || !semesterStart || !semesterEnd) return Response.json({ error: "resourceId and semester dates are required." }, { status: 400, headers: CORS });
     
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -31,7 +31,11 @@ Deno.serve(async (req) => {
     const buffer = await fileData.arrayBuffer();
     const base64Data = encodeBase64(new Uint8Array(buffer));
 
-    const promptText = `Analyze this student timetable document. Extract all class meetings and lectures. Expand every weekly class into individual events between ${semesterStart} and ${semesterEnd} in timezone ${timezone}. Return JSON only: {"events":[{"title":"Course name","start":"ISO-8601 datetime with offset","end":"ISO-8601 datetime with offset","location":"room"}]}. Do not invent unclear classes.`;
+    const courseFilter = courses.trim()
+      ? `IMPORTANT: Only extract classes for these specific units that the student is enrolled in: ${courses}. Ignore all other courses in the timetable.`
+      : `Extract ALL classes found in the timetable.`;
+
+    const promptText = `Analyze this student timetable document. ${courseFilter} Expand every weekly class into individual events between ${semesterStart} and ${semesterEnd} in timezone ${timezone}. Return JSON only: {"events":[{"title":"Course name","start":"ISO-8601 datetime with offset","end":"ISO-8601 datetime with offset","location":"room"}]}. Do not invent unclear classes.`;
     
     const payload = {
       contents: [{

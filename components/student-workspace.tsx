@@ -81,6 +81,8 @@ export function StudentWorkspace() {
   const [timetables, setTimetables] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0);
+  const [myCourses, setMyCourses] = useState<Record<string, string>>({});
+  const [hiddenCourses, setHiddenCourses] = useState<Set<string>>(new Set());
   const [profile, setProfile] = useState<any>(null);
   const [language, setLanguage] = useState("en");
   const [docQuery, setDocQuery] = useState("");
@@ -196,8 +198,9 @@ export function StudentWorkspace() {
       return;
     }
     setAnalyzingId(resourceId);
+    const courses = myCourses[resourceId] || "";
     const { data, error } = await supabase.functions.invoke("analyze-timetable", {
-      body: { resourceId, semesterStart, semesterEnd }
+      body: { resourceId, semesterStart, semesterEnd, courses: courses.trim() }
     });
     setAnalyzingId(null);
     if (error || data?.error) {
@@ -838,11 +841,27 @@ export function StudentWorkspace() {
                     <span style={{ fontSize: 12, color: "#8b5cf6", background: "rgba(139, 92, 246, 0.1)", padding: "4px 8px", borderRadius: 12, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6 }}>
                       <ClockIcon size={12} /> {t.processing_status}
                     </span>
-                    {t.processing_status !== "ready" && (
-                      <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: analyzingId === t.id ? "not-allowed" : "pointer", opacity: analyzingId === t.id ? 0.5 : 1 }}>
-                        {analyzingId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                        {analyzingId === t.id ? "Parsing with Vision AI..." : "Analyze with AI"}
-                      </button>
+                  {t.processing_status !== "ready" && (
+                      <>
+                        {/* Courses I'm taking input */}
+                        <div>
+                          <label style={{ fontSize: 12, color: "#a1a1aa", display: "block", marginBottom: 6, fontWeight: 600 }}>
+                            📚 My units (comma-separated)
+                          </label>
+                          <textarea
+                            value={myCourses[t.id] || ""}
+                            onChange={e => setMyCourses(prev => ({ ...prev, [t.id]: e.target.value }))}
+                            placeholder="e.g. Computer Networks, Operating Systems, Database Systems"
+                            rows={2}
+                            style={{ width: "100%", padding: "8px 10px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 12, resize: "none", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                          />
+                          <p style={{ fontSize: 11, color: "#52525b", marginTop: 4 }}>Leave blank to extract all courses in the timetable.</p>
+                        </div>
+                        <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: analyzingId === t.id ? "not-allowed" : "pointer", opacity: analyzingId === t.id ? 0.5 : 1, width: "100%" }}>
+                          {analyzingId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                          {analyzingId === t.id ? "Parsing with Vision AI..." : "Analyze with AI"}
+                        </button>
+                      </>
                     )}
                   </div>
                 ))}
@@ -858,10 +877,11 @@ export function StudentWorkspace() {
               {/* ── WEEK SCHEDULE VIEW ── */}
               {calendarEvents.length > 0 && (() => {
                 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                const DAY_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                // Compute week start (Monday) for the current offset
+                // Unique courses for filter panel
+                const allCourses = Array.from(new Set(calendarEvents.map(ev => ev.title)));
+                const visibleEvents = calendarEvents.filter(ev => !hiddenCourses.has(ev.title));
                 const now = new Date();
-                const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay(); // 1=Mon…7=Sun
+                const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
                 const monday = new Date(now);
                 monday.setDate(now.getDate() - dayOfWeek + 1 + scheduleWeekOffset * 7);
                 monday.setHours(0, 0, 0, 0);
@@ -869,9 +889,8 @@ export function StudentWorkspace() {
                 const weekStart = weekDays[0];
                 const weekEnd = new Date(weekDays[weekDays.length - 1]); weekEnd.setHours(23, 59, 59);
 
-                const eventsThisWeek = calendarEvents.filter(ev => {
+                const eventsThisWeek = visibleEvents.filter(ev => {
                   const s = new Date(ev.starts_at);
-                  // Use date-only comparison to avoid timezone edge cases
                   const sDate = new Date(s.getFullYear(), s.getMonth(), s.getDate());
                   const startDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
                   const endDate = new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate());
@@ -923,6 +942,49 @@ export function StudentWorkspace() {
                         <button onClick={() => setScheduleWeekOffset(o => o + 1)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Next →</button>
                       </div>
                     </div>
+
+                    {/* Course filter pills */}
+                    {allCourses.length > 1 && (
+                      <div style={{ marginBottom: 20 }}>
+                        <p style={{ fontSize: 12, color: "#71717a", marginBottom: 10, fontWeight: 600 }}>FILTER UNITS — click to show/hide</p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {allCourses.map(course => {
+                            const key = course.split(" ").slice(0, 3).join(" ");
+                            const c = COLORS[courseColorMap[key] ?? 0];
+                            const hidden = hiddenCourses.has(course);
+                            return (
+                              <button
+                                key={course}
+                                onClick={() => setHiddenCourses(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(course)) next.delete(course); else next.add(course);
+                                  return next;
+                                })}
+                                style={{
+                                  padding: "5px 12px",
+                                  borderRadius: 100,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  border: `1px solid ${hidden ? "rgba(255,255,255,0.1)" : c.border}`,
+                                  background: hidden ? "rgba(255,255,255,0.03)" : c.bg,
+                                  color: hidden ? "#52525b" : c.text,
+                                  textDecoration: hidden ? "line-through" : "none",
+                                  transition: "all 0.15s"
+                                }}
+                              >
+                                {course}
+                              </button>
+                            );
+                          })}
+                          {hiddenCourses.size > 0 && (
+                            <button onClick={() => setHiddenCourses(new Set())} style={{ padding: "5px 12px", borderRadius: 100, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
+                              Show all
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Day columns */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
