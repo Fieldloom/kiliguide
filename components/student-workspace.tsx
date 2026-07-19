@@ -122,6 +122,20 @@ export function StudentWorkspace() {
       setDepartments(depts.data ?? []);
       setTimetables(times.data ?? []);
       setCalendarEvents(calEvents.data ?? []);
+      // Auto-jump to the first week that has classes (relative to today)
+      const events = calEvents.data ?? [];
+      if (events.length > 0) {
+        const now = new Date();
+        const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
+        const thisMonday = new Date(now);
+        thisMonday.setDate(now.getDate() - dayOfWeek + 1);
+        thisMonday.setHours(0, 0, 0, 0);
+        // Find first event and compute its week offset
+        const firstEvent = new Date(events[0].starts_at);
+        const diffDays = Math.floor((firstEvent.getTime() - thisMonday.getTime()) / (1000 * 60 * 60 * 24));
+        const offset = Math.floor(diffDays / 7);
+        setScheduleWeekOffset(offset);
+      }
     });
     try {
       const saved = localStorage.getItem("kiliguide_conversations");
@@ -857,7 +871,11 @@ export function StudentWorkspace() {
 
                 const eventsThisWeek = calendarEvents.filter(ev => {
                   const s = new Date(ev.starts_at);
-                  return s >= weekStart && s <= weekEnd;
+                  // Use date-only comparison to avoid timezone edge cases
+                  const sDate = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+                  const startDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+                  const endDate = new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate());
+                  return sDate >= startDate && sDate <= endDate;
                 });
 
                 const eventsByDay: Record<number, any[]> = {};
