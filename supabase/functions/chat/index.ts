@@ -89,6 +89,10 @@ ${context || "(No relevant documents found for this question)"}`;
             model: "llama-3.3-70b-versatile",
             messages: [
               { role: "system", content: instruction },
+              ...recentTurns.map(t => {
+                const isUser = t.startsWith("user:");
+                return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
+              }),
               { role: "user", content: question }
             ],
             temperature: 0,
@@ -111,7 +115,14 @@ ${context || "(No relevant documents found for this question)"}`;
 
     // 2. Fallback to Gemini if Groq unavailable
     if (providerUsed === "none") {
-      const completion = await geminiJson("gemini-flash-latest:generateContent", { system_instruction: { parts: [{ text: instruction }] }, contents: [{ role: "user", parts: [{ text: question }] }], generationConfig: { temperature: 0, maxOutputTokens: 2000, responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { answer: { type: "STRING" }, escalate: { type: "BOOLEAN" } }, required: ["answer", "escalate"] } } });
+      const contents = [
+        ...recentTurns.map(t => {
+          const isUser = t.startsWith("user:");
+          return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
+        }),
+        { role: "user", parts: [{ text: question }] }
+      ];
+      const completion = await geminiJson("gemini-flash-latest:generateContent", { system_instruction: { parts: [{ text: instruction }] }, contents, generationConfig: { temperature: 0, maxOutputTokens: 2000, responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { answer: { type: "STRING" }, escalate: { type: "BOOLEAN" } }, required: ["answer", "escalate"] } } });
       jsonStr = completion.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
       providerUsed = "GEMINI";
     }
