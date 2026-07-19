@@ -79,6 +79,8 @@ export function StudentWorkspace() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [timetables, setTimetables] = useState<any[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0);
   const [profile, setProfile] = useState<any>(null);
   const [language, setLanguage] = useState("en");
   const [docQuery, setDocQuery] = useState("");
@@ -103,8 +105,10 @@ export function StudentWorkspace() {
       supabase.from("documents").select("id,title,category,file_type,created_at").eq("status", "active").order("created_at", { ascending: false }).limit(20),
       supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(20),
       supabase.from("tickets").select("*").order("created_at", { ascending: false }).limit(20),
-      supabase.from("personal_resources").select("*").eq("resource_type", "timetable").order("created_at", { ascending: false })
-    , supabase.from("departments").select("id,name").order("name")]).then(async ([auth, docs, nots, tcks, times, depts]) => {
+      supabase.from("personal_resources").select("*").eq("resource_type", "timetable").order("created_at", { ascending: false }),
+      supabase.from("departments").select("id,name").order("name"),
+      supabase.from("calendar_events").select("*").order("starts_at", { ascending: true })
+    ]).then(async ([auth, docs, nots, tcks, times, depts, calEvents]) => {
       const user = auth.data.user;
       setProfile(user);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
@@ -117,6 +121,7 @@ export function StudentWorkspace() {
       setTickets(tcks.data ?? []);
       setDepartments(depts.data ?? []);
       setTimetables(times.data ?? []);
+      setCalendarEvents(calEvents.data ?? []);
     });
     try {
       const saved = localStorage.getItem("kiliguide_conversations");
@@ -184,8 +189,13 @@ export function StudentWorkspace() {
     if (error || data?.error) {
       alert("AI Analysis failed: " + (error?.message || data?.error || "Unknown error"));
     } else {
-      alert(`AI successfully analyzed your timetable and added ${data.eventsCreated || 0} classes to your schedule!`);
+      // Refresh calendar events after parsing
+      if (supabase) {
+        const { data: calData } = await supabase.from("calendar_events").select("*").order("starts_at", { ascending: true });
+        setCalendarEvents(calData ?? []);
+      }
       setTimetables(ts => ts.map(t => t.id === resourceId ? { ...t, processing_status: "ready" } : t));
+      alert(`AI successfully analyzed your timetable and added ${data.eventsCreated || 0} classes to your schedule! Scroll down to see your weekly schedule.`);
     }
   };
 
@@ -830,6 +840,123 @@ export function StudentWorkspace() {
                   </div>
                 )}
               </div>
+
+              {/* ── WEEK SCHEDULE VIEW ── */}
+              {calendarEvents.length > 0 && (() => {
+                const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                const DAY_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                // Compute week start (Monday) for the current offset
+                const now = new Date();
+                const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay(); // 1=Mon…7=Sun
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - dayOfWeek + 1 + scheduleWeekOffset * 7);
+                monday.setHours(0, 0, 0, 0);
+                const weekDays = DAYS.map((_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
+                const weekStart = weekDays[0];
+                const weekEnd = new Date(weekDays[weekDays.length - 1]); weekEnd.setHours(23, 59, 59);
+
+                const eventsThisWeek = calendarEvents.filter(ev => {
+                  const s = new Date(ev.starts_at);
+                  return s >= weekStart && s <= weekEnd;
+                });
+
+                const eventsByDay: Record<number, any[]> = {};
+                eventsThisWeek.forEach(ev => {
+                  const d = new Date(ev.starts_at).getDay();
+                  const idx = d === 0 ? 6 : d - 1; // 0=Mon…5=Sat
+                  if (!eventsByDay[idx]) eventsByDay[idx] = [];
+                  eventsByDay[idx].push(ev);
+                });
+                Object.values(eventsByDay).forEach(arr => arr.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()));
+
+                const fmt = (d: Date) => d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+                const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit", hour12: true });
+                const todayIdx = (() => { const d = now.getDay(); return d === 0 ? 6 : d - 1; })();
+                const isCurrentWeek = scheduleWeekOffset === 0;
+
+                const COLORS = [
+                  { bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", text: "#10b981" },
+                  { bg: "rgba(139,92,246,0.1)", border: "rgba(139,92,246,0.3)", text: "#8b5cf6" },
+                  { bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.3)", text: "#3b82f6" },
+                  { bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.3)", text: "#f59e0b" },
+                  { bg: "rgba(236,72,153,0.1)", border: "rgba(236,72,153,0.3)", text: "#ec4899" },
+                  { bg: "rgba(6,182,212,0.1)", border: "rgba(6,182,212,0.3)", text: "#06b6d4" },
+                ];
+                const courseColorMap: Record<string, number> = {};
+                let colorIdx = 0;
+                calendarEvents.forEach(ev => {
+                  const key = ev.title.split(" ").slice(0, 3).join(" ");
+                  if (!(key in courseColorMap)) courseColorMap[key] = colorIdx++ % COLORS.length;
+                });
+
+                return (
+                  <div style={{ marginTop: 40 }}>
+                    {/* Header */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                      <div>
+                        <h3 style={{ fontSize: 20, fontWeight: 700, color: "#fff", margin: 0 }}>Weekly Schedule</h3>
+                        <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4 }}>
+                          {fmt(weekStart)} – {fmt(weekEnd)} &nbsp;·&nbsp; {eventsThisWeek.length} class{eventsThisWeek.length !== 1 ? "es" : ""} this week
+                        </p>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => setScheduleWeekOffset(o => o - 1)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>← Prev</button>
+                        {scheduleWeekOffset !== 0 && <button onClick={() => setScheduleWeekOffset(0)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Today</button>}
+                        <button onClick={() => setScheduleWeekOffset(o => o + 1)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Next →</button>
+                      </div>
+                    </div>
+
+                    {/* Day columns */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+                      {DAYS.map((day, i) => {
+                        const isToday = isCurrentWeek && i === todayIdx;
+                        const dayEvents = eventsByDay[i] ?? [];
+                        return (
+                          <div key={day}>
+                            {/* Day header */}
+                            <div style={{
+                              textAlign: "center", padding: "10px 4px", borderRadius: 10, marginBottom: 8,
+                              background: isToday ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.03)",
+                              border: isToday ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.05)"
+                            }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: isToday ? "#10b981" : "#71717a", textTransform: "uppercase", letterSpacing: "0.08em" }}>{day}</div>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: isToday ? "#10b981" : "#fff", marginTop: 2 }}>{weekDays[i].getDate()}</div>
+                            </div>
+
+                            {/* Events */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {dayEvents.length === 0 ? (
+                                <div style={{ height: 60, borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.05)" }} />
+                              ) : dayEvents.map((ev, ei) => {
+                                const key = ev.title.split(" ").slice(0, 3).join(" ");
+                                const c = COLORS[courseColorMap[key] ?? 0];
+                                return (
+                                  <div key={ev.id ?? ei} style={{ padding: "8px 10px", borderRadius: 8, background: c.bg, border: `1px solid ${c.border}`, cursor: "default" }} title={ev.location ? `📍 ${ev.location}` : ""}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: c.text, lineHeight: 1.3, marginBottom: 4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{ev.title}</div>
+                                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", display: "flex", flexDirection: "column", gap: 2 }}>
+                                      <span>⏰ {fmtTime(ev.starts_at)}</span>
+                                      {ev.location && <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {ev.location}</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* No events this week */}
+                    {eventsThisWeek.length === 0 && (
+                      <div style={{ textAlign: "center", padding: "48px 0", color: "#52525b" }}>
+                        <CalendarDays size={40} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
+                        <p style={{ fontSize: 14 }}>No classes scheduled for this week.</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
             </div>
           </div>
         ) : tab === "Profile" ? (

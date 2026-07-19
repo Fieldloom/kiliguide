@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const ext = resource.storage_path.split('.').pop()?.toLowerCase() || '';
     const mimeType = ext === 'pdf' ? 'application/pdf' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
     const buffer = await fileData.arrayBuffer();
-    const base64Data = encodeBase64(buffer);
+    const base64Data = encodeBase64(new Uint8Array(buffer));
 
     const promptText = `Analyze this student timetable document. Extract all class meetings and lectures. Expand every weekly class into individual events between ${semesterStart} and ${semesterEnd} in timezone ${timezone}. Return JSON only: {"events":[{"title":"Course name","start":"ISO-8601 datetime with offset","end":"ISO-8601 datetime with offset","location":"room"}]}. Do not invent unclear classes.`;
     
@@ -43,17 +43,28 @@ Deno.serve(async (req) => {
       generationConfig: { temperature: 0, responseMimeType: "application/json" }
     };
 
-    const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
+    const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
     });
     
     if (!response.ok) {
-      console.error(await response.text());
-      throw new Error("Gemini request failed");
+      const errText = await response.text();
+      console.error("Gemini API error body:", errText);
+      throw new Error("Gemini request failed: " + errText);
     }
     
     const result = await response.json(); 
-    const parsed = JSON.parse(result.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}");
+    let textResult = result.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+    textResult = textResult.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+    
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(textResult);
+    } catch (parseErr) {
+      console.error("JSON parse error:", parseErr, "Text:", textResult);
+      throw new Error("Failed to parse Gemini response as JSON.");
+    }
+    
     const events: ClassEvent[] = Array.isArray(parsed.events) ? parsed.events : [];
     
     await admin.from("calendar_events").delete().eq("resource_id", resourceId);
@@ -67,8 +78,8 @@ Deno.serve(async (req) => {
     
     await admin.from("personal_resources").update({ processing_status: "ready" }).eq("id", resourceId);
     return Response.json({ eventsCreated: rows.length, reminderMinutes }, { headers: CORS });
-  } catch(e) { 
-    console.error(e);
-    return Response.json({ error: "Unable to analyse timetable." }, { status: 500, headers: CORS }); 
+  } catch(e: any) { 
+    console.error("Analyze error:", e);
+    return Response.json({ error: e.message || "Unable to analyse timetable." }, { status: 200, headers: CORS }); 
   }
 });
