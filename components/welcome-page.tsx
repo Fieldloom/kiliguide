@@ -1,51 +1,203 @@
+"use client";
 import Link from "next/link";
-import { ArrowUpRight, BellRing, BookOpenCheck, CalendarDays, Check, ChevronDown, FileSearch, GraduationCap, Languages, MapPin, MessageCircleMore, ShieldCheck, Sparkles, TicketCheck } from "lucide-react";
-
-const outcomes = [
-  ["01", "Ask", "Find a grounded answer from an official DeKUT source."],
-  ["02", "Plan", "Keep your classes, notices, and university deadlines in view."],
-  ["03", "Act", "Get support from the right office, without guessing where to go."],
-];
+import { ArrowRight, BookOpenCheck, CalendarDays, Lock, Search, Zap, Building, Sparkles, ShieldCheck, GraduationCap, Plus } from "lucide-react";
+import { useState } from "react";
 
 export function WelcomePage() {
-  return <main className="min-h-screen bg-[#f4f2ec] text-[#112956]">
-    <section className="relative isolate overflow-hidden bg-[#0a1e46] text-white">
-      <div className="absolute inset-0 -z-10 opacity-70 [background-image:linear-gradient(rgba(255,255,255,.075)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.075)_1px,transparent_1px)];[background-size:72px_72px]" />
-      <div className="absolute -right-24 top-8 -z-10 h-80 w-80 rounded-full bg-[#3b6fe7] blur-[100px]" />
-      <div className="absolute -bottom-36 left-[28%] -z-10 h-72 w-72 rounded-full bg-[#b7ff63]/20 blur-[90px]" />
-      <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
-        <Link href="/" className="flex items-center gap-3" aria-label="KiliGuide home"><span className="grid h-10 w-10 place-items-center rounded-lg bg-[#c7ff62] text-lg font-black text-[#0a1e46]">K</span><span><strong className="block text-lg leading-5 tracking-tight">KiliGuide</strong><small className="block text-[11px] font-bold tracking-[.12em] text-blue-200">DEKUT · KILIMIND AI</small></span></Link>
-        <nav className="hidden items-center gap-8 text-sm font-semibold text-blue-100 lg:flex"><a href="#discover">Features</a><a href="#sources">Resources</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
-        <Link href="/login" className="rounded-xl bg-[#c7ff62] px-4 py-2 text-sm font-bold text-[#0a1e46] transition hover:bg-white">Try KiliGuide <ArrowUpRight className="ml-1 inline" size={15}/></Link>
-      </header>
+  const [hoveredPill, setHoveredPill] = useState<number | null>(null);
 
-      <div className="mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-10 lg:pb-24">
-        <div className="max-w-2xl">
-          <p className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-[#c7ff62]"><Sparkles size={15}/> AI-powered. Campus-focused. Student-first.</p>
-          <h1 className="text-5xl font-black leading-[.96] tracking-[-.055em] sm:text-6xl lg:text-7xl">The AI operating<br/>system for<br/><span className="text-[#c7ff62]">campus life.</span></h1>
-          <p className="mt-7 max-w-lg text-base leading-7 text-blue-100 sm:text-lg">Get answers from official university documents, track deadlines, and connect with the right office—all from one intelligent workspace.</p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row"><Link href="/login" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#c7ff62] px-6 py-3.5 font-bold text-[#0a1e46] transition hover:bg-white">Enter KiliGuide <ArrowUpRight className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" size={18}/></Link><a href="#discover" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 px-6 py-3.5 font-bold text-white transition hover:bg-white/10">Discover the platform <ChevronDown size={17}/></a></div>
-          <div className="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-blue-200"><span className="flex items-center gap-1.5"><ShieldCheck size={15} className="text-[#c7ff62]"/> Official sources first</span><span className="flex items-center gap-1.5"><Languages size={15} className="text-[#c7ff62]"/> English & Kiswahili</span></div>
-        </div>
+  const pills = [
+    "Exam timetable", "Hostel application", "Fee structure", "Academic calendar", "Where is Finance Office?"
+  ];
 
-        <div className="relative mx-auto w-full max-w-md pb-6 pt-8 lg:pt-0">
-          <p className="absolute left-0 top-0 text-[10px] font-bold uppercase tracking-[.18em] text-blue-200">Ask KiliGuide</p>
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-[#12356f] p-5 shadow-[0_30px_70px_rgba(0,0,0,.28)] sm:p-6">
-            <div className="absolute right-0 top-0 h-44 w-44 rounded-full border-[28px] border-[#c7ff62]/15" />
-            <div className="relative flex items-center justify-between"><span className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold">EN &nbsp;|&nbsp; SW</span><MapPin size={18} className="text-[#c7ff62]"/></div>
-            <div className="relative mt-9 rounded-xl bg-[#2552a9] p-4"><p className="text-xs text-blue-200">You</p><p className="mt-2 text-sm font-semibold">When does academic registration close?</p><small className="mt-2 block text-right text-[10px] text-blue-200">10:24 AM ✓</small></div>
-            <div className="relative mt-5 rounded-xl border border-white/10 bg-[#0c2859] p-4"><p className="text-xs font-bold text-[#c7ff62]">● &nbsp; Answer found in 2 official sources</p><div className="mt-3 grid grid-cols-2 gap-2 text-[10px]"><span className="rounded-lg bg-white/5 p-2">Academic Handbook.pdf<br/><b>Page 12</b></span><span className="rounded-lg bg-white/5 p-2">Registrar Notice.pdf<br/><b>Page 3</b></span></div><p className="mt-4 text-base font-medium">Academic registration closes on <b className="text-[#c7ff62]">Friday at 5:00 PM.</b></p><p className="mt-2 text-xs leading-5 text-blue-100">Make sure to complete your registration before the deadline to avoid penalties.</p></div>
-            <div className="relative mt-4 flex gap-2"><button className="flex-1 rounded-xl border border-white/20 py-2 text-xs font-bold">Create reminder</button><button className="flex-1 rounded-xl bg-[#2854a9] py-2 text-xs font-bold">Open documents</button></div>
+  const features = [
+    { title: "Verified Answers", desc: "From Official Sources", icon: ShieldCheck },
+    { title: "24/7 Assistance", desc: "Always Available", icon: Zap },
+    { title: "Secure & Private", desc: "Your Data is Safe", icon: Lock },
+    { title: "Built for Students", desc: "Designed for Success", icon: GraduationCap }
+  ];
+
+  return (
+    <main className="ambient-bg" style={{ minHeight: "100vh", color: "#ffffff", overflow: "hidden", fontFamily: "'Inter', sans-serif", position: "relative" }}>
+      
+      {/* Huge Background Glow */}
+      <div style={{ position: "absolute", top: "-10%", left: "30%", width: "100vw", height: "100vw", background: "radial-gradient(circle, rgba(25,195,125,0.06) 0%, rgba(0,0,0,0) 60%)", zIndex: 0, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "-20%", left: "-10%", width: "80vw", height: "80vw", background: "radial-gradient(circle, rgba(25,195,125,0.04) 0%, rgba(0,0,0,0) 60%)", zIndex: 0, pointerEvents: "none" }} />
+
+      <div style={{ position: "relative", zIndex: 10, maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
+        
+        {/* Navbar */}
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 80, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#0B0F14", display: "grid", placeItems: "center", border: "1px solid #1A2A20" }}>
+              <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
+            </span>
+            <div>
+              <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1 }}>KiliGuide</h1>
+              <span style={{ fontSize: 11, color: "#a1a1aa" }}>Smarter Campus. Better Tomorrow.</span>
+            </div>
           </div>
-          <div className="absolute -bottom-2 -right-3 flex items-center gap-2 rounded-xl bg-[#f4f2ec] px-3 py-2 text-[#112956] shadow-lg"><BellRing size={16} className="text-blue-700"/><span className="text-xs font-bold">Deadline kept in view</span></div>
-        </div>
+
+          <nav style={{ display: "none", gap: 24, fontSize: 13, fontWeight: 600, color: "#ececec" }} className="lg-flex">
+            <span style={{ color: "#19c37d", borderBottom: "2px solid #19c37d", paddingBottom: 26, transform: "translateY(14px)" }}>Home</span>
+            <span>Chats</span>
+            <span>Documents</span>
+            <span>Timetable</span>
+            <span>Notices</span>
+            <span>My Services</span>
+            <span>Support</span>
+          </nav>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <button style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "8px 16px", color: "#ececec", fontSize: 13, fontWeight: 600 }} className="hidden sm-flex">
+              <Sparkles size={14} style={{ color: "#19c37d" }} /> Ask KiliGuide
+            </button>
+            <Link href="/login" style={{ background: "#19c37d", color: "#000", border: "none", borderRadius: 20, padding: "8px 20px", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#14a367"} onMouseLeave={e => e.currentTarget.style.background = "#19c37d"}>
+              Sign In <ArrowRight size={14} />
+            </Link>
+          </div>
+        </header>
+
+        {/* Hero Area */}
+        <section style={{ display: "flex", flexWrap: "wrap", alignItems: "center", marginTop: 80, gap: 60 }}>
+          
+          {/* Left Content */}
+          <div style={{ flex: "1 1 500px", zIndex: 10 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(25, 195, 125, 0.05)", border: "1px solid rgba(25, 195, 125, 0.2)", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#ececec", marginBottom: 32 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#19c37d", boxShadow: "0 0 8px #19c37d" }} />
+              Official Campus Companion
+            </div>
+
+            <h2 style={{ fontSize: "clamp(48px, 6vw, 72px)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.1, marginBottom: 24 }}>
+              Everything You Need.<br />
+              <span style={{ color: "#19c37d" }}>Powered by AI.</span>
+            </h2>
+
+            <p style={{ fontSize: "clamp(16px, 2vw, 18px)", color: "#a1a1aa", lineHeight: 1.6, maxWidth: 540, marginBottom: 40 }}>
+              KiliGuide makes campus life easier by giving you instant, accurate answers from official university information—anytime, anywhere.
+            </p>
+
+            {/* Fake Search */}
+            <div style={{ background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 100, display: "flex", alignItems: "center", padding: "8px 8px 8px 24px", maxWidth: 600, marginBottom: 24, boxShadow: "0 8px 32px rgba(25, 195, 125, 0.05)" }}>
+              <Search size={20} style={{ color: "#a1a1aa", marginRight: 16 }} />
+              <input readOnly placeholder="Ask anything about DeKUT..." style={{ flex: 1, background: "transparent", border: "none", color: "#ececec", fontSize: 16, outline: "none", cursor: "default" }} />
+              <button style={{ width: 44, height: 44, borderRadius: "50%", background: "#19c37d", border: "none", display: "grid", placeItems: "center", cursor: "pointer" }}>
+                <ArrowRight size={20} style={{ color: "#000" }} />
+              </button>
+            </div>
+
+            {/* Try Asking Pills */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 60 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#ececec" }}>Try asking:</span>
+              {pills.map((pill, i) => (
+                <div key={i} onMouseEnter={() => setHoveredPill(i)} onMouseLeave={() => setHoveredPill(null)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${hoveredPill === i ? "#19c37d" : "#1A2A20"}`, background: hoveredPill === i ? "rgba(25, 195, 125, 0.1)" : "transparent", color: hoveredPill === i ? "#19c37d" : "#8e8ea0", fontSize: 12, cursor: "pointer", transition: "all 0.2s" }}>
+                  {pill}
+                </div>
+              ))}
+            </div>
+
+            {/* Features Row */}
+            <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+              {features.map((f, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <f.icon size={24} style={{ color: "#19c37d" }} />
+                  <div>
+                    <h4 style={{ fontSize: 14, fontWeight: 600, color: "#ececec", marginBottom: 2 }}>{f.title}</h4>
+                    <span style={{ fontSize: 12, color: "#8e8ea0" }}>{f.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+
+          {/* Right Content - Dashboard Preview Mockup */}
+          <div style={{ flex: "1 1 500px", display: "flex", justifyContent: "flex-end", perspective: 1000, zIndex: 10 }} className="hidden lg-flex">
+            <div style={{ 
+              width: "110%", minWidth: 600, height: 480, background: "#06080A", border: "1px solid #1A2A20", 
+              borderRadius: 24, boxShadow: "0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(25, 195, 125, 0.2), inset 0 0 40px rgba(25, 195, 125, 0.02)", 
+              transform: "rotateY(-15deg) rotateX(5deg) translateZ(0)", transformStyle: "preserve-3d",
+              display: "flex", overflow: "hidden"
+            }}>
+              {/* Mock Sidebar */}
+              <div style={{ width: 220, background: "#0B0F14", borderRight: "1px solid #131820", padding: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 32 }}>
+                  <div style={{ width: 24, height: 24, background: "#19c37d", borderRadius: 6 }} />
+                  <div style={{ height: 12, width: 80, background: "#1A2A20", borderRadius: 4 }} />
+                </div>
+                {[1,2,3,4,5,6].map(i => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0" }}>
+                    <div style={{ width: 16, height: 16, background: i === 1 ? "#19c37d" : "#1A2A20", borderRadius: 4 }} />
+                    <div style={{ height: 8, width: i % 2 === 0 ? 60 : 80, background: i === 1 ? "#ececec" : "#1A2A20", borderRadius: 4 }} />
+                  </div>
+                ))}
+              </div>
+              {/* Mock Main Area */}
+              <div style={{ flex: 1, padding: 32, display: "flex", flexDirection: "column" }}>
+                <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>Good morning, Student <span style={{ fontSize: 20 }}>👋</span></h3>
+                <p style={{ color: "#8e8ea0", fontSize: 14, marginBottom: 24 }}>How can I help you today?</p>
+                <div style={{ height: 48, background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 24, marginBottom: 32, display: "flex", alignItems: "center", padding: "0 16px", justifyContent: "space-between" }}>
+                  <div style={{ height: 8, width: 140, background: "#1A2A20", borderRadius: 4 }} />
+                  <div style={{ width: 24, height: 24, background: "#19c37d", borderRadius: "50%" }} />
+                </div>
+                <b style={{ fontSize: 12, color: "#8e8ea0", marginBottom: 16 }}>Quick Access</b>
+                <div style={{ display: "flex", gap: 12 }}>
+                  {[1,2,3,4].map(i => (
+                    <div key={i} style={{ flex: 1, height: 80, background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                       <div style={{ width: 24, height: 24, background: "rgba(25, 195, 125, 0.1)", borderRadius: 6 }} />
+                       <div style={{ height: 4, width: 40, background: "#1A2A20", borderRadius: 2 }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Trusted By Section */}
+        <section style={{ marginTop: 100, paddingBottom: 60, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 40 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, borderRight: "1px solid #131820", paddingRight: 40 }}>
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Dedan_Kimathi_University_of_Technology_logo.png/220px-Dedan_Kimathi_University_of_Technology_logo.png" alt="DeKUT" style={{ width: 48, height: 48, objectFit: "contain", background: "#fff", borderRadius: "50%", padding: 4 }} />
+            <div>
+              <span style={{ fontSize: 12, color: "#8e8ea0", display: "block", marginBottom: 2 }}>Trusted by Universities</span>
+              <b style={{ fontSize: 14, color: "#ececec" }}>Dedan Kimathi University of<br/>Technology</b>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16, borderRight: "1px solid #131820", paddingRight: 40 }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid #1A2A20", display: "grid", placeItems: "center" }}>
+              <Plus size={16} style={{ color: "#a1a1aa" }} />
+            </div>
+            <span style={{ fontSize: 13, color: "#8e8ea0" }}>More universities<br/>coming soon</span>
+          </div>
+
+          <div style={{ display: "flex", gap: 40, flex: 1, justifyContent: "space-between" }}>
+            <div>
+              <b style={{ fontSize: 24, fontWeight: 800, color: "#19c37d", display: "block", marginBottom: 4 }}>15,000+</b>
+              <span style={{ fontSize: 13, color: "#8e8ea0" }}>Students Helped</span>
+            </div>
+            <div>
+              <b style={{ fontSize: 24, fontWeight: 800, color: "#19c37d", display: "block", marginBottom: 4 }}>98%</b>
+              <span style={{ fontSize: 13, color: "#8e8ea0" }}>Answer Accuracy</span>
+            </div>
+            <div>
+              <b style={{ fontSize: 24, fontWeight: 800, color: "#19c37d", display: "block", marginBottom: 4 }}>24/7</b>
+              <span style={{ fontSize: 13, color: "#8e8ea0" }}>Always Available</span>
+            </div>
+            <div>
+              <b style={{ fontSize: 24, fontWeight: 800, color: "#19c37d", display: "block", marginBottom: 4 }}>12+</b>
+              <span style={{ fontSize: 13, color: "#8e8ea0" }}>Services & Features</span>
+            </div>
+          </div>
+        </section>
+
       </div>
-    </section>
 
-    <section id="discover" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10"><div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr]"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">The KiliGuide way</p><h2 className="mt-4 text-4xl font-black leading-[1.02] tracking-[-.04em]">Less searching.<br/>More certainty.</h2><p className="mt-5 max-w-sm leading-7 text-slate-600">Campus information should be easy to find and safe to act on. KiliGuide makes the next right action obvious.</p></div><div className="divide-y divide-[#d7d5cd] border-y border-[#d7d5cd]">{outcomes.map(([number,title,detail])=><article key={number} className="grid grid-cols-[50px_1fr_auto] gap-3 py-6 sm:grid-cols-[70px_1fr_auto] sm:gap-6"><span className="text-sm font-black text-blue-700">{number}</span><div><h3 className="text-xl font-black tracking-tight">{title}</h3><p className="mt-1 max-w-md text-sm leading-6 text-slate-600">{detail}</p></div><ArrowUpRight className="text-blue-700" size={20}/></article>)}</div></div></section>
-
-    <section className="bg-[#e3e8f0] px-5 py-16 sm:px-8 lg:px-10"><div className="mx-auto max-w-7xl"><p className="text-center text-xs font-bold uppercase tracking-[.18em] text-blue-700">Designed around real student needs</p><div className="mt-8 grid gap-4 md:grid-cols-3"><article className="bg-[#fffdf8] p-6 sm:p-7"><CalendarDays className="text-blue-700"/><h3 className="mt-10 text-2xl font-black tracking-tight">Your time matters.</h3><p className="mt-3 text-sm leading-6 text-slate-600">Bring in your timetable and receive timely class and deadline reminders.</p></article><article className="bg-[#c7ff62] p-6 sm:p-7"><BookOpenCheck className="text-[#112956]"/><h3 className="mt-10 text-2xl font-black tracking-tight">Answers need evidence.</h3><p className="mt-3 text-sm leading-6 text-[#28405f]">Every AI answer is grounded in retrieved university sources that you can inspect.</p></article><article className="bg-[#12356f] p-6 text-white sm:p-7"><MessageCircleMore className="text-[#c7ff62]"/><h3 className="mt-10 text-2xl font-black tracking-tight">Support should feel human.</h3><p className="mt-3 text-sm leading-6 text-blue-100">Open a ticket, follow updates, and know which department is handling it.</p></article></div></div></section>
-
-    <footer className="bg-[#0a1e46] px-5 py-12 text-white sm:px-8 lg:px-10"><div className="mx-auto flex max-w-7xl flex-col gap-8 sm:flex-row sm:items-end sm:justify-between"><div><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#c7ff62] font-black text-[#0a1e46]">K</span><b className="text-lg">KiliGuide</b></div><p className="mt-3 text-sm text-blue-200">A smarter path through DeKUT.</p></div><div className="flex flex-col items-start gap-3 sm:items-end"><Link href="/login" className="inline-flex items-center gap-2 rounded-full bg-[#c7ff62] px-5 py-3 font-bold text-[#0a1e46]">Sign in to your workspace <ArrowUpRight size={17}/></Link><p className="flex items-center gap-1.5 text-xs text-blue-200"><Check size={14} className="text-[#c7ff62]"/> KiliMind AI · Built for the DeKUT community</p></div></div></footer>
-  </main>;
+      <style>{`
+        body { background: #000000 !important; }
+        @media (min-width: 1024px) { .lg-flex { display: flex !important; } }
+        @media (min-width: 640px) { .sm-flex { display: flex !important; } }
+      `}</style>
+    </main>
+  );
 }
