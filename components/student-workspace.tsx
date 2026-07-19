@@ -592,7 +592,7 @@ export function StudentWorkspace() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 15, color: "#ececec", lineHeight: 1.7 }}><MarkdownMessage content={m.content} /></div>
                           
-                          {m.sources && m.sources.length > 0 ? (
+                          {m.sources && m.sources.length > 0 && (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
                               <span style={{ fontSize: 11, color: "#a1a1aa", display: "flex", alignItems: "center", gap: 4 }}><ShieldCheck size={12} /> Sources:</span>
                               {m.sources.map((s, idx) => (
@@ -600,10 +600,6 @@ export function StudentWorkspace() {
                                   <FileText size={10} /> {s.title} {s.page ? `(Pg. ${s.page})` : ""}
                                 </span>
                               ))}
-                            </div>
-                          ) : m.role === "assistant" && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                              <span style={{ fontSize: 11, color: "#52525b", display: "flex", alignItems: "center", gap: 4 }}><ShieldCheck size={12} /> No official document sources found</span>
                             </div>
                           )}
 
