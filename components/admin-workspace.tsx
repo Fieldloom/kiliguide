@@ -38,7 +38,7 @@ export function AdminWorkspace() {
   const [done, setDone] = useState<number[]>([]);
   const [composer, setComposer] = useState(false);
   
-  const [stats, setStats] = useState({ users: 0, docs: 0, tickets: 0, notices: 0 });
+  const [stats, setStats] = useState({ users: 0, docs: 0, tickets: 0, notices: 0, healthScore: 100, chartData: [0,0,0,0,0,0,0] });
 
   useEffect(() => {
     if (!supabase) return;
@@ -46,13 +46,35 @@ export function AdminWorkspace() {
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("documents").select("*", { count: "exact", head: true }).eq("status", "active"),
       supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
-      supabase.from("notices").select("*", { count: "exact", head: true })
-    ]).then(([u, d, t, n]) => {
+      supabase.from("notices").select("*", { count: "exact", head: true }),
+      supabase.from("documents").select("processing_status"),
+      supabase.from("messages").select("created_at").gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+    ]).then(([u, d, t, n, healthDocs, chartMsgs]) => {
+      let healthyCount = 0;
+      let totalDocs = 0;
+      if (healthDocs.data) {
+        totalDocs = healthDocs.data.length;
+        healthyCount = healthDocs.data.filter((doc: any) => doc.processing_status === "ready" || doc.processing_status === "archived" || doc.processing_status === null).length;
+      }
+      const healthScore = totalDocs === 0 ? 100 : Math.round((healthyCount / totalDocs) * 100);
+
+      const days = [0,0,0,0,0,0,0];
+      if (chartMsgs.data) {
+        const now = new Date();
+        chartMsgs.data.forEach((msg: any) => {
+          const msgDate = new Date(msg.created_at);
+          const diffDays = Math.floor(Math.abs(now.getTime() - msgDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays < 7) days[6 - diffDays]++;
+        });
+      }
+
       setStats({
         users: u.count ?? 0,
         docs: d.count ?? 0,
         tickets: t.count ?? 0,
-        notices: n.count ?? 0
+        notices: n.count ?? 0,
+        healthScore,
+        chartData: days
       });
     });
   }, [tab]);
@@ -175,9 +197,10 @@ function Metric({ icon: Icon, value, label, color }: { icon: any; value: string;
   );
 }
 
-function Chart() {
-  const pts = [150, 150, 105, 126, 60, 125, 90, 122, 28];
-  const xs = [0, 75, 150, 225, 300, 375, 450, 525, 600];
+function Chart({ data = [0,0,0,0,0,0,0] }: { data?: number[] }) {
+  const maxVal = Math.max(...data, 10);
+  const pts = data.map(v => 180 - (v / maxVal) * 150);
+  const xs = [0, 100, 200, 300, 400, 500, 600];
   const path = xs.map((x, i) => `${i === 0 ? "M" : "L"}${x} ${pts[i]}`).join(" ");
   return (
     <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
@@ -202,21 +225,21 @@ function Chart() {
   );
 }
 
-function Health() {
-  const bars = ["Documents processed", "Chunks indexed", "Embeddings up to date", "Retrieval accuracy"];
+function Health({ score = 100 }: { score?: number }) {
+  const bars = ["Document processing", "System connectivity", "Vector indexing"];
   return (
     <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
       <h2 style={{ fontWeight: 700, fontSize: 15 }}>Knowledge base health</h2>
       <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 20 }}>
-        <div style={{ width: 96, height: 96, borderRadius: "50%", border: `8px solid ${D.accent}`, display: "grid", placeItems: "center", flexShrink: 0, textAlign: "center" }}>
-          <div><b style={{ fontSize: 13 }}>Excellent</b><br /><span style={{ fontSize: 14, color: D.accent }}>96/100</span></div>
+        <div style={{ width: 96, height: 96, borderRadius: "50%", border: `8px solid ${score >= 90 ? D.accent : "#f59e0b"}`, display: "grid", placeItems: "center", flexShrink: 0, textAlign: "center" }}>
+          <div><b style={{ fontSize: 13 }}>{score >= 90 ? "Excellent" : "Needs Review"}</b><br /><span style={{ fontSize: 14, color: score >= 90 ? D.accent : "#f59e0b" }}>{score}/100</span></div>
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
           {bars.map((x, i) => (
             <div key={x}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: D.muted }}><span>{x}</span><span>{98 - i}%</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: D.muted }}><span>{x}</span><span>{score}%</span></div>
               <div style={{ height: 4, borderRadius: 2, background: "#3a3a3a", marginTop: 4 }}>
-                <div style={{ height: "100%", borderRadius: 2, background: D.accent, width: `${98 - i}%` }} />
+                <div style={{ height: "100%", borderRadius: 2, background: score >= 90 ? D.accent : "#f59e0b", width: `${score}%` }} />
               </div>
             </div>
           ))}
@@ -243,8 +266,8 @@ function Overview({ done, setDone, onTab, stats }: { done: number[]; setDone: (x
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr", marginBottom: 20 }} className="xl:grid-cols-[1fr_1fr] grid-cols-1">
-        <Chart />
-        <Health />
+        <Chart data={stats.chartData} />
+        <Health score={stats.healthScore} />
       </div>
     </>
   );
@@ -274,6 +297,8 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
         <NoticesWorkspace />
       ) : tab === "Users" ? (
         <UsersWorkspace />
+      ) : tab === "AI Assistant" ? (
+        <AILiveFeed />
       ) : (
         <div style={{ borderRadius: 12, background: D.card, padding: 48, textAlign: "center", border: `1px solid ${D.border}` }}>
           <Bot size={36} style={{ color: D.muted, margin: "0 auto 12px" }} />
@@ -389,6 +414,20 @@ function UsersWorkspace() {
     supabase?.from("profiles").select(`*, user_roles(role)`).order("created_at", { ascending: false }).then(({ data }) => setUsers(data || []));
   }, []);
 
+  const updateRole = async (userId: string, newRole: string) => {
+    if (!supabase) return;
+    await supabase.from("user_roles").delete().eq("user_id", userId);
+    await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
+    setUsers(users.map(u => u.id === userId ? { ...u, user_roles: [{ role: newRole }] } : u));
+  };
+
+  const deleteUser = async (userId: string, name: string) => {
+    if (!supabase || !confirm(`Permanently delete user ${name}?`)) return;
+    // Calling an admin function to delete user or deleting profile triggers cascade
+    await supabase.from("profiles").delete().eq("id", userId);
+    setUsers(users.filter(u => u.id !== userId));
+  };
+
   return (
     <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
       <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 13 }}>
@@ -397,6 +436,7 @@ function UsersWorkspace() {
             <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>USER</th>
             <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>ROLE</th>
             <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>JOINED</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "right" }}>ACTIONS</th>
           </tr>
         </thead>
         <tbody>
@@ -411,10 +451,46 @@ function UsersWorkspace() {
                 </span>
               </td>
               <td style={{ padding: "14px 16px 14px 0", color: D.muted }}>{new Date(u.created_at).toLocaleDateString()}</td>
+              <td style={{ padding: "14px 0", textAlign: "right" }}>
+                <select value={u.user_roles?.[0]?.role || "student"} onChange={e => updateRole(u.id, e.target.value)} style={{ background: "transparent", border: `1px solid ${D.border}`, color: D.text, padding: "4px 8px", borderRadius: 4, outline: "none", marginRight: 8 }}>
+                  <option value="student">Student</option>
+                  <option value="parent">Parent</option>
+                  <option value="lecturer">Lecturer</option>
+                  <option value="dept_admin">Dept Admin</option>
+                  <option value="administrator">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+                <button onClick={() => deleteUser(u.id, u.full_name)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", padding: "4px 8px", borderRadius: 4, cursor: "pointer" }}>Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+    </section>
+  );
+}
+
+// ── LIVE AI FEED ─────────────────────────────────────────────────────────────
+function AILiveFeed() {
+  const [messages, setMessages] = useState<any[]>([]);
+  useEffect(() => {
+    supabase?.from("messages").select("*, profiles(full_name)").eq("role", "user").order("created_at", { ascending: false }).limit(20).then(({ data }) => setMessages(data || []));
+  }, []);
+
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
+      <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 16 }}>Live AI Interactions</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {messages.map(m => (
+          <div key={m.id} style={{ padding: 16, borderRadius: 8, background: D.bg, border: `1px solid ${D.border}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: D.accent }}>{m.profiles?.full_name || "Unknown User"}</span>
+              <span style={{ fontSize: 11, color: D.muted }}>{new Date(m.created_at).toLocaleString()}</span>
+            </div>
+            <p style={{ fontSize: 14, color: D.text }}>{m.content}</p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
