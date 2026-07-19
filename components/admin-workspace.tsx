@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity, BarChart3, Bell, Bot, Check, ChevronDown, ChevronRight,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
-  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive
+  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
@@ -37,6 +37,25 @@ export function AdminWorkspace() {
   const [query, setQuery] = useState("");
   const [done, setDone] = useState<number[]>([]);
   const [composer, setComposer] = useState(false);
+  
+  const [stats, setStats] = useState({ users: 0, docs: 0, tickets: 0, notices: 0 });
+
+  useEffect(() => {
+    if (!supabase) return;
+    Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("documents").select("*", { count: "exact", head: true }).eq("status", "active"),
+      supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
+      supabase.from("notices").select("*", { count: "exact", head: true })
+    ]).then(([u, d, t, n]) => {
+      setStats({
+        users: u.count ?? 0,
+        docs: d.count ?? 0,
+        tickets: t.count ?? 0,
+        notices: n.count ?? 0
+      });
+    });
+  }, [tab]);
 
   const go = (next: Tab) => { setTab(next); setMenu(false); };
 
@@ -53,7 +72,6 @@ export function AdminWorkspace() {
         }}
         className={`lg:relative lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}
       >
-        {/* Logo */}
         <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${D.border}` }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -65,13 +83,12 @@ export function AdminWorkspace() {
                 <small style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: D.accent }}>ADMINISTRATION</small>
               </div>
             </div>
-            <button onClick={() => setMenu(false)} style={{ color: D.muted, padding: 4 }} className="lg:hidden">
+            <button onClick={() => setMenu(false)} style={{ color: D.muted, padding: 4, background:"transparent", border:"none" }} className="lg:hidden">
               <X size={18} />
             </button>
           </div>
         </div>
 
-        {/* Nav */}
         <nav style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
           <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: D.muted, padding: "4px 12px 8px" }}>WORKSPACE</p>
           {nav.map(({ label, icon: Icon }) => (
@@ -95,30 +112,24 @@ export function AdminWorkspace() {
           ))}
         </nav>
 
-        {/* User */}
         <div style={{ padding: "12px 16px", borderTop: `1px solid ${D.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 32, height: 32, borderRadius: "50%", background: "#6855e8", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>GW</span>
+            <span style={{ width: 32, height: 32, borderRadius: "50%", background: "#6855e8", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>A</span>
             <div style={{ minWidth: 0 }}>
-              <b style={{ fontSize: 13, display: "block", color: D.text }}>Griffin Wekesa</b>
-              <small style={{ fontSize: 11, color: D.muted }}>Super Administrator</small>
+              <b style={{ fontSize: 13, display: "block", color: D.text }}>Administrator</b>
+              <small style={{ fontSize: 11, color: D.muted }}>System Access</small>
             </div>
-            <ChevronDown size={14} style={{ color: D.muted, marginLeft: "auto", flexShrink: 0 }} />
           </div>
         </div>
       </aside>
 
-      {/* Mobile overlay */}
-      {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)" }} className="lg:hidden" />}
+      {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)", border:"none" }} className="lg:hidden" />}
 
-      {/* Main */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }} className="lg:ml-[260px]">
-        {/* Header */}
         <header style={{ height: 60, display: "flex", alignItems: "center", gap: 12, padding: "0 24px", borderBottom: `1px solid ${D.border}`, background: D.sidebar, flexShrink: 0, position: "sticky", top: 0, zIndex: 30 }}>
-          <button onClick={() => setMenu(true)} style={{ color: D.muted, padding: 6, borderRadius: 8 }} className="lg:hidden">
+          <button onClick={() => setMenu(true)} style={{ color: D.muted, padding: 6, borderRadius: 8, background:"transparent", border:"none" }} className="lg:hidden">
             <Menu size={20} />
           </button>
-          {/* Search */}
           <label style={{ flex: 1, maxWidth: 420, display: "flex", alignItems: "center", gap: 10, borderRadius: 10, background: D.card, padding: "8px 14px", cursor: "text" }}>
             <Search size={16} style={{ color: D.muted, flexShrink: 0 }} />
             <input
@@ -128,16 +139,12 @@ export function AdminWorkspace() {
               placeholder="Search in KiliGuide Admin…"
             />
           </label>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 32, height: 32, borderRadius: "50%", background: D.accent, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "#000" }}>GW</span>
-          </div>
         </header>
 
-        {/* Content */}
         <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 80px" }}>
           <div style={{ maxWidth: 1400, margin: "0 auto" }}>
             {tab === "Overview" ? (
-              <Overview done={done} setDone={setDone} onTab={go} />
+              <Overview done={done} setDone={setDone} onTab={go} stats={stats} />
             ) : (
               <WorkspaceTab tab={tab} onCompose={() => setComposer(true)} />
             )}
@@ -150,8 +157,7 @@ export function AdminWorkspace() {
   );
 }
 
-// ── Metric card ─────────────────────────────────────────────────────────
-function Metric({ icon: Icon, value, label, change, color }: { icon: any; value: string; label: string; change: string; color: string }) {
+function Metric({ icon: Icon, value, label, color }: { icon: any; value: string; label: string; color: string }) {
   return (
     <article style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -162,7 +168,6 @@ function Metric({ icon: Icon, value, label, change, color }: { icon: any; value:
           <p style={{ fontSize: 11, fontWeight: 600, color: D.muted }}>{label}</p>
           <b style={{ fontSize: 22, display: "flex", alignItems: "center", gap: 8 }}>
             {value}
-            <small style={{ fontSize: 11, color: D.accent, fontWeight: 600 }}>{change}</small>
           </b>
         </div>
       </div>
@@ -170,7 +175,6 @@ function Metric({ icon: Icon, value, label, change, color }: { icon: any; value:
   );
 }
 
-// ── Chart ────────────────────────────────────────────────────────────────
 function Chart() {
   const pts = [150, 150, 105, 126, 60, 125, 90, 122, 28];
   const xs = [0, 75, 150, 225, 300, 375, 450, 525, 600];
@@ -194,14 +198,10 @@ function Chart() {
           {xs.map((x, i) => <circle key={x} cx={x} cy={pts[i]} r="4" fill="#19c37d" />)}
         </svg>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: D.muted, marginTop: 6 }}>
-        {["May 11", "May 12", "May 13", "May 14", "May 15", "May 16", "May 17"].map(d => <span key={d}>{d}</span>)}
-      </div>
     </section>
   );
 }
 
-// ── Health ───────────────────────────────────────────────────────────────
 function Health() {
   const bars = ["Documents processed", "Chunks indexed", "Embeddings up to date", "Retrieval accuracy"];
   return (
@@ -226,139 +226,30 @@ function Health() {
   );
 }
 
-// ── Activity list ────────────────────────────────────────────────────────
-const activities = [
-  "New document uploaded · Finance Policy 2026.pdf",
-  "Ticket resolved · #TK-2481 Hostel issue",
-  "New user registered · john.mutua@dkut.ac.ke",
-  "Notice published · Examination Timetable"
-];
-function ActivityList({ onTab }: { onTab: (x: Tab) => void }) {
-  return (
-    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 700, fontSize: 15 }}>Recent activity</h2>
-        <button onClick={() => onTab("Documents")} style={{ fontSize: 12, fontWeight: 600, color: D.accent, background: "transparent", border: "none", cursor: "pointer" }}>View all</button>
-      </div>
-      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
-        {activities.map((x, i) => (
-          <button key={x} onClick={() => onTab(i === 1 ? "Tickets" : i === 3 ? "Notices" : "Documents")}
-            style={{ display: "flex", gap: 10, textAlign: "left", background: "transparent", border: "none", cursor: "pointer" }}>
-            <span style={{ width: 32, height: 32, borderRadius: 8, background: "#19c37d22", display: "grid", placeItems: "center", flexShrink: 0 }}>
-              <Activity size={14} style={{ color: D.accent }} />
-            </span>
-            <span>
-              <b style={{ display: "block", fontSize: 12, color: D.text, lineHeight: 1.5 }}>{x}</b>
-              <small style={{ fontSize: 11, color: D.muted }}>{i + 1}h ago</small>
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ── Dept chart ────────────────────────────────────────────────────────────
-function DepartmentChart() {
-  const rows: [string, number][] = [["Student Welfare", 90], ["ICT Services", 70], ["Finance Office", 52], ["Accommodation", 39], ["Registrar (AA&R)", 28]];
-  return (
-    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
-      <h2 style={{ fontWeight: 700, fontSize: 15 }}>Top departments by tickets</h2>
-      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-        {rows.map(([x, w]) => (
-          <div key={x} style={{ display: "grid", gridTemplateColumns: "110px 1fr 28px", alignItems: "center", gap: 8, fontSize: 11 }}>
-            <span style={{ color: D.muted }}>{x}</span>
-            <div style={{ height: 4, borderRadius: 2, background: "#3a3a3a" }}>
-              <div style={{ height: "100%", borderRadius: 2, background: "#7466ed", width: `${w}%` }} />
-            </div>
-            <span style={{ color: D.muted }}>{Math.round(w / 3)}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ── System status ─────────────────────────────────────────────────────────
-function SystemStatus() {
-  const items = ["AI Assistant", "Document Ingestion", "Vector Database", "Storage", "Authentication"];
-  return (
-    <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
-      <h2 style={{ fontWeight: 700, fontSize: 15 }}>System status</h2>
-      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-        {items.map(x => (
-          <div key={x} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-            <span style={{ color: D.muted }}>{x}</span>
-            <b style={{ color: D.accent }}>Operational ●</b>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ── Priority actions ──────────────────────────────────────────────────────
-const actionItems = ["Review knowledge-base processing queue", "Assign user roles for new staff", "Check weekly service analytics", "Verify outdated documents"];
-
-// ── Overview ──────────────────────────────────────────────────────────────
-function Overview({ done, setDone, onTab }: { done: number[]; setDone: (x: number[]) => void; onTab: (x: Tab) => void }) {
-  const mark = (i: number) => setDone(done.includes(i) ? done.filter(x => x !== i) : [...done, i]);
+function Overview({ done, setDone, onTab, stats }: { done: number[]; setDone: (x: number[]) => void; onTab: (x: Tab) => void; stats: any }) {
   return (
     <>
       <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 13, color: D.muted }}>Welcome back, <b style={{ color: D.text }}>Griffin</b> 👋</p>
+        <p style={{ fontSize: 13, color: D.muted }}>Welcome back, <b style={{ color: D.text }}>Admin</b> 👋</p>
         <h1 style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: D.text, letterSpacing: "-0.02em" }}>A healthier, more informed campus.</h1>
         <p style={{ marginTop: 6, color: D.muted, fontSize: 14 }}>Manage people, knowledge and service delivery across the university.</p>
       </div>
 
-      {/* Metrics */}
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", marginBottom: 20 }}>
-        <Metric icon={Users} color="#19c37d" value="2,481" label="Active users" change="↑ 12.5%" />
-        <Metric icon={FileText} color="#6366f1" value="48" label="Live documents" change="↑ 8.1%" />
-        <Metric icon={MessageSquareText} color="#f59e0b" value="1,842" label="AI queries answered" change="↑ 15.3%" />
-        <Metric icon={ShieldCheck} color="#ec4899" value="96%" label="Grounded answer rate" change="↑ 4.7%" />
+        <Metric icon={Users} color="#19c37d" value={stats.users.toString()} label="Active users" />
+        <Metric icon={FileText} color="#6366f1" value={stats.docs.toString()} label="Live documents" />
+        <Metric icon={Ticket} color="#f59e0b" value={stats.tickets.toString()} label="Open tickets" />
+        <Metric icon={Bell} color="#ec4899" value={stats.notices.toString()} label="Live notices" />
       </div>
 
-      {/* Charts row */}
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1.3fr 0.85fr 0.7fr", marginBottom: 20 }}
-        className="xl:grid-cols-[1.3fr_.85fr_.7fr] grid-cols-1">
+      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr", marginBottom: 20 }} className="xl:grid-cols-[1fr_1fr] grid-cols-1">
         <Chart />
         <Health />
-        <ActivityList onTab={onTab} />
-      </div>
-
-      {/* Bottom row */}
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr 0.7fr" }}
-        className="xl:grid-cols-[1fr_1fr_.7fr] grid-cols-1">
-        {/* Priority actions */}
-        <section style={{ borderRadius: 12, background: D.card, padding: 20, border: `1px solid ${D.border}` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontWeight: 700, fontSize: 15 }}>Priority actions</h2>
-            <button onClick={() => onTab("Documents")} style={{ borderRadius: 8, border: `1px solid ${D.border}`, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: D.muted, background: "transparent", cursor: "pointer" }}>View all tasks</button>
-          </div>
-          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-            {actionItems.map((task, i) => (
-              <button key={task} onClick={() => mark(i)}
-                style={{ display: "flex", alignItems: "center", gap: 10, borderRadius: 8, background: done.includes(i) ? "#19c37d11" : "#ffffff08", padding: "10px 12px", textAlign: "left", border: "none", cursor: "pointer", width: "100%" }}>
-                <span style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${done.includes(i) ? D.accent : "#3a3a3a"}`, background: done.includes(i) ? D.accent : "transparent", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                  {done.includes(i) && <Check size={12} color="#000" />}
-                </span>
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: done.includes(i) ? D.muted : D.text, textDecoration: done.includes(i) ? "line-through" : "none" }}>{task}</span>
-                <span style={{ fontSize: 10, borderRadius: 4, padding: "2px 6px", fontWeight: 700, background: i === 0 ? "#ef444422" : i === 2 ? "#22c55e22" : "#f59e0b22", color: i === 0 ? "#ef4444" : i === 2 ? "#22c55e" : "#f59e0b" }}>
-                  {i === 0 ? "High" : i === 2 ? "Low" : "Med"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-        <DepartmentChart />
-        <SystemStatus />
       </div>
     </>
   );
 }
 
-// ── Workspace Tab ─────────────────────────────────────────────────────────
 function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
   return (
     <section>
@@ -368,25 +259,162 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
           <h1 style={{ fontSize: 28, fontWeight: 800, marginTop: 6, color: D.text, letterSpacing: "-0.02em" }}>{tab}</h1>
           <p style={{ marginTop: 6, color: D.muted, fontSize: 14 }}>Manage your university {tab.toLowerCase()} from this workspace.</p>
         </div>
-        <button onClick={onCompose} style={{ borderRadius: 10, background: D.accent, padding: "10px 18px", fontSize: 13, fontWeight: 700, color: "#000", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", border: "none" }}>
-          <Upload size={15} />
-          {tab === "Documents" ? "Upload document" : `Create ${tab.slice(0, -1)}`}
-        </button>
+        {["Notices", "Documents"].includes(tab) && (
+          <button onClick={onCompose} style={{ borderRadius: 10, background: D.accent, padding: "10px 18px", fontSize: 13, fontWeight: 700, color: "#000", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", border: "none" }}>
+            <Upload size={15} />
+            {tab === "Documents" ? "Upload document" : `Create ${tab.slice(0, -1)}`}
+          </button>
+        )}
       </div>
       {tab === "Documents" ? (
-        <>
-          <OfficialSourceImport />
-          <DocumentLibrary />
-        </>
+        <><OfficialSourceImport /><DocumentLibrary /></>
+      ) : tab === "Tickets" ? (
+        <TicketsWorkspace />
+      ) : tab === "Notices" ? (
+        <NoticesWorkspace />
+      ) : tab === "Users" ? (
+        <UsersWorkspace />
       ) : (
         <div style={{ borderRadius: 12, background: D.card, padding: 48, textAlign: "center", border: `1px solid ${D.border}` }}>
           <Bot size={36} style={{ color: D.muted, margin: "0 auto 12px" }} />
           <h2 style={{ fontSize: 17, fontWeight: 700, color: D.text }}>{tab} workspace</h2>
           <p style={{ marginTop: 8, maxWidth: 420, margin: "8px auto 0", fontSize: 13, color: D.muted, lineHeight: 1.7 }}>
-            This section is ready for live Supabase records. Use the create action to begin a new item, or return to Overview to monitor operations.
+            This section is ready for live Supabase records.
           </p>
         </div>
       )}
+    </section>
+  );
+}
+
+// ── TICKETS ─────────────────────────────────────────────────────────────
+function TicketsWorkspace() {
+  const [tickets, setTickets] = useState<any[]>([]);
+  useEffect(() => {
+    supabase?.from("tickets").select(`*, created_by(full_name)`).order("created_at", { ascending: false }).then(({ data }) => setTickets(data || []));
+  }, []);
+
+  const updateStatus = async (id: string, status: string) => {
+    if(!supabase) return;
+    await supabase.from("tickets").update({ status }).eq("id", id);
+    setTickets(ts => ts.map(t => t.id === id ? { ...t, status } : t));
+  };
+
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
+      <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${D.border}` }}>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>SUBJECT</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>AUTHOR</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>STATUS</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "right" }}>ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tickets.map(t => (
+            <tr key={t.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+              <td style={{ padding: "14px 16px 14px 0" }}>
+                <b style={{ display: "block", color: D.text }}>{t.subject}</b>
+                <small style={{ color: D.muted }}>{t.description.substring(0, 50)}...</small>
+              </td>
+              <td style={{ padding: "14px 16px 14px 0", color: D.muted }}>{t.created_by?.full_name || "Unknown"}</td>
+              <td style={{ padding: "14px 16px 14px 0" }}>
+                <span style={{ borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, background: t.status === "open" ? "#ef444422" : t.status==="in_progress" ? "#f59e0b22" : "#19c37d22", color: t.status === "open" ? "#ef4444" : t.status==="in_progress" ? "#f59e0b" : D.accent }}>
+                  {t.status.toUpperCase()}
+                </span>
+              </td>
+              <td style={{ padding: "14px 0", textAlign: "right" }}>
+                <select value={t.status} onChange={e => updateStatus(t.id, e.target.value)} style={{ background: "transparent", border: `1px solid ${D.border}`, color: D.text, padding: "4px 8px", borderRadius: 4, outline: "none" }}>
+                  <option value="open">Open</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+// ── NOTICES ─────────────────────────────────────────────────────────────
+function NoticesWorkspace() {
+  const [notices, setNotices] = useState<any[]>([]);
+  useEffect(() => {
+    supabase?.from("notices").select("*").order("published_at", { ascending: false }).then(({ data }) => setNotices(data || []));
+  }, []);
+
+  const remove = async (id: string) => {
+    if(!supabase) return;
+    await supabase.from("notices").delete().eq("id", id);
+    setNotices(ns => ns.filter(n => n.id !== id));
+  };
+
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
+      <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${D.border}` }}>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>TITLE</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>DATE</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "right" }}>ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {notices.map(n => (
+            <tr key={n.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+              <td style={{ padding: "14px 16px 14px 0" }}>
+                <b style={{ display: "block", color: D.text }}>{n.title}</b>
+                <small style={{ color: D.muted }}>{n.summary?.substring(0, 50)}...</small>
+              </td>
+              <td style={{ padding: "14px 16px 14px 0", color: D.muted }}>{new Date(n.published_at).toLocaleDateString()}</td>
+              <td style={{ padding: "14px 0", textAlign: "right" }}>
+                <button onClick={() => remove(n.id)} style={{ background: "transparent", border: `1px solid #ef444444`, color: "#ef4444", padding: "4px 8px", borderRadius: 4, cursor: "pointer" }}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+// ── USERS ─────────────────────────────────────────────────────────────
+function UsersWorkspace() {
+  const [users, setUsers] = useState<any[]>([]);
+  useEffect(() => {
+    supabase?.from("profiles").select(`*, user_roles(role)`).order("created_at", { ascending: false }).then(({ data }) => setUsers(data || []));
+  }, []);
+
+  return (
+    <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
+      <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${D.border}` }}>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>USER</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>ROLE</th>
+            <th style={{ paddingBottom: 10, fontWeight: 700, fontSize: 11, color: D.muted, textAlign: "left" }}>JOINED</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map(u => (
+            <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+              <td style={{ padding: "14px 16px 14px 0" }}>
+                <b style={{ display: "block", color: D.text }}>{u.full_name || "Unknown"}</b>
+              </td>
+              <td style={{ padding: "14px 16px 14px 0" }}>
+                <span style={{ borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, background: "#6366f122", color: "#6366f1", textTransform: "uppercase" }}>
+                  {u.user_roles?.[0]?.role || "student"}
+                </span>
+              </td>
+              <td style={{ padding: "14px 16px 14px 0", color: D.muted }}>{new Date(u.created_at).toLocaleDateString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
@@ -448,7 +476,6 @@ function OfficialSourceImport() {
 
   return (
     <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1.1fr 0.9fr", marginBottom: 20 }} className="xl:grid-cols-[1.1fr_.9fr] grid-cols-1">
-      {/* Import form */}
       <section style={{ borderRadius: 12, background: D.card, padding: 24, border: `1px solid ${D.border}` }}>
         <p style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: D.text }}>
           <ShieldCheck size={17} style={{ color: D.accent }} /> Import an official DeKUT source
@@ -481,7 +508,6 @@ function OfficialSourceImport() {
         )}
       </section>
 
-      {/* Suggested sources */}
       <section style={{ borderRadius: 12, background: "#19c37d15", padding: 24, border: `1px solid #19c37d33` }}>
         <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: D.accent }}>SUGGESTED FIRST SOURCES</p>
         <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -501,7 +527,6 @@ function OfficialSourceImport() {
   );
 }
 
-// ── Document Library ──────────────────────────────────────────────────────
 type ManagedDocument = { id: string; title: string; category: string; file_type: string; status: string; processing_status?: string; source_url?: string | null; storage_path: string; chunk_count?: number; created_at: string; processing_error?: string | null };
 
 function DocumentLibrary() {
@@ -561,7 +586,6 @@ function DocumentLibrary() {
         </button>
       </div>
 
-      {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
         <label style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 8, borderRadius: 8, border: `1px solid ${D.border}`, padding: "8px 12px", background: D.bg }}>
           <Search size={14} style={{ color: D.muted, flexShrink: 0 }} />
@@ -580,7 +604,6 @@ function DocumentLibrary() {
         <p style={{ marginTop: 12, borderRadius: 8, padding: "10px 14px", fontSize: 13, background: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? "#19c37d22" : "#ef444422", color: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? D.accent : "#ef4444" }}>{notice}</p>
       )}
 
-      {/* Table */}
       <div style={{ marginTop: 16, overflowX: "auto" }}>
         <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
@@ -633,26 +656,42 @@ function DocumentLibrary() {
 
 // ── Compose modal ─────────────────────────────────────────────────────────
 function Compose({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+
+  const save = async () => {
+    if(!supabase || !title.trim() || !body.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("notices").insert({
+      title,
+      body,
+      summary: body.substring(0, 100),
+      author_id: user?.id,
+      category: "General"
+    });
+    onClose();
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.7)", padding: 16 }}>
       <section style={{ width: "100%", maxWidth: 460, borderRadius: 14, background: D.card, padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Create an update</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Create a Notice</h2>
           <button onClick={onClose} style={{ color: D.muted, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}><X size={18} /></button>
         </div>
         <label style={{ display: "block", marginTop: 20, fontSize: 12, fontWeight: 700, color: D.muted }}>
           TITLE
-          <input style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }} placeholder="Add a clear title"
+          <input value={title} onChange={e=>setTitle(e.target.value)} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }} placeholder="Add a clear title"
             onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
             onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
         </label>
         <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
           MESSAGE
-          <textarea style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", minHeight: 100, resize: "vertical" }} placeholder="What should the university community know?"
+          <textarea value={body} onChange={e=>setBody(e.target.value)} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", minHeight: 100, resize: "vertical" }} placeholder="What should the university community know?"
             onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
             onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
         </label>
-        <button onClick={onClose} style={{ marginTop: 20, width: "100%", borderRadius: 8, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#000", cursor: "pointer", border: "none" }}>Save draft</button>
+        <button onClick={save} style={{ marginTop: 20, width: "100%", borderRadius: 8, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#000", cursor: "pointer", border: "none" }}>Publish Notice</button>
       </section>
     </div>
   );
