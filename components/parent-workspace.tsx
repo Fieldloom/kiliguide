@@ -82,6 +82,7 @@ export function ParentWorkspace() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [notices, setNotices] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [timetables, setTimetables] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [language, setLanguage] = useState("en");
@@ -89,6 +90,7 @@ export function ParentWorkspace() {
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketDesc, setTicketDesc] = useState("");
   const [creatingTicket, setCreatingTicket] = useState(false);
+  const [ticketDeptId, setTicketDeptId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
 
@@ -103,7 +105,7 @@ export function ParentWorkspace() {
       supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(20),
       supabase.from("tickets").select("*").order("created_at", { ascending: false }).limit(20),
       supabase.from("personal_resources").select("*").eq("resource_type", "timetable").order("created_at", { ascending: false })
-    ]).then(async ([auth, docs, nots, tcks, times]) => {
+    , supabase.from("departments").select("id,name").order("name")]).then(async ([auth, docs, nots, tcks, times, depts]) => {
       const user = auth.data.user;
       setProfile(user);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Parent");
@@ -114,6 +116,7 @@ export function ParentWorkspace() {
       setDocuments(docs.data ?? []);
       setNotices(nots.data ?? []);
       setTickets(tcks.data ?? []);
+      setDepartments(depts.data ?? []);
       setTimetables(times.data ?? []);
     });
     try {
@@ -138,12 +141,14 @@ export function ParentWorkspace() {
     const { data, error } = await supabase.from("tickets").insert({
       subject: ticketSubject,
       description: ticketDesc,
-      created_by: profile?.id
+      created_by: profile?.id,
+      department_id: ticketDeptId || null
     }).select();
     if (!error && data) {
       setTickets([data[0], ...tickets]);
       setTicketSubject("");
       setTicketDesc("");
+      setTicketDeptId("");
     }
     setCreatingTicket(false);
   };
@@ -686,6 +691,10 @@ export function ParentWorkspace() {
                 <div className="glass-panel" style={{ padding: 24 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 16 }}>Create New Ticket</h3>
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <select value={ticketDeptId} onChange={e => setTicketDeptId(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 14, appearance: "none" }}>
+                      <option value="">Select Department (Optional)</option>
+                      {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
                     <input value={ticketSubject} onChange={e => setTicketSubject(e.target.value)} placeholder="Subject (e.g. WiFi Issue)" style={{ width: "100%", padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 14 }} />
                     <textarea value={ticketDesc} onChange={e => setTicketDesc(e.target.value)} placeholder="Describe your issue..." rows={4} style={{ width: "100%", padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 14, resize: "none" }} />
                     <button onClick={handleCreateTicket} disabled={creatingTicket || !ticketSubject || !ticketDesc} style={{ background: "#f97316", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: 8, opacity: (creatingTicket || !ticketSubject || !ticketDesc) ? 0.5 : 1 }}>

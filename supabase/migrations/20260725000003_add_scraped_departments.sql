@@ -1,0 +1,21 @@
+insert into public.departments (name, email) values
+  ('Admissions Office', 'admissionsoffice@dkut.ac.ke'),
+  ('Data Protection Office', 'dataprotection@dkut.ac.ke'),
+  ('School of Computer Science & IT', 'dean-cs-it@dkut.ac.ke'),
+  ('School of Science', 'dean-sos@dkut.ac.ke'),
+  ('School of Engineering', 'dean_soe@dkut.ac.ke'),
+  ('Geothermal Energy Training and Research Institute', 'getri@dkut.ac.ke'),
+  ('Graduate School', 'graduateschool@dkut.ac.ke'),
+  ('Institute of Food Bioresources Technology', 'ifbt@dkut.ac.ke'),
+  ('Institute of Geomatics, GIS and Remote Sensing', 'iggres@dkut.ac.ke'),
+  ('Institute of General Studies', 'igs@dkut.ac.ke'),
+  ('Institute of Tourism and Hospitality Management', 'itohmoffice@dkut.ac.ke'),
+  ('Institute of Technical and Professional Studies', 'itps@dkut.ac.ke'),
+  ('Marketing Office', 'marketing@dkut.ac.ke'),
+  ('School of Nursing', 'nursing@dkut.ac.ke'),
+  ('Public Relations Office', 'pro@dkut.ac.ke'),
+  ('Registrar Academic Affairs', 'registraraa@dkut.ac.ke'),
+  ('School of Business', 'schoolofbusines@dkut.ac.ke'),
+  ('Vice Chancellor''s Office', 'vc@dkut.ac.ke'),
+  ('ICT / Webmaster', 'webmaster@dkut.ac.ke')
+on conflict (name) do update set email = excluded.email;
