@@ -3,12 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Bell, Ticket, FileText, Menu, MessageCircleMore,
-  Send, ShieldCheck, Ticket, Trash2, Clock, MessageSquare,
-  Settings, Home, Sparkles, GraduationCap, CircleDollarSign, Building2, Check,
-  ChevronRight, Lock, BookOpenCheck, PanelLeft, PanelLeftClose, Search, User, Zap, Wallet, Landmark, HeadphonesIcon, BookOpen, Download, LogOut, Plus, Image as ImageIcon, File as FileIcon, AlertCircle, CheckCircle2, Clock as ClockIcon, UploadCloud, X, Loader2, Volume2, VolumeX
-} from "lucide-react";
+import { AlertCircle, Bell, BookOpen, BookOpenCheck, Building2, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 type Tab = "Home" | "Chats" | "Documents" | "Notices" | "Manage Tickets" | "Support" | "Profile" | "Settings";
@@ -101,7 +96,7 @@ export function DeptWorkspace() {
       supabase.auth.getUser(),
       supabase.from("documents").select("id,title,category,file_type,created_at").eq("status", "active").order("created_at", { ascending: false }).limit(20),
       supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(20),
-      supabase.from("tickets").select("*").order("created_at", { ascending: false }).limit(20),
+      supabase.from("tickets").select("*, profiles(full_name, email), departments(name, email)").order("created_at", { ascending: false }).limit(20),
       supabase.from("personal_resources").select("*").eq("resource_type", "timetable").order("created_at", { ascending: false })
     ]).then(async ([auth, docs, nots, tcks, times]) => {
       const user = auth.data.user;
@@ -719,33 +714,50 @@ export function DeptWorkspace() {
           </div>
         ) : tab === "Manage Tickets" ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
-            <div style={{ maxWidth: 800, margin: "0 auto", paddingBottom: 100 }}>
+            <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>Manage Tickets</h2>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, background: "#10b981", color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.7 : 1 }}>
-                  {uploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
-                  Upload Image/PDF
-                  <input type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={handleUploadTimetable} disabled={uploading} />
-                </label>
+                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>Manage Department Tickets</h2>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16 }}>
-                {timetables.map(t => (
-                  <div key={t.id} className="glass-panel" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <Ticket color="#8b5cf6" size={24} />
-                      <span style={{ fontWeight: 600, fontSize: 15, flex: 1, color: "#fff" }}>{t.title}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {tickets.map(t => (
+                  <div key={t.id} className="glass-panel" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                          <Ticket color="#10b981" size={24} />
+                          <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>{t.subject}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#a1a1aa", display: "flex", gap: 16 }}>
+                          <span>From: {t.profiles?.full_name || "Unknown"}</span>
+                          <span>Dept: {t.departments?.name || "Unassigned"}</span>
+                          <span>{new Date(t.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <span style={{ padding: "4px 12px", borderRadius: 100, fontSize: 11, fontWeight: 700, textTransform: "uppercase", background: t.status === "open" ? "rgba(245, 158, 11, 0.1)" : "rgba(16, 185, 129, 0.1)", color: t.status === "open" ? "#f59e0b" : "#10b981" }}>
+                        {t.status}
+                      </span>
                     </div>
-                    <span style={{ fontSize: 12, color: "#8b5cf6", background: "rgba(139, 92, 246, 0.1)", padding: "4px 8px", borderRadius: 12, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6 }}>
-                      <ClockIcon size={12} /> {t.processing_status}
-                    </span>
+                    
+                    <div style={{ background: "rgba(0,0,0,0.2)", padding: 16, borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <p style={{ fontSize: 14, color: "#ececec", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{t.description}</p>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }}>
+                      {t.departments?.email && (
+                        <a href={`mailto:${t.departments.email}?subject=Ticket Escalation: ${t.subject}&body=Ticket from ${t.profiles?.full_name || "Unknown"}%0A%0A${t.description}`} 
+                           style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
+                           Escalate via Email
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
-                {timetables.length === 0 && (
-                  <div className="glass-panel" style={{ padding: 40, gridColumn: "1 / -1", textAlign: "center" }}>
+                {tickets.length === 0 && (
+                  <div className="glass-panel" style={{ padding: 40, textAlign: "center" }}>
                     <Ticket size={48} color="#52525b" style={{ margin: "0 auto 16px" }} />
-                    <h3 style={{ fontSize: 16, color: "#fff", marginBottom: 8 }}>No Timetable Yet</h3>
-                    <p style={{ color: "#a1a1aa", fontSize: 14 }}>Upload a picture of your class timetable, and our AI will automatically parse it and notify you before classes!</p>
+                    <h3 style={{ fontSize: 16, color: "#fff", marginBottom: 8 }}>No Tickets</h3>
+                    <p style={{ color: "#a1a1aa", fontSize: 14 }}>There are no support tickets available to manage.</p>
                   </div>
                 )}
               </div>

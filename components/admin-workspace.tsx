@@ -165,7 +165,7 @@ export function AdminWorkspace() {
 
         <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 80px" }}>
           <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-            {tab === "Overview" ? (
+            {tab === "Tickets" ? <TicketsWorkspace /> : tab === "Overview" ? (
               <Overview done={done} setDone={setDone} onTab={go} stats={stats} />
             ) : (
               <WorkspaceTab tab={tab} onCompose={() => setComposer(true)} />

@@ -3,12 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Bell, CalendarDays, FileText, Menu, MessageCircleMore,
-  Send, ShieldCheck, Ticket, Trash2, Clock, MessageSquare,
-  Settings, Home, Sparkles, GraduationCap, CircleDollarSign, Building2, Check,
-  ChevronRight, Lock, BookOpenCheck, PanelLeft, PanelLeftClose, Search, User, Zap, Wallet, Landmark, HeadphonesIcon, BookOpen, Download, LogOut, Plus, Image as ImageIcon, File as FileIcon, AlertCircle, CheckCircle2, Clock as ClockIcon, UploadCloud, X, Loader2, Volume2, VolumeX
-} from "lucide-react";
+import { AlertCircle, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 type Tab = "Home" | "Chats" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
