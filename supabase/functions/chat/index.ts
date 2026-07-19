@@ -90,7 +90,9 @@ Deno.serve(async (req) => {
     let confidence = 0;
     let sources: any[] = [];
 
-    if (finalChunks.length > 0 && finalChunks[0].similarity >= 0.45) { // Ensure document is highly relevant
+    const isGreeting = /^(hi|hello|hey|greetings|help|who are you|what can you do)[\s\W]*$/i.test(question);
+
+    if (finalChunks.length > 0 && !isGreeting) { // Trust the hybrid search ranking
       context = finalChunks.map((chunk: any, index: number) => `[${index + 1}] ${chunk.content}`).join("\n\n");
       confidence = finalChunks[0].similarity;
       sources = finalChunks.map((chunk: any) => ({ title: chunk.title, page: chunk.page_number }));
