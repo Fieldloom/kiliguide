@@ -583,6 +583,18 @@ export function StudentWorkspace() {
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 15, color: "#ececec", lineHeight: 1.7 }}><MarkdownMessage content={m.content} /></div>
+                          
+                          {m.sources && m.sources.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                              <span style={{ fontSize: 11, color: "#a1a1aa", display: "flex", alignItems: "center", gap: 4 }}><ShieldCheck size={12} /> Sources:</span>
+                              {m.sources.map((s, idx) => (
+                                <span key={idx} style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}>
+                                  <FileText size={10} /> {s.title} {s.page ? `(Pg. ${s.page})` : ""}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
                           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
                             <button onClick={() => readAloud(m.content)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 100, padding: "6px 12px", color: "#a1a1aa", fontSize: 12, cursor: "pointer", transition: "0.2s" }}>
                               <Volume2 size={14} /> Read aloud
