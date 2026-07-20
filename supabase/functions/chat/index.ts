@@ -42,12 +42,36 @@ Deno.serve(async (req) => {
       recentTurns = (history ?? []).reverse().map((turn: any) => `${turn.role}: ${turn.content}`);
     }
 
-    // Generate Embedding
-    const embedding = await geminiJson("gemini-embedding-2:embedContent", { content: { parts: [{ text: question }] }, output_dimensionality: 768 });
+    // 0. Query Contextualization
+    let standaloneQuery = question;
+    if (recentTurns.length > 0) {
+      const rewriteInstruction = "Given the following conversation history and the latest user question, rewrite the user question to be a standalone query that can be used to search a knowledge base. If the question is already self-contained, return it as is. Do NOT answer the question. ONLY output the standalone question.";
+      const contents = [
+        ...recentTurns.map(t => {
+          const isUser = t.startsWith("user:");
+          return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
+        }),
+        { role: "user", parts: [{ text: question }] }
+      ];
+      try {
+        const rewriteRes = await geminiJson("gemini-flash-latest:generateContent", { 
+          system_instruction: { parts: [{ text: rewriteInstruction }] }, 
+          contents, 
+          generationConfig: { temperature: 0, maxOutputTokens: 100 } 
+        });
+        const rewritten = rewriteRes.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (rewritten && rewritten.length > 3) standaloneQuery = rewritten;
+      } catch (e) {
+        // Fallback to original question
+      }
+    }
+
+    // Generate Embedding using the Contextualized Query
+    const embedding = await geminiJson("gemini-embedding-2:embedContent", { content: { parts: [{ text: standaloneQuery }] }, output_dimensionality: 768 });
     const vector = embedding.embedding?.values || embedding.embeddings?.[0]?.values;
     if (!vector) throw new Error("No embedding generated.");
 
-    // 1. Semantic Caching Check
+    // 1. Semantic Caching Check (using contextualized vector)
     const { data: cacheHit } = await supabase.rpc("match_cached_query", { query_embedding: vector, match_threshold: 0.95 });
     if (cacheHit && cacheHit.length > 0) {
       const hit = cacheHit[0];
@@ -55,8 +79,8 @@ Deno.serve(async (req) => {
       return Response.json({ answer: hit.answer, sources: hit.sources, confidence: hit.confidence, escalate: false, debug: { provider: "CACHE", similarity: hit.similarity } }, { headers: CORS });
     }
 
-    // 2. Hybrid Search (RRF)
-    const { data: rawChunks, error } = await supabase.rpc("hybrid_search_chunks", { query_text: question, query_embedding: vector, metadata_filter: metadataFilter, match_count: 15 });
+    // 2. Hybrid Search (RRF) (using contextualized text)
+    const { data: rawChunks, error } = await supabase.rpc("hybrid_search_chunks", { query_text: standaloneQuery, query_embedding: vector, metadata_filter: metadataFilter, match_count: 15 });
     if (error) throw error;
 
     // 3. Context Compression
@@ -184,7 +208,7 @@ ${context || "(No relevant documents found for this question)"}`;
     // 5. Cache Write
     if (answer !== unavailable && !escalate && providerUsed !== "none") {
       supabase.from("query_cache").insert({
-        query: question,
+        query: standaloneQuery,
         embedding: vector,
         answer,
         sources,
