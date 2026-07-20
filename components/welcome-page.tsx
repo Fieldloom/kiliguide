@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, Lock, Search, Zap, Sparkles, ShieldCheck, GraduationCap, Plus } from "lucide-react";
+import { ArrowRight, Lock, Search, Zap, Sparkles, ShieldCheck, GraduationCap, Plus, CalendarDays, BookOpenCheck } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
