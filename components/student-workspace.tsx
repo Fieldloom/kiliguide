@@ -710,16 +710,32 @@ export function StudentWorkspace() {
                   </div>
                 ))}
                 {asking && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", gap: 16 }}>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} style={{ display: "flex", gap: 16 }}>
                     <span style={{ width: 36, height: 36, borderRadius: 12, overflow: "hidden", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 2, background: "rgba(255,255,255,0.05)" }}>
                       <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.3) translateY(2px)" }} />
                     </span>
-                    <div className="glass-panel" style={{ display: "inline-flex", flexDirection: "column", gap: 8, padding: "14px 20px", borderRadius: 24, borderBottomLeftRadius: 8, border: "1px solid rgba(16, 185, 129, 0.2)", background: "rgba(16, 185, 129, 0.05)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <Loader2 size={16} className="animate-spin" style={{ color: "#10b981" }} />
-                        <span style={{ fontSize: 14, color: "#10b981", fontWeight: 600 }}>Analyzing DeKUT knowledge base...</span>
+                    <div style={{ display: "inline-flex", flexDirection: "column", gap: 6, padding: "12px 16px", borderRadius: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <motion.div
+                          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        >
+                          <Sparkles size={16} style={{ color: "#10b981" }} />
+                        </motion.div>
+                        <motion.span 
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                          style={{ fontSize: 14, color: "#ececec", fontWeight: 500, letterSpacing: "0.01em" }}
+                        >
+                          Analyzing DeKUT knowledge base...
+                        </motion.span>
                       </div>
-                      <span style={{ fontSize: 12, color: "#a1a1aa", marginLeft: 26 }}>Fetching official documents and synthesizing response</span>
+                      <motion.span 
+                        initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} transition={{ delay: 0.8, duration: 1 }}
+                        style={{ fontSize: 12, color: "#a1a1aa", marginLeft: 28 }}
+                      >
+                        Fetching official documents and synthesizing response
+                      </motion.span>
                     </div>
                   </motion.div>
                 )}
