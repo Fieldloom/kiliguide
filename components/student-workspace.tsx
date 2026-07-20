@@ -320,6 +320,10 @@ export function StudentWorkspace() {
 
   const groups = groupByDate(conversations);
 
+  const firstName = name.split(" ")[0];
+  const greetingHour = new Date().getHours();
+  const greeting = greetingHour < 12 ? "Good morning" : greetingHour < 17 ? "Good afternoon" : "Good evening";
+
   const formatRelTime = (ms: number) => {
     const min = Math.floor((Date.now() - ms) / 60000);
     if (min < 60) return `${min || 1}m ago`;
@@ -446,220 +450,114 @@ export function StudentWorkspace() {
 
         {/* Dynamic Content */}
         {tab === "Home" ? (
-          <div style={{ flex: 1, overflowY: "auto", position: "relative" }} className="hide-scroll">
-            
-            {/* --- DESKTOP HOME (DASHBOARD) --- */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="desktop-only" style={{ padding: "40px 32px 100px", maxWidth: 1200, margin: "0 auto" }}>
-              
-              {/* Hero Section */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24, marginBottom: 32 }}>
-                
-                {/* Search Hero */}
-                <div className="glass-panel" style={{ padding: 40, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", top: -50, right: -50, width: 250, height: 250, background: "radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)" }} />
-                  <h1 style={{ fontSize: 48, fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", marginBottom: 12 }}>
-                    Welcome back, <br/>
-                    <span style={{ color: "#10b981" }}>{name.split(" ")[0]}</span> 👋
-                  </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 16, marginBottom: 32 }}>Find official DeKUT regulations, policies, and notices instantly.</p>
-                  
-                  <div style={{ width: "100%", maxWidth: 600 }}>
-                    <div className="glass-input" style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: 30, padding: "8px 8px 8px 24px", border: "1px solid rgba(16, 185, 129, 0.4)", background: "rgba(0,0,0,0.5)", boxShadow: "0 8px 32px rgba(16,185,129,0.1)" }}>
-                      <Search size={22} style={{ color: "#10b981" }} />
-                      <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Ask KiliGuide anything..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "#fff" }} />
-                      <motion.button onClick={() => ask()} disabled={!query.trim()} style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() ? "#10b981" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() ? "pointer" : "not-allowed", position: "relative", zIndex: 10 }}>
-                        <Send size={18} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
-                      </motion.button>
-                    </div>
-                  </div>
+          <div className="hide-scroll" style={{ flex: 1, overflowY: "auto", position: "relative" }}>
+            <div className="kg-home">
+              <div className="kg-hero-orb" aria-hidden="true" />
+
+              {/* HERO */}
+              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="kg-hero">
+                <div className="kg-badge">
+                  <span className="kg-badge-dot" />
+                  <Sparkles size={13} /> KiliGuide AI · Official DeKUT Assistant
                 </div>
-
-                {/* Latest Notice */}
-                <div className="glass-panel" style={{ padding: 24, display: "flex", flexDirection: "column" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(245, 158, 11, 0.1)", display: "grid", placeItems: "center" }}>
-                      <AlertCircle size={18} color="#f59e0b" />
-                    </div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>Latest Notice</h3>
-                  </div>
-                  {notices.length > 0 ? (
-                    <>
-                      <h4 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{notices[0].title}</h4>
-                      <p style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", flex: 1 }}>{notices[0].summary || notices[0].body}</p>
-                      <button onClick={() => switchTab("Notices")} style={{ alignSelf: "flex-start", marginTop: 16, background: "transparent", border: "none", color: "#10b981", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                        Read More <ChevronRight size={14} />
-                      </button>
-                    </>
-                  ) : (
-                    <p style={{ color: "#a1a1aa", fontSize: 14, marginTop: 20 }}>No active notices.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Access Grid */}
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Quick Access</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16, marginBottom: 32 }}>
-                {[
-                  { l: "Academics", i: GraduationCap, t: "Registration & Units", d: "What are the rules for new students?" },
-                  { l: "Fees", i: Wallet, t: "Clearance & Deadlines", d: "How do I clear my fee balance?" },
-                  { l: "Accommodation", i: Home, t: "Hostel Availability", d: "Are there internal hostels available?" },
-                  { l: "Admissions", i: FileText, t: "Deferment Process", d: "How do I defer my studies?" },
-                  { l: "Exams", i: BookOpenCheck, t: "CATs & Missing Marks", d: "What do I do about missing marks?" },
-                  { l: "Support", i: HeadphonesIcon, t: "IT & Helpdesk", d: "How do I connect to student WiFi?" }
-                ].map((btn, i) => (
-                  <motion.div whileHover={{ y: -4, boxShadow: "0 10px 40px rgba(16,185,129,0.1)" }} key={i} onClick={() => ask(btn.d)} className="glass-panel" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12, cursor: "pointer", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(16, 185, 129, 0.1)", display: "grid", placeItems: "center" }}>
-                      <btn.i size={20} style={{ color: "#10b981" }} />
-                    </div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{btn.l}</span>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Bottom Split */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                {/* Recent Chats */}
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Recent Conversations</h3>
-                    <button onClick={() => switchTab("Chats")} style={{ background: "transparent", border: "none", color: "#10b981", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>View All</button>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {conversations.slice(0, 3).map(c => (
-                      <div key={c.id} onClick={() => loadConv(c.id)} className="glass-panel" style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", cursor: "pointer" }}>
-                        <MessageSquare size={18} style={{ color: "#10b981" }} />
-                        <span style={{ flex: 1, fontSize: 14, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
-                        <span style={{ fontSize: 12, color: "#52525b" }}>{formatRelTime(c.createdAt)}</span>
-                        <ChevronRight size={18} style={{ color: "#52525b" }} />
-                      </div>
-                    ))}
-                    {conversations.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14 }}>No recent conversations.</p>}
-                  </div>
-                </div>
-
-                {/* Timetable Status & Trust */}
-                <div>
-                   <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Status</h3>
-                   <div className="glass-panel" style={{ padding: 20, marginBottom: 16, display: "flex", alignItems: "center", gap: 16 }}>
-                      <CalendarDays size={24} color="#8b5cf6" />
-                      <div style={{ flex: 1 }}>
-                        <b style={{ display: "block", color: "#fff", fontSize: 14 }}>Timetable Integration</b>
-                        <span style={{ fontSize: 13, color: "#a1a1aa" }}>{timetables.length > 0 ? "Active and monitored." : "No timetable uploaded yet."}</span>
-                      </div>
-                      <button onClick={() => switchTab("My timetable")} style={{ padding: "6px 12px", borderRadius: 12, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{timetables.length > 0 ? "View" : "Upload"}</button>
-                   </div>
-                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(16, 185, 129, 0.05)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}><ShieldCheck size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 12, color: "#d4d4d8", fontWeight: 500 }}>Official Sources</span></div>
-                    <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}><CheckCircle2 size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 12, color: "#d4d4d8", fontWeight: 500 }}>Verified</span></div>
-                    <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Zap size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 12, color: "#d4d4d8", fontWeight: 500 }}>Instant</span></div>
-                  </div>
-                </div>
-              </div>
-
-            </motion.div>
-
-
-            {/* --- MOBILE HOME REPLICA --- */}
-            <div className="mobile-only mobile-gradient-bg" style={{ padding: "32px 20px 100px", minHeight: "100%" }}>
-              
-              <div style={{ position: "absolute", top: 40, right: 0, width: "70%", height: 180, opacity: 0.1, backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Dedan_Kimathi_University_of_Technology_Library.jpg/1200px-Dedan_Kimathi_University_of_Technology_Library.jpg')", backgroundSize: "cover", backgroundPosition: "right center", maskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", zIndex: 0 }} />
-
-              <div style={{ position: "relative", zIndex: 10 }}>
-                <h1 style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1, color: "#fff", marginBottom: 12, letterSpacing: "-0.03em" }}>
-                  Find Official DeKUT <br/>
-                  <span style={{ color: "#10b981" }}>Information Instantly</span>
+                <h1 className="kg-greeting text-balance">
+                  {greeting}, <span className="kg-accent">{firstName}</span>
                 </h1>
-                <p style={{ color: "#a1a1aa", fontSize: 15, marginBottom: 32 }}>Accurate answers. Verified sources. Trusted by all.</p>
+                <p className="kg-sub text-pretty">Ask anything about academics, fees, hostels, and exams — verified answers from official university sources, delivered instantly.</p>
 
-                {/* Search Bar */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: 100, padding: "8px 8px 8px 24px", border: "1px solid #10b981", background: "rgba(0,0,0,0.4)", marginBottom: 24, boxShadow: "0 8px 32px rgba(16, 185, 129, 0.1)" }}>
-                  <Search size={22} style={{ color: "#10b981" }} />
-                  <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Ask any university question..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 15, color: "#fff" }} />
-                  <motion.button onClick={() => ask()} style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: "#10b981", color: "#fff" }}>
-                    <Send size={18} style={{ marginLeft: -2, transform: "rotate(45deg)" }} />
+                <div className="kg-search">
+                  <Search className="kg-search-icon" size={22} />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) ask(); }}
+                    placeholder="Ask KiliGuide anything…"
+                    aria-label="Ask KiliGuide a question"
+                    style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 17, color: "#fff", minWidth: 0 }}
+                  />
+                  <motion.button whileHover={{ scale: query.trim() ? 1.05 : 1 }} whileTap={{ scale: 0.95 }} onClick={() => ask()} disabled={!query.trim()} aria-label="Send question" className="kg-search-send">
+                    <Send size={18} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
                   </motion.button>
                 </div>
 
-                {/* Trust Badges */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)", marginBottom: 40 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><ShieldCheck size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>Official Sources</span></div>
-                  <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>Accurate Answers</span></div>
-                  <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Zap size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>Instant Responses</span></div>
+                <div className="kg-chips">
+                  {["How do I register for units?", "How do I clear my fee balance?", "Are internal hostels available?", "When are exam results out?"].map((s) => (
+                    <button key={s} className="kg-chip" onClick={() => ask(s)}>{s}</button>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* QUICK ACCESS */}
+              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }} className="kg-section">
+                <div className="kg-section-head">
+                  <h3>Quick Access</h3>
+                </div>
+                <div className="kg-quick-grid">
+                  {[
+                    { l: "Academics", i: GraduationCap, d: "Registration & units", q: "What are the unit registration rules for students?" },
+                    { l: "Fees", i: Wallet, d: "Clearance & deadlines", q: "How do I clear my fee balance?" },
+                    { l: "Hostels", i: Building2, d: "Accommodation & rooms", q: "Are internal hostels available for students?" },
+                    { l: "Exams", i: BookOpenCheck, d: "CATs, results & marks", q: "When are exam results released?" },
+                  ].map((b) => (
+                    <motion.button key={b.l} whileHover={{ y: -6 }} whileTap={{ scale: 0.98 }} onClick={() => ask(b.q)} className="kg-quick-card">
+                      <span className="kg-quick-icon"><b.i size={22} /></span>
+                      <span className="kg-quick-text">
+                        <span className="kg-quick-label">{b.l}</span>
+                        <span className="kg-quick-desc">{b.d}</span>
+                      </span>
+                      <ChevronRight size={18} className="kg-quick-arrow" />
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* BOTTOM: Latest Notice + Recent Chats */}
+              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }} className="kg-bottom">
+                <div className="kg-notice">
+                  <div className="kg-notice-orb" aria-hidden="true" />
+                  <div className="kg-notice-head">
+                    <span className="kg-notice-icon"><AlertCircle size={18} /></span>
+                    <span className="kg-eyebrow">Latest Notice</span>
+                  </div>
+                  {notices.length > 0 ? (
+                    <>
+                      <h4 className="kg-notice-title text-balance">{notices[0].title}</h4>
+                      <p className="kg-notice-body">{notices[0].summary || notices[0].body}</p>
+                      <button onClick={() => switchTab("Notices")} className="kg-notice-cta">
+                        Read full notice <ChevronRight size={15} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="kg-empty">
+                      <Bell size={22} />
+                      <span>No active notices right now.</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Popular Questions */}
-                <div style={{ marginBottom: 40 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Popular Questions</h3>
-                    <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>View All</span>
+                <div className="kg-recent">
+                  <div className="kg-section-head">
+                    <h3>Recent Chats</h3>
+                    <button className="kg-view" onClick={() => switchTab("Chats")}>View all <ChevronRight size={13} /></button>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 20, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
-                    {["How do I register for units?", "How do I clear my fee balance?", "Are internal hostels available?", "When are CAT results released?"].map((q, i, arr) => (
-                      <div key={i} onClick={() => ask(q)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: i !== arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", cursor: "pointer" }}>
-                        <MessageSquare size={18} style={{ color: "#10b981" }} />
-                        <span style={{ flex: 1, fontSize: 14, color: "#ececec" }}>{q}</span>
-                        <ChevronRight size={18} style={{ color: "#52525b" }} />
-                      </div>
+                  <div className="kg-recent-list">
+                    {conversations.slice(0, 4).map((c) => (
+                      <button key={c.id} onClick={() => loadConv(c.id)} className="kg-recent-item">
+                        <span className="kg-recent-icon"><MessageSquare size={16} /></span>
+                        <span className="kg-recent-title">{c.title}</span>
+                        <span className="kg-recent-time">{formatRelTime(c.createdAt)}</span>
+                        <ChevronRight size={16} className="kg-recent-arrow" />
+                      </button>
                     ))}
-                  </div>
-                </div>
-
-                {/* Quick Access */}
-                <div style={{ marginBottom: 40 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Quick Access</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, overflowX: "auto" }} className="hide-scroll">
-                    {[
-                      { l: "Academics", i: GraduationCap },
-                      { l: "Fees", i: Wallet },
-                      { l: "Accommodation", i: Home },
-                      { l: "Admissions", i: FileText },
-                      { l: "Library", i: BookOpen },
-                      { l: "Support", i: HeadphonesIcon }
-                    ].map((btn, i) => (
-                      <div key={i} style={{ width: 80, height: 80, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                        <btn.i size={24} style={{ color: "#10b981" }} />
-                        <span style={{ fontSize: 10, color: "#ececec", fontWeight: 500 }}>{btn.l}</span>
+                    {conversations.length === 0 && (
+                      <div className="kg-empty">
+                        <MessageSquare size={22} />
+                        <span>No conversations yet. Ask your first question above.</span>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
-
-                {/* Continue */}
-                <div style={{ marginBottom: 40 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Continue</h3>
-                    <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>View All</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 20, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
-                    {conversations.slice(0, 3).map((c, i, arr) => (
-                      <div key={c.id} onClick={() => loadConv(c.id)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: i !== arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                        <Clock size={16} style={{ color: "#10b981" }} />
-                        <span style={{ flex: 1, fontSize: 14, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
-                        <span style={{ fontSize: 12, color: "#52525b" }}>{formatRelTime(c.createdAt)}</span>
-                        <ChevronRight size={18} style={{ color: "#52525b" }} />
-                      </div>
-                    ))}
-                    {conversations.length === 0 && <div style={{ padding: "20px", textAlign: "center", color: "#52525b", fontSize: 13 }}>No recent chats.</div>}
-                  </div>
-                </div>
-
-                {/* Powered By Banner */}
-                <div style={{ padding: "20px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(16, 185, 129, 0.05)", display: "flex", alignItems: "flex-start", gap: 16, position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", bottom: -20, right: -20, opacity: 0.1, zIndex: 0 }}>
-                    <Building2 size={120} />
-                  </div>
-                  <FileText size={24} style={{ color: "#10b981", flexShrink: 0, position: "relative", zIndex: 10 }} />
-                  <div style={{ position: "relative", zIndex: 10 }}>
-                    <b style={{ display: "block", fontSize: 13, color: "#fff", marginBottom: 4 }}>Powered by Official University Documents</b>
-                    <span style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.4 }}>Answers generated from verified DeKUT regulations, policies, notices and official resources.</span>
-                  </div>
-                </div>
-
-              </div>
+              </motion.div>
             </div>
           </div>
 
