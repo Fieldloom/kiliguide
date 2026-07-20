@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 type Tab = "Home" | "Chats" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
@@ -343,6 +343,9 @@ export function StudentWorkspace() {
       </div>
 
       <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveConvId(null); setTab("Chats"); setMobileSidebar(false); }} style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 600, background: "#10b981", color: "#fff", border: "none", cursor: "pointer", marginBottom: 12 }}>
+          <Plus size={18} /> New Chat
+        </motion.button>
         {navigation.map(([label, Icon]) => {
           const isActive = tab === label && !(label === "Chats" && !activeConvId && tab !== "Chats");
           return (
@@ -679,14 +682,18 @@ export function StudentWorkspace() {
                           <div style={{ fontSize: 15, color: "#ececec", lineHeight: 1.7 }}><MarkdownMessage content={m.content} /></div>
                           
                           {m.sources && m.sources.length > 0 && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                              <span style={{ fontSize: 11, color: "#a1a1aa", display: "flex", alignItems: "center", gap: 4 }}><ShieldCheck size={12} /> Sources:</span>
-                              {m.sources.map((s, idx) => (
-                                <span key={idx} style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}>
-                                  <FileText size={10} /> {s.title} {s.page ? `(Pg. ${s.page})` : ""}
-                                </span>
-                              ))}
-                            </div>
+                            <details style={{ marginTop: 12 }}>
+                              <summary style={{ fontSize: 12, color: "#a1a1aa", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", padding: "6px 12px", borderRadius: 100, outline: "none", userSelect: "none", border: "1px solid rgba(255,255,255,0.05)" }}>
+                                <ShieldCheck size={14} style={{ color: "#10b981" }} /> Sources
+                              </summary>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, paddingLeft: 8 }}>
+                                {Array.from(new Map(m.sources.map((s: any) => [`${s.title}-${s.page}`, s])).values()).map((s: any, idx) => (
+                                  <span key={idx} style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 6, padding: "6px 10px", fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
+                                    <FileText size={12} /> {s.title} {s.page ? `(Pg. ${s.page})` : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            </details>
                           )}
 
                           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
@@ -702,7 +709,20 @@ export function StudentWorkspace() {
                     )}
                   </div>
                 ))}
-                {asking && <div style={{ display: "flex", gap: 16 }}><div style={{ width: 8, height: 8, background: "#10b981", borderRadius: "50%" }} /></div>}
+                {asking && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", gap: 16 }}>
+                    <span style={{ width: 36, height: 36, borderRadius: 12, overflow: "hidden", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 2, background: "rgba(255,255,255,0.05)" }}>
+                      <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.3) translateY(2px)" }} />
+                    </span>
+                    <div className="glass-panel" style={{ display: "inline-flex", flexDirection: "column", gap: 8, padding: "14px 20px", borderRadius: 24, borderBottomLeftRadius: 8, border: "1px solid rgba(16, 185, 129, 0.2)", background: "rgba(16, 185, 129, 0.05)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Loader2 size={16} className="animate-spin" style={{ color: "#10b981" }} />
+                        <span style={{ fontSize: 14, color: "#10b981", fontWeight: 600 }}>Analyzing DeKUT knowledge base...</span>
+                      </div>
+                      <span style={{ fontSize: 12, color: "#a1a1aa", marginLeft: 26 }}>Fetching official documents and synthesizing response</span>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </div>
 
@@ -1071,7 +1091,12 @@ export function StudentWorkspace() {
         ) : tab === "Profile" ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
             <div style={{ maxWidth: 600, margin: "0 auto", paddingBottom: 100 }}>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 32 }}>My Profile</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+                <button onClick={() => setTab("Home")} style={{ padding: "8px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <ArrowLeft size={18} />
+                </button>
+                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0 }}>My Profile</h2>
+              </div>
               <div className="glass-panel" style={{ padding: 32, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
                 <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 32, fontWeight: 700, color: "#fff", marginBottom: 16, boxShadow: "0 8px 32px rgba(16,185,129,0.3)" }}>
                   {name.charAt(0).toUpperCase()}
@@ -1091,7 +1116,12 @@ export function StudentWorkspace() {
         ) : tab === "Settings" ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
             <div style={{ maxWidth: 600, margin: "0 auto", paddingBottom: 100 }}>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 32 }}>Settings</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+                <button onClick={() => setTab("Home")} style={{ padding: "8px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <ArrowLeft size={18} />
+                </button>
+                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0 }}>Settings</h2>
+              </div>
               
               <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
