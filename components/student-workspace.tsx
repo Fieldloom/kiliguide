@@ -448,115 +448,140 @@ export function StudentWorkspace() {
         {tab === "Home" ? (
           <div style={{ flex: 1, overflowY: "auto", position: "relative" }} className="hide-scroll">
             
-            {/* --- DESKTOP HOME (DASHBOARD) --- */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="desktop-only" style={{ padding: "40px 32px 100px", maxWidth: 1200, margin: "0 auto" }}>
+            {/* --- DESKTOP HOME (BENTO BOX DASHBOARD) --- */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="desktop-only" style={{ padding: "40px 32px 100px", maxWidth: 1000, margin: "0 auto" }}>
               
-              {/* Hero Section */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24, marginBottom: 32 }}>
+              <div style={{ marginBottom: 32 }}>
+                <h1 style={{ fontSize: 32, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
+                  Good morning, {name.split(" ")[0]} 👋
+                </h1>
+                <p style={{ color: "#a1a1aa", fontSize: 16 }}>Your campus, simplified.</p>
+              </div>
+
+              <div style={{ display: "grid", gap: 24 }}>
                 
-                {/* Search Hero */}
-                <div className="glazed-widget" style={{ padding: "50px 40px", display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-                  <h1 style={{ fontSize: 48, fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", marginBottom: 12 }}>
-                    Welcome back, <br/>
-                    <span style={{ color: "#10b981" }}>{name.split(" ")[0]}</span> 👋
-                  </h1>
-                  <p style={{ color: "#ececec", fontSize: 16, marginBottom: 32 }}>Find official DeKUT regulations, policies, and notices instantly.</p>
+                {/* Ask KiliGuide Hero (Full Width) */}
+                <div className="glazed-widget" style={{ padding: 40, border: "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                    <Sparkles size={20} style={{ color: "#10b981" }} />
+                    <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Ask KiliGuide</h2>
+                  </div>
+                  <p style={{ color: "#ececec", fontSize: 16, marginBottom: 24 }}>"What do you need help with?"</p>
                   
-                  <div style={{ width: "100%", maxWidth: 600 }}>
-                    <div className="glazed-input" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 28px" }}>
-                      <Search size={24} style={{ color: "#10b981" }} />
-                      <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Ask KiliGuide anything..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 18, color: "#fff" }} />
-                      <motion.button onClick={() => ask()} disabled={!query.trim()} style={{ width: 48, height: 48, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() ? "linear-gradient(135deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() ? "pointer" : "not-allowed", position: "relative", zIndex: 10, boxShadow: query.trim() ? "0 4px 20px rgba(25, 195, 125, 0.3)" : "none" }}>
-                        <Send size={20} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
-                      </motion.button>
-                    </div>
+                  <div className="glazed-input" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 24px", maxWidth: 600 }}>
+                    <Search size={20} style={{ color: "#10b981" }} />
+                    <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Search university knowledge..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "#fff" }} />
+                    <motion.button onClick={() => ask()} disabled={!query.trim()} style={{ width: 40, height: 40, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() ? "linear-gradient(135deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() ? "pointer" : "not-allowed", transition: "0.2s", boxShadow: query.trim() ? "0 4px 20px rgba(25, 195, 125, 0.3)" : "none" }}>
+                      <Send size={16} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
+                    </motion.button>
                   </div>
                 </div>
 
-                {/* Latest Notice */}
-                <div className="glazed-widget" style={{ padding: 32, display: "flex", flexDirection: "column", border: "none" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(245, 158, 11, 0.15)", display: "grid", placeItems: "center" }}>
-                      <AlertCircle size={20} color="#fbbf24" />
+                {/* Split Widgets: Upcoming & Campus */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                  {/* Upcoming Widget */}
+                  <div className="glazed-widget" style={{ padding: 32, border: "none", display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                      <CalendarDays size={20} style={{ color: "#8b5cf6" }} />
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: "#a1a1aa", letterSpacing: "0.05em", textTransform: "uppercase" }}>Upcoming</h3>
                     </div>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Latest Notice</h3>
+                    <div style={{ flex: 1 }}>
+                      {timetables.length > 0 ? (
+                        <>
+                          <h4 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Next Class/Exam</h4>
+                          <p style={{ color: "#d4d4d8", fontSize: 15 }}>Active and monitored.</p>
+                        </>
+                      ) : (
+                        <>
+                          <h4 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Timetable Integration</h4>
+                          <p style={{ color: "#d4d4d8", fontSize: 15 }}>No timetable uploaded yet.</p>
+                        </>
+                      )}
+                    </div>
+                    <button onClick={() => switchTab("My timetable")} style={{ alignSelf: "flex-start", marginTop: 24, background: "transparent", border: "none", color: "#8b5cf6", fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      View calendar <ChevronRight size={16} />
+                    </button>
                   </div>
-                  {notices.length > 0 ? (
-                    <>
-                      <h4 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 12 }}>{notices[0].title}</h4>
-                      <p style={{ color: "#d4d4d8", fontSize: 15, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", flex: 1 }}>{notices[0].summary || notices[0].body}</p>
-                      <button onClick={() => switchTab("Notices")} style={{ alignSelf: "flex-start", marginTop: 20, background: "transparent", border: "none", color: "#10b981", fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                        Read More <ChevronRight size={16} />
-                      </button>
-                    </>
-                  ) : (
-                    <p style={{ color: "#a1a1aa", fontSize: 15, marginTop: 20 }}>No active notices.</p>
-                  )}
-                </div>
-              </div>
 
-              {/* Quick Access Grid */}
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Quick Access</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16, marginBottom: 32 }}>
-                {[
-                  { l: "Academics", i: GraduationCap, t: "Registration & Units", d: "What are the rules for new students?" },
-                  { l: "Fees", i: Wallet, t: "Clearance & Deadlines", d: "How do I clear my fee balance?" },
-                  { l: "Accommodation", i: Home, t: "Hostel Availability", d: "Are there internal hostels available?" },
-                  { l: "Admissions", i: FileText, t: "Deferment Process", d: "How do I defer my studies?" },
-                  { l: "Exams", i: BookOpenCheck, t: "CATs & Missing Marks", d: "What do I do about missing marks?" },
-                  { l: "Support", i: HeadphonesIcon, t: "IT & Helpdesk", d: "How do I connect to student WiFi?" }
-                ].map((btn, i) => (
-                  <motion.div whileHover={{ y: -4, scale: 1.02 }} key={i} onClick={() => ask(btn.d)} className="glazed-widget" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16, cursor: "pointer", border: "none" }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(16, 185, 129, 0.15)", display: "grid", placeItems: "center" }}>
-                      <btn.i size={22} style={{ color: "#10b981" }} />
+                  {/* Campus Widget */}
+                  <div className="glazed-widget" style={{ padding: 32, border: "none", display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                      <Bell size={20} style={{ color: "#fbbf24" }} />
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: "#a1a1aa", letterSpacing: "0.05em", textTransform: "uppercase" }}>Campus</h3>
                     </div>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: "#fff" }}>{btn.l}</span>
-                  </motion.div>
-                ))}
-              </div>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Latest Notice</h4>
+                      {notices.length > 0 ? (
+                        <p style={{ color: "#d4d4d8", fontSize: 15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{notices[0].title}</p>
+                      ) : (
+                        <p style={{ color: "#a1a1aa", fontSize: 15 }}>No new notices.</p>
+                      )}
+                    </div>
+                    <button onClick={() => switchTab("Notices")} style={{ alignSelf: "flex-start", marginTop: 24, background: "transparent", border: "none", color: "#fbbf24", fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      View all <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
 
-              {/* Bottom Split */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                {/* Recent Chats */}
+                {/* Quick Access Bento Grid */}
                 <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Recent Conversations</h3>
-                    <button onClick={() => switchTab("Chats")} style={{ background: "transparent", border: "none", color: "#10b981", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>View All</button>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#a1a1aa", marginBottom: 16, letterSpacing: "0.05em", textTransform: "uppercase" }}>Quick Access</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16 }}>
+                    {/* Row 1: Large Cards (Span 3) */}
+                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("What are the academic rules and unit registration processes?")} className="glazed-widget" style={{ gridColumn: "span 3", padding: 24, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 16 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(16, 185, 129, 0.15)", display: "grid", placeItems: "center" }}>
+                        <GraduationCap size={22} style={{ color: "#10b981" }} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", display: "block", marginBottom: 4 }}>Academics</span>
+                        <span style={{ fontSize: 14, color: "#a1a1aa" }}>Registration & Units →</span>
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("How do I clear my fee balance?")} className="glazed-widget" style={{ gridColumn: "span 3", padding: 24, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 16 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(56, 189, 248, 0.15)", display: "grid", placeItems: "center" }}>
+                        <Wallet size={22} style={{ color: "#38bdf8" }} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", display: "block", marginBottom: 4 }}>Fees</span>
+                        <span style={{ fontSize: 14, color: "#a1a1aa" }}>Fee statement →</span>
+                      </div>
+                    </motion.div>
+
+                    {/* Row 2: Smaller Cards (Span 2) */}
+                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("Are there internal hostels available?")} className="glazed-widget" style={{ gridColumn: "span 2", padding: 20, cursor: "pointer", border: "none", display: "flex", alignItems: "center", gap: 12 }}>
+                      <Home size={18} style={{ color: "#f43f5e" }} />
+                      <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>Accommodation</span>
+                    </motion.div>
+
+                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("What do I do about missing marks?")} className="glazed-widget" style={{ gridColumn: "span 2", padding: 20, cursor: "pointer", border: "none", display: "flex", alignItems: "center", gap: 12 }}>
+                      <BookOpenCheck size={18} style={{ color: "#a855f7" }} />
+                      <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>Exams</span>
+                    </motion.div>
+
+                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("How do I connect to student WiFi?")} className="glazed-widget" style={{ gridColumn: "span 2", padding: 20, cursor: "pointer", border: "none", display: "flex", alignItems: "center", gap: 12 }}>
+                      <HeadphonesIcon size={18} style={{ color: "#fb923c" }} />
+                      <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>Support</span>
+                    </motion.div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {conversations.slice(0, 3).map(c => (
-                      <div key={c.id} onClick={() => loadConv(c.id)} className="glazed-widget" style={{ display: "flex", alignItems: "center", gap: 16, padding: "20px 24px", cursor: "pointer", border: "none" }}>
-                        <MessageSquare size={20} style={{ color: "#10b981" }} />
+                </div>
+
+                {/* Recently Used */}
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#a1a1aa", marginBottom: 16, letterSpacing: "0.05em", textTransform: "uppercase" }}>Recently Used</h3>
+                  <div className="glazed-widget" style={{ padding: "8px 0", border: "none" }}>
+                    {conversations.slice(0, 3).map((c, idx) => (
+                      <div key={c.id} onClick={() => loadConv(c.id)} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 24px", cursor: "pointer", borderBottom: idx < Math.min(conversations.length - 1, 2) ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                        <FileText size={18} style={{ color: "#10b981" }} />
                         <span style={{ flex: 1, fontSize: 15, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
                         <span style={{ fontSize: 13, color: "#a1a1aa" }}>{formatRelTime(c.createdAt)}</span>
-                        <ChevronRight size={20} style={{ color: "#a1a1aa" }} />
                       </div>
                     ))}
-                    {conversations.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14 }}>No recent conversations.</p>}
+                    {conversations.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14, padding: "16px 24px" }}>No recent activity.</p>}
                   </div>
                 </div>
 
-                {/* Timetable Status & Trust */}
-                <div>
-                   <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Status</h3>
-                   <div className="glazed-widget" style={{ padding: 24, marginBottom: 16, display: "flex", alignItems: "center", gap: 20, border: "none" }}>
-                      <CalendarDays size={28} color="#8b5cf6" />
-                      <div style={{ flex: 1 }}>
-                        <b style={{ display: "block", color: "#fff", fontSize: 15 }}>Timetable Integration</b>
-                        <span style={{ fontSize: 14, color: "#d4d4d8" }}>{timetables.length > 0 ? "Active and monitored." : "No timetable uploaded yet."}</span>
-                      </div>
-                      <button onClick={() => switchTab("My timetable")} style={{ padding: "8px 16px", borderRadius: 20, background: "rgba(139, 92, 246, 0.15)", color: "#c4b5fd", border: "1px solid rgba(139, 92, 246, 0.3)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{timetables.length > 0 ? "View" : "Upload"}</button>
-                   </div>
-                   <div className="glazed-widget" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", border: "none" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}><ShieldCheck size={18} style={{ color: "#10b981" }} /><span style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>Official Sources</span></div>
-                    <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}><CheckCircle2 size={18} style={{ color: "#10b981" }} /><span style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>Verified</span></div>
-                    <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Zap size={18} style={{ color: "#10b981" }} /><span style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>Instant</span></div>
-                  </div>
-                </div>
               </div>
-
             </motion.div>
 
 
