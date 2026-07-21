@@ -741,11 +741,11 @@ export function StudentWorkspace() {
               </div>
             </div>
 
-            <div style={{ position: "absolute", bottom: 80, left: 0, right: 0, padding: "0 20px", background: "linear-gradient(to top, rgba(6,8,10,1) 70%, transparent)" }}>
+            <div style={{ position: "absolute", bottom: 80, left: 0, right: 0, padding: "0 20px", background: "transparent" }}>
               <div style={{ maxWidth: 760, margin: "0 auto" }}>
-                <div className="glass-panel" style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px" }}>
+                <div className="glazed-widget" style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px", border: "none" }}>
                   <textarea value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } }} placeholder="Ask anything about DeKUT…" rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200 }} />
-                  <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() ? "#10b981" : "rgba(255,255,255,0.1)", border: "none" }}><Send size={18} color="#fff" /></motion.button>
+                  <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() ? "linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)" }}><Send size={18} color={query.trim() ? "#10b981" : "#a1a1aa"} /></motion.button>
                 </div>
               </div>
             </div>
