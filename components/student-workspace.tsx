@@ -83,6 +83,10 @@ export function StudentWorkspace() {
   const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0);
   const [myCourses, setMyCourses] = useState<Record<string, string>>({});
   const [hiddenCourses, setHiddenCourses] = useState<Set<string>>(new Set());
+  const [timetableMetadata, setTimetableMetadata] = useState<Record<string, { groups: string[], courses: string[] }>>({});
+  const [selectedGroup, setSelectedGroup] = useState<Record<string, string>>({});
+  const [selectedCourses, setSelectedCourses] = useState<Record<string, string[]>>({});
+  const [extractingMetadataId, setExtractingMetadataId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [language, setLanguage] = useState("en");
   const [docQuery, setDocQuery] = useState("");
@@ -192,13 +196,35 @@ export function StudentWorkspace() {
     setUploading(false);
   };
 
+  const handleExtractMetadata = async (resourceId: string) => {
+    if (!supabase) return;
+    setExtractingMetadataId(resourceId);
+    const { data, error } = await supabase.functions.invoke("analyze-timetable-metadata", { body: { resourceId } });
+    setExtractingMetadataId(null);
+    if (error || data?.error) {
+      alert("Extraction failed: " + (error?.message || data?.error || "Unknown error"));
+      return;
+    }
+    setTimetableMetadata(prev => ({ ...prev, [resourceId]: data }));
+    setSelectedGroup(prev => ({ ...prev, [resourceId]: data.groups?.[0] || "" }));
+    setSelectedCourses(prev => ({ ...prev, [resourceId]: [] }));
+  };
+
   const handleAnalyzeTimetable = async (resourceId: string) => {
     if (!supabase || !semesterStart || !semesterEnd) {
       alert("Please enter semester start and end dates first.");
       return;
     }
     setAnalyzingId(resourceId);
-    const courses = myCourses[resourceId] || "";
+    
+    const meta = timetableMetadata[resourceId];
+    let courses = myCourses[resourceId] || "";
+    if (meta) {
+      const group = selectedGroup[resourceId] || "";
+      const coursesArr = selectedCourses[resourceId] || [];
+      courses = `Class Group: ${group}. Courses: ${coursesArr.join(", ")}`;
+    }
+
     const { data, error } = await supabase.functions.invoke("analyze-timetable", {
       body: { resourceId, semesterStart, semesterEnd, courses: courses.trim() }
     });
@@ -206,7 +232,6 @@ export function StudentWorkspace() {
     if (error || data?.error) {
       alert("AI Analysis failed: " + (error?.message || data?.error || "Unknown error"));
     } else {
-      // Refresh calendar events after parsing
       if (supabase) {
         const { data: calData } = await supabase.from("calendar_events").select("*").order("starts_at", { ascending: true });
         setCalendarEvents(calData ?? []);
@@ -927,24 +952,51 @@ export function StudentWorkspace() {
                     </span>
                   {t.processing_status !== "ready" && (
                       <>
-                        {/* Courses I'm taking input */}
-                        <div>
-                          <label style={{ fontSize: 12, color: "#a1a1aa", display: "block", marginBottom: 6, fontWeight: 600 }}>
-                            📚 My units (comma-separated)
-                          </label>
-                          <textarea
-                            value={myCourses[t.id] || ""}
-                            onChange={e => setMyCourses(prev => ({ ...prev, [t.id]: e.target.value }))}
-                            placeholder="e.g. Computer Networks, Operating Systems, Database Systems"
-                            rows={2}
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 12, resize: "none", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-                          />
-                          <p style={{ fontSize: 11, color: "#52525b", marginTop: 4 }}>Leave blank to extract all courses in the timetable.</p>
-                        </div>
-                        <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: analyzingId === t.id ? "not-allowed" : "pointer", opacity: analyzingId === t.id ? 0.5 : 1, width: "100%" }}>
-                          {analyzingId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                          {analyzingId === t.id ? "Parsing with Vision AI..." : "Analyze with AI"}
-                        </button>
+                        {!timetableMetadata[t.id] ? (
+                          <>
+                            <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4 }}>First, extract the available classes and courses from the timetable.</p>
+                            <button onClick={() => handleExtractMetadata(t.id)} disabled={extractingMetadataId === t.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: extractingMetadataId === t.id ? "not-allowed" : "pointer", opacity: extractingMetadataId === t.id ? 0.5 : 1, width: "100%", marginTop: 12 }}>
+                              {extractingMetadataId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                              {extractingMetadataId === t.id ? "Scanning Timetable..." : "Scan Timetable"}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+                              <div>
+                                <label style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 600, marginBottom: 4, display: "block" }}>1. Select Class/Semester</label>
+                                <select value={selectedGroup[t.id] || ""} onChange={e => setSelectedGroup(prev => ({ ...prev, [t.id]: e.target.value }))} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13, outline: "none", width: "100%" }}>
+                                  <option value="">Select a group...</option>
+                                  {timetableMetadata[t.id].groups.map(g => <option key={g} value={g}>{g}</option>)}
+                                </select>
+                              </div>
+                              
+                              <div>
+                                <label style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 600, marginBottom: 4, display: "block" }}>2. Select Your Courses</label>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 150, overflowY: "auto", background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }} className="hide-scroll">
+                                  {timetableMetadata[t.id].courses.map(c => (
+                                    <label key={c} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#ececec", cursor: "pointer" }}>
+                                      <input type="checkbox" checked={selectedCourses[t.id]?.includes(c) || false} onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setSelectedCourses(prev => {
+                                          const curr = prev[t.id] || [];
+                                          return { ...prev, [t.id]: checked ? [...curr, c] : curr.filter(x => x !== c) };
+                                        });
+                                      }} style={{ accentColor: "#8b5cf6", width: 16, height: 16 }} />
+                                      {c}
+                                    </label>
+                                  ))}
+                                  {timetableMetadata[t.id].courses.length === 0 && <span style={{fontSize:12, color:"#a1a1aa"}}>No courses extracted.</span>}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: (analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0) ? "not-allowed" : "pointer", opacity: (analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0) ? 0.5 : 1, width: "100%", marginTop: 16 }}>
+                              {analyzingId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                              {analyzingId === t.id ? "Generating Schedule..." : "Generate Schedule"}
+                            </button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
