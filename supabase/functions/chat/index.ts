@@ -36,6 +36,12 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    let customInstructions = "";
+    const { data: profileData } = await supabase.from("profiles").select("custom_instructions").eq("id", user.id).single();
+    if (profileData?.custom_instructions) {
+      customInstructions = profileData.custom_instructions;
+    }
+
     let recentTurns: string[] = [];
     if (conversationId) {
       const { data: history } = await supabase.from("messages").select("role,content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(4);
@@ -141,6 +147,7 @@ Rules for answering:
 6. **Premium Formatting**: Your responses must be beautifully formatted using Markdown. Use **bolding** for emphasis, bullet points or numbered lists for readability, and blockquotes where appropriate. Avoid giant walls of text. Make the response look state-of-the-art, highly readable, and premium.
 7. Return your response strictly as JSON with this schema: {"answer":"your beautifully formatted text response here", "escalate": boolean}
 
+${customInstructions ? `USER'S CUSTOM INSTRUCTIONS:\nThe user has provided the following personal preferences. You MUST adhere to them strictly:\n${customInstructions}\n` : ""}
 CONTEXT:
 ${context || "(No relevant documents found for this question)"}`;
 

@@ -193,3 +193,20 @@ button,input,textarea,select{font:inherit}
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
+
+/* ──────────────────────────────────────────────────────────── */
+/* ACCESSIBILITY & PERFORMANCE                                  */
+/* ──────────────────────────────────────────────────────────── */
+.reduce-motion .bg-aurora::before {
+  animation: none !important;
+  opacity: 0.3 !important;
+}
+
+.reduce-motion .glass-panel,
+.reduce-motion .glazed-widget,
+.reduce-motion .glazed-sidebar,
+.reduce-motion .glazed-input {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(20, 20, 25, 0.95) !important;
+}

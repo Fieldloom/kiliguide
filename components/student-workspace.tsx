@@ -100,11 +100,19 @@ export function StudentWorkspace() {
   const [semesterStart, setSemesterStart] = useState("");
   const [semesterEnd, setSemesterEnd] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [customInstructions, setCustomInstructions] = useState("");
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [autoRead, setAutoRead] = useState(false);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
   const messages = activeConv?.messages ?? [];
 
   useEffect(() => {
+    const storedReduceMotion = localStorage.getItem("reduceMotion") === "true";
+    const storedAutoRead = localStorage.getItem("autoRead") === "true";
+    setReduceMotion(storedReduceMotion);
+    setAutoRead(storedAutoRead);
+
     if (!supabase) return;
     Promise.all([
       supabase.auth.getUser(),
@@ -119,8 +127,9 @@ export function StudentWorkspace() {
       setProfile(user);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
       if (user && supabase) {
-        const { data: prof } = await supabase.from("profiles").select("preferred_language").eq("id", user.id).single();
+        const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
+        if (prof?.custom_instructions) setCustomInstructions(prof.custom_instructions);
       }
       setDocuments(docs.data ?? []);
       setNotices(nots.data ?? []);
@@ -253,6 +262,43 @@ export function StudentWorkspace() {
     await supabase.from("profiles").update({ preferred_language: lang }).eq("id", profile.id);
   };
 
+  const handleToggleReduceMotion = () => {
+    const val = !reduceMotion;
+    setReduceMotion(val);
+    localStorage.setItem("reduceMotion", String(val));
+  };
+
+  const handleToggleAutoRead = () => {
+    const val = !autoRead;
+    setAutoRead(val);
+    localStorage.setItem("autoRead", String(val));
+  };
+
+  const handleSaveCustomInstructions = async () => {
+    if (!supabase || !profile) return;
+    await supabase.from("profiles").update({ custom_instructions: customInstructions }).eq("id", profile.id);
+    alert("AI Personalization saved securely.");
+  };
+
+  const handleClearChatHistory = async () => {
+    if (!supabase || !profile) return;
+    if (!confirm("Are you sure you want to permanently delete all your chats?")) return;
+    await supabase.from("conversations").delete().eq("user_id", profile.id);
+    setConversations([]);
+    setActiveConvId(null);
+    setTab("Home");
+    alert("Chat history permanently deleted.");
+  };
+
+  const handleDeleteTimetables = async () => {
+    if (!supabase || !profile) return;
+    if (!confirm("Are you sure you want to permanently delete all your uploaded timetables and extracted events?")) return;
+    await supabase.from("personal_resources").delete().eq("user_id", profile.id).eq("resource_type", "timetable");
+    setTimetables([]);
+    setCalendarEvents([]);
+    alert("Timetables permanently deleted.");
+  };
+
   useEffect(() => {
     if ("serviceWorker" in navigator && "PushManager" in window) {
       navigator.serviceWorker.register("/sw.js");
@@ -341,6 +387,15 @@ export function StudentWorkspace() {
       astMsg = { id: Date.now().toString() + 1, role: "assistant", content: data.answer, sources: data.sources };
     }
     setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, astMsg] } : c));
+    
+    // Auto-read logic
+    if (autoRead && "speechSynthesis" in window) {
+      const u = new SpeechSynthesisUtterance(astMsg.content.replace(/[*_#]/g, ''));
+      u.lang = language === "sw" ? "sw-KE" : "en-KE";
+      speechSynthesis.speak(u);
+      setReadingMsgId(astMsg.id);
+      u.onend = () => setReadingMsgId(null);
+    }
   };
 
   const groups = groupByDate(conversations);
@@ -396,7 +451,7 @@ export function StudentWorkspace() {
   );
 
   return (
-    <main className="bg-aurora" style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", color: "#ececec", fontFamily: "'Inter', sans-serif", backgroundColor: "#06080a" }}>
+    <main className={`bg-aurora ${reduceMotion ? "reduce-motion" : ""}`} style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", color: "#ececec", fontFamily: "'Inter', sans-serif", backgroundColor: "#06080a" }}>
       <style>{`
         .conv-item:hover .del-btn { opacity: 1 !important; }
         .conv-item:hover { background: rgba(255,255,255,0.05) !important; }
@@ -1250,6 +1305,45 @@ export function StudentWorkspace() {
               </div>
               
               <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>AI Personalization</h3>
+                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Tell KiliGuide about your preferences. This helps the AI tailor its answers directly to you.</p>
+                <textarea
+                  value={customInstructions}
+                  onChange={e => setCustomInstructions(e.target.value)}
+                  placeholder="e.g. I am a 3rd-year IT student. Always explain technical concepts simply without using complex jargon."
+                  rows={4}
+                  style={{ width: "100%", padding: "12px", borderRadius: 12, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, resize: "vertical", outline: "none", marginBottom: 12, fontFamily: "inherit" }}
+                />
+                <button onClick={handleSaveCustomInstructions} style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  Save Personalization
+                </button>
+              </div>
+
+              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Appearance & Accessibility</h3>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff", display: "block" }}>Reduce Motion</span>
+                    <span style={{ fontSize: 13, color: "#a1a1aa" }}>Disable background animations and heavy blurs.</span>
+                  </div>
+                  <button onClick={handleToggleReduceMotion} style={{ width: 44, height: 24, borderRadius: 12, background: reduceMotion ? "#10b981" : "rgba(255,255,255,0.2)", position: "relative", cursor: "pointer", border: "none", transition: "0.2s" }}>
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: reduceMotion ? 22 : 2, transition: "0.2s" }} />
+                  </button>
+                </div>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+                  <div>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff", display: "block" }}>Auto-Read AI Answers</span>
+                    <span style={{ fontSize: 13, color: "#a1a1aa" }}>Automatically speak out KiliGuide's responses.</span>
+                  </div>
+                  <button onClick={handleToggleAutoRead} style={{ width: 44, height: 24, borderRadius: 12, background: autoRead ? "#10b981" : "rgba(255,255,255,0.2)", position: "relative", cursor: "pointer", border: "none", transition: "0.2s" }}>
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: autoRead ? 22 : 2, transition: "0.2s" }} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Language & Localization</h3>
                 <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>Choose the preferred language for KiliGuide AI to communicate with you.</p>
                 
@@ -1261,6 +1355,19 @@ export function StudentWorkspace() {
                   <button onClick={() => handleUpdateLanguage("sw")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.2)", border: language === "sw" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.1)", padding: "16px 20px", borderRadius: 12, cursor: "pointer", transition: "0.2s" }}>
                     <span style={{ fontSize: 15, color: "#fff", fontWeight: 600 }}>Kiswahili</span>
                     {language === "sw" && <CheckCircle2 size={18} color="#10b981" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="glass-panel" style={{ padding: 24, marginBottom: 24, border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#ef4444", marginBottom: 8 }}>Data & Privacy Controls</h3>
+                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>Permanently delete your data. This action cannot be undone.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <button onClick={handleClearChatHistory} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "flex-start" }}>
+                    <Trash2 size={18} /> Clear Chat History
+                  </button>
+                  <button onClick={handleDeleteTimetables} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "flex-start" }}>
+                    <CalendarDays size={18} /> Delete Uploaded Timetables
                   </button>
                 </div>
               </div>
