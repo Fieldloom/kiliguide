@@ -207,7 +207,7 @@ export function TrustedBy() {
 
 export function WelcomePage() {
   return (
-    <main className="ambient-bg" style={{ minHeight: "100vh", color: "#ffffff", overflow: "hidden", fontFamily: "'Inter', sans-serif", position: "relative" }}>
+    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", overflow: "hidden", fontFamily: "'Inter', sans-serif", position: "relative" }}>
       
       {/* Huge Background Glow */}
       <div style={{ position: "absolute", top: "-10%", left: "30%", width: "100vw", height: "100vw", background: "radial-gradient(circle, rgba(25,195,125,0.06) 0%, rgba(0,0,0,0) 60%)", zIndex: 0, pointerEvents: "none" }} />

@@ -282,7 +282,7 @@ export function LecturerWorkspace() {
   );
 
   return (
-    <main className="ambient-bg" style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", color: "#ececec", fontFamily: "'Inter', sans-serif", backgroundColor: "#06080a" }}>
+    <main className="bg-aurora" style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", color: "#ececec", fontFamily: "'Inter', sans-serif", backgroundColor: "#06080a" }}>
       <style>{`
         .conv-item:hover .del-btn { opacity: 1 !important; }
         .conv-item:hover { background: rgba(255,255,255,0.05) !important; }
