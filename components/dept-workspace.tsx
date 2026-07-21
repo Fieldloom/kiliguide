@@ -294,7 +294,7 @@ export function DeptWorkspace() {
   );
 
   return (
-    <main className="bg-aurora" style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", color: "#ececec", backgroundColor: "#06080a" }}>
+    <main className="bg-aurora" style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden", color: "#ececec" }}>
       <style>{`
         .conv-item:hover .del-btn { opacity: 1 !important; }
         .conv-item:hover { background: rgba(255,255,255,0.05) !important; }
