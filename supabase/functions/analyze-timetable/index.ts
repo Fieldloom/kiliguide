@@ -31,11 +31,13 @@ Deno.serve(async (req) => {
     const buffer = await fileData.arrayBuffer();
     const base64Data = encodeBase64(new Uint8Array(buffer));
 
-    const courseFilter = courses.trim()
-      ? `IMPORTANT: Only extract classes for these specific units that the student is enrolled in: ${courses}. Ignore all other courses in the timetable.`
-      : `Extract ALL classes found in the timetable.`;
+    const dekutKnowledge = `DeKUT Timetable Layout Rule: The timetable columns define the specific class group by Course and Year.Semester (e.g., 'BBIT 3.1' means Bachelor of Business IT, Year 3 Semester 1; 'IT 2.1' means IT Year 2 Semester 1). You MUST cross-reference the class cells with these column headers to know who the class belongs to.`;
 
-    const promptText = `Analyze this student timetable document. ${courseFilter} Expand every weekly class into individual events between ${semesterStart} and ${semesterEnd} in timezone ${timezone}. Return JSON only: {"events":[{"title":"Course name","start":"ISO-8601 datetime with offset","end":"ISO-8601 datetime with offset","location":"room"}]}. Do not invent unclear classes.`;
+    const courseFilter = courses.trim()
+      ? `IMPORTANT: The student is enrolled in classes under: ${courses}. Find the columns that match these courses/groups (e.g., matching the course code and Year.Semester) and ONLY extract classes from those specific columns. Ignore all other columns.`
+      : `Extract ALL classes found in the timetable across all columns.`;
+
+    const promptText = `Analyze this student timetable document. ${dekutKnowledge} ${courseFilter} Expand every weekly class into individual events between ${semesterStart} and ${semesterEnd} in timezone ${timezone}. Return JSON only: {"events":[{"title":"Course name","start":"ISO-8601 datetime with offset","end":"ISO-8601 datetime with offset","location":"room"}]}. Do not invent unclear classes.`;
     
     const payload = {
       contents: [{
