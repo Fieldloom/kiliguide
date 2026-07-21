@@ -150,7 +150,7 @@ export function WelcomePage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             style={{ fontSize: "clamp(18px, 2vw, 24px)", color: "#a1a1aa", marginTop: 24, maxWidth: 600, lineHeight: 1.5 }}
           >
-            Your AI-powered campus assistant. Instant answers to timetables, rules, and notices. No waiting required.
+            Your omniscient campus guide. Ask literally anything—from complex university policies to your next lecture venue—and get instant, perfectly accurate answers.
           </motion.p>
 
           <TypewriterSearch />
