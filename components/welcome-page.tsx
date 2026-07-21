@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Lock, Search, Zap, Sparkles, ShieldCheck, GraduationCap, Plus, CalendarDays, BookOpenCheck } from "lucide-react";
 import { useState } from "react";
 
-export function Navbar() {
+export function Navbar({ onShowPrivacy, onShowTerms }: { onShowPrivacy?: () => void, onShowTerms?: () => void }) {
   return (
     <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 80, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -16,13 +16,11 @@ export function Navbar() {
         </div>
       </div>
 
-      <nav style={{ display: "none", gap: 24, fontSize: 13, fontWeight: 600, color: "#ececec" }} className="lg-flex">
-        <Link href="/" style={{ color: "#19c37d", borderBottom: "2px solid #19c37d", paddingBottom: 26, transform: "translateY(14px)", textDecoration: "none" }}>Home</Link>
-        <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Chats</Link>
-        <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Documents</Link>
-        <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Timetable</Link>
-        <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Notices</Link>
-        <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Support</Link>
+      <nav style={{ display: "none", gap: 32, fontSize: 13, fontWeight: 600, color: "#ececec" }} className="lg-flex">
+        <Link href="/" style={{ color: "#19c37d", borderBottom: "2px solid #19c37d", paddingBottom: 26, transform: "translateY(14px)", textDecoration: "none" }}>Vision</Link>
+        <Link href="/" style={{ color: "#a1a1aa", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Technology</Link>
+        <button onClick={onShowPrivacy} style={{ background: "none", border: "none", color: "#a1a1aa", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "color 0.2s", padding: 0 }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Privacy</button>
+        <button onClick={onShowTerms} style={{ background: "none", border: "none", color: "#a1a1aa", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "color 0.2s", padding: 0 }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#a1a1aa"}>Terms of Use</button>
       </nav>
 
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -206,6 +204,9 @@ export function TrustedBy() {
 }
 
 export function WelcomePage() {
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+
   return (
     <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", overflow: "hidden", fontFamily: "'Inter', sans-serif", position: "relative" }}>
       
@@ -214,7 +215,7 @@ export function WelcomePage() {
       <div style={{ position: "absolute", bottom: "-20%", left: "-10%", width: "80vw", height: "80vw", background: "radial-gradient(circle, rgba(25,195,125,0.04) 0%, rgba(0,0,0,0) 60%)", zIndex: 0, pointerEvents: "none" }} />
 
       <div style={{ position: "relative", zIndex: 10, maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
-        <Navbar />
+        <Navbar onShowPrivacy={() => setShowPrivacy(true)} onShowTerms={() => setShowTerms(true)} />
         
         <section style={{ display: "flex", flexWrap: "wrap", alignItems: "center", marginTop: 80, gap: 60 }}>
           <HeroContent />
@@ -222,7 +223,32 @@ export function WelcomePage() {
         </section>
 
         <TrustedBy />
+
+        <footer style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "32px 0", marginTop: 40, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#8e8ea0", fontSize: 13 }}>
+          <div>© {new Date().getFullYear()} KiliGuide. Built for DeKUT.</div>
+          <div style={{ display: "flex", gap: 24 }}>
+            <button onClick={() => setShowPrivacy(true)} style={{ background: "none", border: "none", color: "#8e8ea0", cursor: "pointer", padding: 0 }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#8e8ea0"}>Privacy Policy</button>
+            <button onClick={() => setShowTerms(true)} style={{ background: "none", border: "none", color: "#8e8ea0", cursor: "pointer", padding: 0 }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#8e8ea0"}>Terms of Use</button>
+          </div>
+        </footer>
       </div>
+
+      <AnimatePresence>
+        {(showPrivacy || showTerms) && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, zIndex: 100, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", padding: 24 }}>
+            <motion.div initial={{ y: 20, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.95 }} style={{ background: "#0B0F14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 24, padding: 40, width: "100%", maxWidth: 600, maxHeight: "80vh", overflowY: "auto", position: "relative", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
+              <button onClick={() => { setShowPrivacy(false); setShowTerms(false); }} style={{ position: "absolute", top: 24, right: 24, background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: "50%", display: "grid", placeItems: "center", cursor: "pointer", transition: "0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.2)"} onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}>✕</button>
+              <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24, color: "#fff" }}>{showPrivacy ? "Privacy Policy" : "Terms of Use"}</h2>
+              <div style={{ color: "#a1a1aa", fontSize: 15, lineHeight: 1.6 }}>
+                <p style={{ marginBottom: 16 }}>This is a placeholder for the official {showPrivacy ? "Privacy Policy" : "Terms of Use"} of KiliGuide.</p>
+                <p style={{ marginBottom: 16 }}>KiliGuide is built from the ground up for student privacy. We do not sell your data. Conversations are isolated by strict Row Level Security (RLS) ensuring that your chat history is completely inaccessible to anyone else.</p>
+                <p style={{ marginBottom: 16 }}>Our language models do not train on your personal data.</p>
+                <p>For more details or inquiries, please contact the DeKUT administration.</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         body { background: #000000 !important; }
