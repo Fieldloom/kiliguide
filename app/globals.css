@@ -21,26 +21,28 @@ button,input,textarea,select{font:inherit}
   background-color: #050505;
   overflow: hidden;
 }
-.ambient-bg::before, .ambient-bg::after {
+.ambient-bg::before {
   content: '';
   position: fixed;
-  width: 60vw;
-  height: 60vh;
-  border-radius: 50%;
-  filter: blur(120px);
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 0;
-  opacity: 0.15;
   pointer-events: none;
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(20, 184, 166, 0.25) 0%, transparent 60%),     /* Teal */
+    radial-gradient(circle at 100% 0%, rgba(251, 146, 60, 0.2) 0%, transparent 60%),    /* Soft Orange */
+    radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.2) 0%, transparent 60%),  /* Sky Blue */
+    radial-gradient(circle at 0% 100%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),   /* Indigo */
+    radial-gradient(circle at 50% 50%, rgba(244, 122, 48, 0.15) 0%, transparent 60%);   /* Brand Orange */
+  background-size: 150% 150%;
+  animation: aurora-shift 5s ease-in-out infinite alternate;
 }
-.ambient-bg::before {
-  background: #065f46; /* Deep Emerald */
-  top: -20%;
-  left: -10%;
-}
-.ambient-bg::after {
-  background: #4c1d95; /* Deep Violet */
-  bottom: -20%;
-  right: -10%;
+
+@keyframes aurora-shift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 100%; }
 }
 
 /* Glass Panels */
