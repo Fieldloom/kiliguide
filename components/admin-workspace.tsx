@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
+import { AdminChat } from "./admin-chat";
 
 type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health";
 const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
@@ -166,9 +167,11 @@ export function AdminWorkspace() {
         </header>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 80px" }}>
-          <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+          <div style={{ maxWidth: 1400, margin: "0 auto", height: tab === "AI Assistant" ? "calc(100vh - 140px)" : "auto" }}>
             {tab === "Tickets" ? <TicketsWorkspace /> : tab === "Overview" ? (
               <Overview done={done} setDone={setDone} onTab={go} stats={stats} />
+            ) : tab === "AI Assistant" ? (
+              <AdminChat />
             ) : (
               <WorkspaceTab tab={tab} onCompose={() => setComposer(true)} />
             )}
