@@ -390,7 +390,7 @@ export function StudentWorkspace() {
         }
       `}</style>
 
-      <aside className="desktop-only vision-sidebar" style={{ width: sidebarOpen ? 280 : 0, transition: "width 0.4s", flexShrink: 0, flexDirection: "column", overflow: "hidden", margin: sidebarOpen ? "24px 0 24px 24px" : "24px 0", height: "calc(100vh - 48px)" }}>
+      <aside className="desktop-only glazed-sidebar" style={{ width: sidebarOpen ? 280 : 0, transition: "width 0.4s", flexShrink: 0, flexDirection: "column", overflow: "hidden", margin: sidebarOpen ? "24px 0 24px 24px" : "24px 0", height: "calc(100vh - 48px)" }}>
         <div style={{ width: 280, flexShrink: 0, height: "100%", display: "flex", flexDirection: "column" }}>
           <SidebarContent />
         </div>
@@ -408,14 +408,14 @@ export function StudentWorkspace() {
       <section style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", position: "relative", zIndex: 10 }}>
         
         <header className="desktop-only" style={{ height: 90, display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 40px", gap: 16, flexShrink: 0 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="vision-glass" style={{ marginRight: "auto", padding: 12, borderRadius: 16, color: "#ececec", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="glazed-widget" style={{ marginRight: "auto", padding: 12, borderRadius: 16, color: "#ececec", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
             {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
           </button>
-          <motion.button onClick={()=>ask()} className="vision-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600 }}>
+          <motion.button onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600 }}>
             <Sparkles size={14} style={{ color: "#10b981" }} /> Ask KiliGuide
           </motion.button>
-          <motion.button onClick={()=>switchTab("Notices")} className="vision-button" style={{ padding: 12 }}><Bell size={18} /></motion.button>
-          <motion.button onClick={()=>switchTab("Settings")} className="vision-button" style={{ padding: 12 }}><Settings size={18} /></motion.button>
+          <motion.button onClick={()=>switchTab("Notices")} className="glazed-button" style={{ padding: 12 }}><Bell size={18} /></motion.button>
+          <motion.button onClick={()=>switchTab("Settings")} className="glazed-button" style={{ padding: 12 }}><Settings size={18} /></motion.button>
         </header>
 
         <header className="mobile-only" style={{ height: 70, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", flexShrink: 0, zIndex: 20 }}>
@@ -455,7 +455,7 @@ export function StudentWorkspace() {
               <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24, marginBottom: 32 }}>
                 
                 {/* Search Hero */}
-                <div className="vision-glass" style={{ padding: "50px 40px", display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+                <div className="glazed-widget" style={{ padding: "50px 40px", display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", overflow: "hidden" }}>
                   <h1 style={{ fontSize: 48, fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", marginBottom: 12 }}>
                     Welcome back, <br/>
                     <span style={{ color: "#10b981" }}>{name.split(" ")[0]}</span> 👋
@@ -463,7 +463,7 @@ export function StudentWorkspace() {
                   <p style={{ color: "#ececec", fontSize: 16, marginBottom: 32 }}>Find official DeKUT regulations, policies, and notices instantly.</p>
                   
                   <div style={{ width: "100%", maxWidth: 600 }}>
-                    <div className="vision-input" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 28px" }}>
+                    <div className="glazed-input" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 28px" }}>
                       <Search size={24} style={{ color: "#10b981" }} />
                       <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Ask KiliGuide anything..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 18, color: "#fff" }} />
                       <motion.button onClick={() => ask()} disabled={!query.trim()} style={{ width: 48, height: 48, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() ? "linear-gradient(135deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() ? "pointer" : "not-allowed", position: "relative", zIndex: 10, boxShadow: query.trim() ? "0 4px 20px rgba(25, 195, 125, 0.3)" : "none" }}>
@@ -474,7 +474,7 @@ export function StudentWorkspace() {
                 </div>
 
                 {/* Latest Notice */}
-                <div className="vision-glass" style={{ padding: 32, display: "flex", flexDirection: "column", border: "none" }}>
+                <div className="glazed-widget" style={{ padding: 32, display: "flex", flexDirection: "column", border: "none" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(245, 158, 11, 0.15)", display: "grid", placeItems: "center" }}>
                       <AlertCircle size={20} color="#fbbf24" />
@@ -506,7 +506,7 @@ export function StudentWorkspace() {
                   { l: "Exams", i: BookOpenCheck, t: "CATs & Missing Marks", d: "What do I do about missing marks?" },
                   { l: "Support", i: HeadphonesIcon, t: "IT & Helpdesk", d: "How do I connect to student WiFi?" }
                 ].map((btn, i) => (
-                  <motion.div whileHover={{ y: -4, scale: 1.02 }} key={i} onClick={() => ask(btn.d)} className="vision-glass" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16, cursor: "pointer", border: "none" }}>
+                  <motion.div whileHover={{ y: -4, scale: 1.02 }} key={i} onClick={() => ask(btn.d)} className="glazed-widget" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16, cursor: "pointer", border: "none" }}>
                     <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(16, 185, 129, 0.15)", display: "grid", placeItems: "center" }}>
                       <btn.i size={22} style={{ color: "#10b981" }} />
                     </div>
@@ -525,7 +525,7 @@ export function StudentWorkspace() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {conversations.slice(0, 3).map(c => (
-                      <div key={c.id} onClick={() => loadConv(c.id)} className="vision-glass" style={{ display: "flex", alignItems: "center", gap: 16, padding: "20px 24px", cursor: "pointer", border: "none" }}>
+                      <div key={c.id} onClick={() => loadConv(c.id)} className="glazed-widget" style={{ display: "flex", alignItems: "center", gap: 16, padding: "20px 24px", cursor: "pointer", border: "none" }}>
                         <MessageSquare size={20} style={{ color: "#10b981" }} />
                         <span style={{ flex: 1, fontSize: 15, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
                         <span style={{ fontSize: 13, color: "#a1a1aa" }}>{formatRelTime(c.createdAt)}</span>
@@ -539,7 +539,7 @@ export function StudentWorkspace() {
                 {/* Timetable Status & Trust */}
                 <div>
                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Status</h3>
-                   <div className="vision-glass" style={{ padding: 24, marginBottom: 16, display: "flex", alignItems: "center", gap: 20, border: "none" }}>
+                   <div className="glazed-widget" style={{ padding: 24, marginBottom: 16, display: "flex", alignItems: "center", gap: 20, border: "none" }}>
                       <CalendarDays size={28} color="#8b5cf6" />
                       <div style={{ flex: 1 }}>
                         <b style={{ display: "block", color: "#fff", fontSize: 15 }}>Timetable Integration</b>
@@ -547,7 +547,7 @@ export function StudentWorkspace() {
                       </div>
                       <button onClick={() => switchTab("My timetable")} style={{ padding: "8px 16px", borderRadius: 20, background: "rgba(139, 92, 246, 0.15)", color: "#c4b5fd", border: "1px solid rgba(139, 92, 246, 0.3)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{timetables.length > 0 ? "View" : "Upload"}</button>
                    </div>
-                   <div className="vision-glass" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", border: "none" }}>
+                   <div className="glazed-widget" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", border: "none" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}><ShieldCheck size={18} style={{ color: "#10b981" }} /><span style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>Official Sources</span></div>
                     <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}><CheckCircle2 size={18} style={{ color: "#10b981" }} /><span style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>Verified</span></div>
