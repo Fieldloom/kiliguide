@@ -115,7 +115,7 @@ export function AdminChat() {
   };
 
   const ask = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || !supabase) return;
     const q = query.trim();
     setQuery("");
     setAsking(true);
