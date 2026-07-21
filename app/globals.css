@@ -36,7 +36,7 @@ button,input,textarea,select{font:inherit}
     radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.2) 0px, transparent 60%),
     radial-gradient(circle at 50% 50%, rgba(244, 122, 48, 0.15) 0px, transparent 60%);
   background-size: 150% 150%;
-  animation: aurora 5s ease-in-out infinite;
+  animation: aurora 20s ease-in-out infinite;
 }
 
 .dark .bg-aurora::before {
