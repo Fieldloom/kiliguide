@@ -468,13 +468,24 @@ export function StudentWorkspace() {
                   </div>
                   <p style={{ color: "#ececec", fontSize: 16, marginBottom: 24 }}>"What do you need help with?"</p>
                   
-                  <div className="glazed-input" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 24px", maxWidth: 600 }}>
+                  <motion.div 
+                    className="glazed-input" 
+                    animate={asking ? { boxShadow: ["0 0 0px rgba(16, 185, 129, 0)", "0 0 20px rgba(16, 185, 129, 0.4)", "0 0 0px rgba(16, 185, 129, 0)"] } : {}}
+                    transition={asking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : {}}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 24px", maxWidth: 600 }}
+                  >
                     <Search size={20} style={{ color: "#10b981" }} />
-                    <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Search university knowledge..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "#fff" }} />
-                    <motion.button onClick={() => ask()} disabled={!query.trim()} style={{ width: 40, height: 40, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() ? "linear-gradient(135deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() ? "pointer" : "not-allowed", transition: "0.2s", boxShadow: query.trim() ? "0 4px 20px rgba(25, 195, 125, 0.3)" : "none" }}>
-                      <Send size={16} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
+                    <input disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !asking) ask(); }} placeholder={asking ? "Processing..." : "Search university knowledge..."} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "#fff", opacity: asking ? 0.7 : 1 }} />
+                    <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() || asking ? "linear-gradient(135deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() && !asking ? "pointer" : "not-allowed", transition: "0.2s", boxShadow: query.trim() || asking ? "0 4px 20px rgba(25, 195, 125, 0.3)" : "none" }}>
+                      {asking ? (
+                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "grid", placeItems: "center" }}>
+                          <Loader2 size={16} />
+                        </motion.div>
+                      ) : (
+                        <Send size={16} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
+                      )}
                     </motion.button>
-                  </div>
+                  </motion.div>
                 </div>
 
                 {/* Split Widgets: Upcoming & Campus */}
@@ -768,10 +779,23 @@ export function StudentWorkspace() {
 
             <div style={{ position: "absolute", bottom: 80, left: 0, right: 0, padding: "0 20px", background: "transparent" }}>
               <div style={{ maxWidth: 760, margin: "0 auto" }}>
-                <div className="glazed-widget" style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px", border: "none" }}>
-                  <textarea value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } }} placeholder="Ask anything about DeKUT…" rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200 }} />
-                  <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() ? "linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)" }}><Send size={18} color={query.trim() ? "#10b981" : "#a1a1aa"} /></motion.button>
-                </div>
+                <motion.div 
+                  className="glazed-widget" 
+                  animate={asking ? { boxShadow: ["0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 15px rgba(16, 185, 129, 0.3)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)"] } : {}}
+                  transition={asking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : {}}
+                  style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px", border: "none" }}
+                >
+                  <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Processing..." : "Ask anything about DeKUT…"} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200, opacity: asking ? 0.7 : 1 }} />
+                  <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() || asking ? "linear-gradient(180deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)" }}>
+                    {asking ? (
+                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "grid", placeItems: "center" }}>
+                        <Loader2 size={18} color="#fff" />
+                      </motion.div>
+                    ) : (
+                      <Send size={18} color={query.trim() ? "#fff" : "#a1a1aa"} />
+                    )}
+                  </motion.button>
+                </motion.div>
               </div>
             </div>
           </div>
