@@ -72,64 +72,81 @@ export function HeroContent() {
 export function DashboardMockup() {
   return (
     <div style={{ flex: "1 1 500px", display: "flex", justifyContent: "flex-end", perspective: 1000, zIndex: 10 }} className="hidden lg-flex">
-      <div style={{ 
-        width: "110%", minWidth: 600, height: 480, background: "#06080A", border: "1px solid #1A2A20", 
-        borderRadius: 24, boxShadow: "0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(25, 195, 125, 0.2), inset 0 0 40px rgba(25, 195, 125, 0.02)", 
-        transform: "rotateY(-15deg) rotateX(5deg) translateZ(0)", transformStyle: "preserve-3d",
-        display: "flex", overflow: "hidden"
-      }}>
-        {/* Mock Sidebar */}
-        <div style={{ width: 220, background: "#0B0F14", borderRight: "1px solid #131820", padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 32 }}>
-            <div style={{ width: 24, height: 24, background: "#19c37d", borderRadius: 6 }} />
-            <div style={{ height: 12, width: 80, background: "#1A2A20", borderRadius: 4 }} />
-          </div>
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0" }}>
-              <div style={{ width: 16, height: 16, background: i === 1 ? "#19c37d" : "#1A2A20", borderRadius: 4 }} />
-              <div style={{ height: 8, width: i % 2 === 0 ? 60 : 80, background: i === 1 ? "#ececec" : "#1A2A20", borderRadius: 4 }} />
-            </div>
-          ))}
+      <motion.div 
+        animate={{ y: [0, -10, 0] }} 
+        transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+        style={{ 
+          width: "110%", minWidth: 600, height: 480, 
+          background: "rgba(11, 15, 20, 0.6)", backdropFilter: "blur(40px)", 
+          border: "1px solid rgba(255,255,255,0.1)", borderRadius: 24, 
+          boxShadow: "0 40px 100px rgba(0,0,0,0.8), inset 0 0 40px rgba(255,255,255,0.03), 0 0 0 1px rgba(25, 195, 125, 0.1)", 
+          transform: "rotateY(-15deg) rotateX(5deg) translateZ(0)", transformStyle: "preserve-3d",
+          display: "flex", flexDirection: "column", overflow: "hidden"
+        }}
+      >
+        {/* macOS Window Header */}
+        <div style={{ height: 40, borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, background: "rgba(255,255,255,0.02)" }}>
+          <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ff5f56" }} />
+          <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ffbd2e" }} />
+          <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#27c93f" }} />
+          <div style={{ flex: 1, textAlign: "center", fontSize: 12, fontWeight: 600, color: "#8e8ea0", marginRight: 56 }}>app.kiliguide.com</div>
         </div>
-        {/* Mock Main Area */}
-        <div style={{ flex: 1, padding: 32, display: "flex", flexDirection: "column" }}>
-          <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>Good morning, Griffin <span style={{ fontSize: 20 }}>👋</span></h3>
-          <p style={{ color: "#8e8ea0", fontSize: 14, marginBottom: 24 }}>How can I help you navigate DeKUT today?</p>
-          
-          <div style={{ background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 16, padding: "16px", marginBottom: 32, display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div style={{ background: "rgba(25, 195, 125, 0.15)", color: "#ececec", padding: "10px 14px", borderRadius: 16, borderBottomRightRadius: 4, fontSize: 13 }}>
-                When is the next academic trip for BSc Computer Science?
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ width: 28, height: 28, background: "#19c37d", borderRadius: 8, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                <Sparkles size={14} color="#000" />
-              </div>
-              <div style={{ background: "transparent", color: "#a1a1aa", fontSize: 13, lineHeight: 1.5 }}>
-                According to the latest <b>Department of Computer Science Notice</b>, the academic trip to Safaricom Headquarters is scheduled for <b>Friday, November 12th</b>. Please ensure your fee balance is cleared before registering.
-              </div>
-            </div>
-          </div>
 
-          <b style={{ fontSize: 12, color: "#8e8ea0", marginBottom: 16 }}>Quick Features</b>
-          <div style={{ display: "flex", gap: 12 }}>
-            {[
-              { title: "My Timetable", icon: CalendarDays },
-              { title: "Latest Notices", icon: ShieldCheck },
-              { title: "Student Support", icon: Zap },
-              { title: "Campus Rules", icon: BookOpenCheck },
-            ].map((feature, i) => (
-              <div key={i} style={{ flex: 1, height: 80, background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                 <div style={{ width: 28, height: 28, background: "rgba(25, 195, 125, 0.1)", borderRadius: 8, display: "grid", placeItems: "center" }}>
-                   <feature.icon size={14} style={{ color: "#19c37d" }} />
-                 </div>
-                 <div style={{ fontSize: 10, color: "#a1a1aa", fontWeight: 600, textAlign: "center" }}>{feature.title}</div>
+        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          {/* Mock Sidebar */}
+          <div style={{ width: 220, background: "rgba(0,0,0,0.2)", borderRight: "1px solid rgba(255,255,255,0.05)", padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 32 }}>
+              <div style={{ width: 24, height: 24, background: "#19c37d", borderRadius: 6, boxShadow: "0 2px 10px rgba(25,195,125,0.4)" }} />
+              <div style={{ height: 12, width: 80, background: "rgba(255,255,255,0.1)", borderRadius: 4 }} />
+            </div>
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0" }}>
+                <div style={{ width: 16, height: 16, background: i === 1 ? "#19c37d" : "rgba(255,255,255,0.05)", borderRadius: 4 }} />
+                <div style={{ height: 8, width: i % 2 === 0 ? 60 : 80, background: i === 1 ? "#ececec" : "rgba(255,255,255,0.1)", borderRadius: 4 }} />
               </div>
             ))}
           </div>
+          
+          {/* Mock Main Area */}
+          <div style={{ flex: 1, padding: 32, display: "flex", flexDirection: "column" }}>
+            <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 8, color: "#fff" }}>Good morning, Griffin <span style={{ fontSize: 20 }}>👋</span></h3>
+            <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>How can I help you navigate DeKUT today?</p>
+            
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "16px", marginBottom: 32, display: "flex", flexDirection: "column", gap: 12, boxShadow: "inset 0 0 20px rgba(255,255,255,0.01)" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <div style={{ background: "rgba(25, 195, 125, 0.2)", backdropFilter: "blur(10px)", color: "#ececec", padding: "10px 14px", borderRadius: 16, borderBottomRightRadius: 4, fontSize: 13, border: "1px solid rgba(25, 195, 125, 0.3)" }}>
+                  When is the next academic trip for BSc Computer Science?
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                <div style={{ width: 28, height: 28, background: "#19c37d", borderRadius: 8, display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(25, 195, 125, 0.3)" }}>
+                  <Sparkles size={14} color="#000" />
+                </div>
+                <div style={{ background: "transparent", color: "#ececec", fontSize: 13, lineHeight: 1.5 }}>
+                  According to the latest <b style={{ color: "#fff" }}>Department of Computer Science Notice</b>, the academic trip to Safaricom Headquarters is scheduled for <b style={{ color: "#fff" }}>Friday, November 12th</b>. Please ensure your fee balance is cleared before registering.
+                </div>
+              </div>
+            </div>
+
+            <b style={{ fontSize: 12, color: "#a1a1aa", marginBottom: 16 }}>Quick Features</b>
+            <div style={{ display: "flex", gap: 12 }}>
+              {[
+                { title: "My Timetable", icon: CalendarDays },
+                { title: "Latest Notices", icon: ShieldCheck },
+                { title: "Student Support", icon: Zap },
+                { title: "Campus Rules", icon: BookOpenCheck },
+              ].map((feature, i) => (
+                <div key={i} style={{ flex: 1, height: 80, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"} onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}>
+                   <div style={{ width: 28, height: 28, background: "rgba(25, 195, 125, 0.15)", borderRadius: 8, display: "grid", placeItems: "center", border: "1px solid rgba(25, 195, 125, 0.2)" }}>
+                     <feature.icon size={14} style={{ color: "#19c37d" }} />
+                   </div>
+                   <div style={{ fontSize: 10, color: "#a1a1aa", fontWeight: 600, textAlign: "center" }}>{feature.title}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
