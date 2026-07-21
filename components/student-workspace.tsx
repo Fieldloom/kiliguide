@@ -343,7 +343,7 @@ export function StudentWorkspace() {
       </div>
 
       <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveConvId(null); setTab("Chats"); setMobileSidebar(false); }} style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 600, background: "#10b981", color: "#fff", border: "none", cursor: "pointer", marginBottom: 12 }}>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveConvId(null); setTab("Chats"); setMobileSidebar(false); }} style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 600, background: "linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", cursor: "pointer", marginBottom: 12, boxShadow: "0 4px 12px rgba(16, 185, 129, 0.1)" }}>
           <Plus size={18} /> New Chat
         </motion.button>
         {navigation.map(([label, Icon]) => {
