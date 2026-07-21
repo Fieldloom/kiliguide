@@ -893,7 +893,7 @@ export function StudentWorkspace() {
           </div>
         ) : tab === "My timetable" ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
-            <div style={{ maxWidth: 800, margin: "0 auto", paddingBottom: 100 }}>
+            <div className="glazed-widget" style={{ maxWidth: 800, margin: "0 auto", padding: "40px 48px", border: "none" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
                 <div>
                   <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>My Timetable</h2>

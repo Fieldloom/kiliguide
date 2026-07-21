@@ -30,22 +30,22 @@ button,input,textarea,select{font:inherit}
   z-index: 0;
   pointer-events: none;
   background-image: 
-    radial-gradient(circle at 20% 20%, rgba(20, 184, 166, 0.25) 0px, transparent 60%),
-    radial-gradient(circle at 80% 20%, rgba(251, 146, 60, 0.2) 0px, transparent 60%),
-    radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.25) 0px, transparent 60%),
-    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.2) 0px, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(244, 122, 48, 0.15) 0px, transparent 60%);
+    radial-gradient(circle at 20% 20%, rgba(20, 184, 166, 0.12) 0px, transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(251, 146, 60, 0.10) 0px, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.12) 0px, transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.10) 0px, transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(244, 122, 48, 0.08) 0px, transparent 60%);
   background-size: 150% 150%;
   animation: aurora 60s ease-in-out infinite;
 }
 
 .dark .bg-aurora::before {
   background-image: 
-    radial-gradient(circle at 20% 20%, rgba(20, 184, 166, 0.3) 0px, transparent 60%),
-    radial-gradient(circle at 80% 20%, rgba(251, 146, 60, 0.25) 0px, transparent 60%),
-    radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.3) 0px, transparent 60%),
-    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.25) 0px, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(244, 122, 48, 0.2) 0px, transparent 60%);
+    radial-gradient(circle at 20% 20%, rgba(20, 184, 166, 0.15) 0px, transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(251, 146, 60, 0.12) 0px, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.15) 0px, transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.12) 0px, transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(244, 122, 48, 0.10) 0px, transparent 60%);
 }
 
 @keyframes aurora {
