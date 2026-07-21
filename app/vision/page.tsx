@@ -22,7 +22,7 @@ export default function VisionPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 32, marginBottom: 100 }}>
-          <div style={{ background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 24, padding: 40 }}>
+          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", borderRadius: 32, padding: 40 }}>
             <div style={{ width: 48, height: 48, borderRadius: 16, background: "rgba(25, 195, 125, 0.1)", display: "grid", placeItems: "center", marginBottom: 24 }}>
               <Target size={24} style={{ color: "#19c37d" }} />
             </div>
@@ -32,7 +32,7 @@ export default function VisionPage() {
             </p>
           </div>
 
-          <div style={{ background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 24, padding: 40 }}>
+          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", borderRadius: 32, padding: 40 }}>
             <div style={{ width: 48, height: 48, borderRadius: 16, background: "rgba(56, 189, 248, 0.1)", display: "grid", placeItems: "center", marginBottom: 24 }}>
               <Users size={24} style={{ color: "#38bdf8" }} />
             </div>
@@ -42,7 +42,7 @@ export default function VisionPage() {
             </p>
           </div>
 
-          <div style={{ background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 24, padding: 40 }}>
+          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", borderRadius: 32, padding: 40 }}>
             <div style={{ width: 48, height: 48, borderRadius: 16, background: "rgba(244, 63, 94, 0.1)", display: "grid", placeItems: "center", marginBottom: 24 }}>
               <Lightbulb size={24} style={{ color: "#f43f5e" }} />
             </div>

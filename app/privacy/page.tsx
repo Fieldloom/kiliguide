@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <div style={{ position: "relative", zIndex: 10, maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
         <PublicNavbar />
         
-        <div style={{ maxWidth: 800, margin: "80px auto 100px", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 24, padding: "60px" }}>
+        <div style={{ maxWidth: 800, margin: "80px auto 100px", background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 24px 80px rgba(0,0,0,0.5), inset 0 0 40px rgba(255,255,255,0.02)", borderRadius: 32, padding: "60px" }}>
           <h1 style={{ fontSize: 36, fontWeight: 800, marginBottom: 8 }}>Privacy Policy</h1>
           <p style={{ color: "#a1a1aa", marginBottom: 40, fontSize: 15 }}>Last updated: July 2026</p>
 

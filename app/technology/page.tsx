@@ -21,7 +21,7 @@ export default function TechnologyPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 1000, margin: "0 auto 100px" }}>
           
-          <div style={{ display: "flex", gap: 32, background: "#0B0F14", border: "1px solid #1A2A20", padding: 40, borderRadius: 24, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 32, background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", padding: 40, borderRadius: 32, alignItems: "flex-start" }}>
             <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(168, 85, 247, 0.1)", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Database size={28} style={{ color: "#a855f7" }} />
             </div>
@@ -33,7 +33,7 @@ export default function TechnologyPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 32, background: "#0B0F14", border: "1px solid #1A2A20", padding: 40, borderRadius: 24, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 32, background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", padding: 40, borderRadius: 32, alignItems: "flex-start" }}>
             <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(25, 195, 125, 0.1)", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Zap size={28} style={{ color: "#19c37d" }} />
             </div>
@@ -45,7 +45,7 @@ export default function TechnologyPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 32, background: "#0B0F14", border: "1px solid #1A2A20", padding: 40, borderRadius: 24, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 32, background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", padding: 40, borderRadius: 32, alignItems: "flex-start" }}>
             <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(244, 63, 94, 0.1)", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Shield size={28} style={{ color: "#f43f5e" }} />
             </div>
