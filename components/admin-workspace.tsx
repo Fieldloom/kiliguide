@@ -21,8 +21,8 @@ const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
 ];
 
 const D = {
-  bg: "#06080a",
-  sidebar: "#000000",
+  bg: "transparent",
+  sidebar: "rgba(0,0,0,0.4)",
   card: "rgba(255,255,255,0.02)",
   cardHover: "rgba(16,185,129,0.05)",
   border: "rgba(255,255,255,0.08)",
@@ -82,11 +82,12 @@ export function AdminWorkspace() {
   const go = (next: Tab) => { setTab(next); setMenu(false); };
 
   return (
-    <main style={{ minHeight: "100vh", background: D.bg, color: D.text, display: "flex" }}>
+    <main className="bg-aurora" style={{ minHeight: "100vh", background: D.bg, color: D.text, display: "flex" }}>
       {/* Sidebar */}
       <aside
         style={{
           width: 260, flexShrink: 0, background: D.sidebar,
+          backdropFilter: "blur(24px)",
           borderRight: `1px solid ${D.border}`, display: "flex", flexDirection: "column",
           position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 50,
           transform: menu ? "translateX(0)" : undefined,
