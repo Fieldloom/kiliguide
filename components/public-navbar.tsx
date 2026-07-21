@@ -13,6 +13,7 @@ export function PublicNavbar() {
     { label: "Home", href: "/" },
     { label: "Vision", href: "/vision" },
     { label: "Technology", href: "/technology" },
+    { label: "About", href: "/about" },
     { label: "Privacy", href: "/privacy" },
     { label: "Terms", href: "/terms" },
   ];
