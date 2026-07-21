@@ -63,7 +63,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter', sans-serif", position: "relative", overflow: "hidden" }}>
+    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
       
       {/* Background Glow */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "80vw", height: "80vw", maxWidth: 1000, maxHeight: 1000, background: "radial-gradient(circle, rgba(25,195,125,0.08) 0%, rgba(0,0,0,0) 70%)", zIndex: 0, pointerEvents: "none" }} />

@@ -98,7 +98,7 @@ export default function SuperAdminDashboard() {
   if (loading) return <div style={{ minHeight: "100vh", background: "#06080A", display: "grid", placeItems: "center", color: "#ececec" }}>Loading Admin Portal...</div>;
 
   return (
-    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ececec", padding: "60px 24px", fontFamily: "'Inter', sans-serif" }}>
+    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ececec", padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 10 }}>
 
         {/* Header */}

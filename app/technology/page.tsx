@@ -4,7 +4,7 @@ import { Server, Database, Shield, Zap } from "lucide-react";
 
 export default function TechnologyPage() {
   return (
-    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", fontFamily: "'Inter', sans-serif", position: "relative" }}>
+    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", position: "relative" }}>
       <div style={{ position: "absolute", top: "-10%", left: "30%", width: "100vw", height: "100vw", background: "radial-gradient(circle, rgba(25,195,125,0.06) 0%, rgba(0,0,0,0) 60%)", zIndex: 0, pointerEvents: "none" }} />
       
       <div style={{ position: "relative", zIndex: 10, maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
