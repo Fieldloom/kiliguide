@@ -23,9 +23,8 @@ export function PublicNavbar() {
           { label: "Home", href: "/" },
           { label: "Vision", href: "/vision" },
           { label: "Technology", href: "/technology" },
-          { label: "Chats", href: "/login" },
-          { label: "Timetable", href: "/login" },
-          { label: "Notices", href: "/login" },
+          { label: "Privacy", href: "/privacy" },
+          { label: "Terms of Use", href: "/terms" },
         ].map(item => {
           const isActive = pathname === item.href;
           return (
