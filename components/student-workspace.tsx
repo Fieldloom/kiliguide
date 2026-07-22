@@ -1080,9 +1080,8 @@ export function StudentWorkspace() {
                                     {timetableMetadata[t.id].courses
                                       .filter(c => {
                                         const group = selectedGroup[t.id];
-                                        if (group && timetableMetadata[t.id].mapped?.[group]) {
-                                          if (!timetableMetadata[t.id].mapped[group].includes(c)) return false;
-                                        }
+                                        const mappedGroup = group ? timetableMetadata[t.id].mapped?.[group] : undefined;
+                                        if (mappedGroup && !mappedGroup.includes(c)) return false;
                                         const query = courseSearchFilters[t.id]?.toLowerCase();
                                         if (query && !c.toLowerCase().includes(query)) return false;
                                         return true;
