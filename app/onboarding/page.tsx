@@ -16,9 +16,24 @@ export default function Onboarding() {
   const [regNum, setRegNum] = useState("");
   const [department, setDepartment] = useState("");
   const [linkedReg, setLinkedReg] = useState("");
+  const [institutionId, setInstitutionId] = useState("");
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  const [alreadyHasInstitution, setAlreadyHasInstitution] = useState(false);
 
   useEffect(() => {
-    supabase?.auth.getUser().then(({ data }) => setUser(data.user));
+    if (!supabase) return;
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user);
+      // Load institutions for the dropdown
+      const { data: insts } = await supabase!.from("institutions").select("id, name").order("name");
+      if (insts) setInstitutions(insts);
+      // Check if institution already set (e.g. from signup metadata)
+      const uid = data.user?.id;
+      if (uid) {
+        const { data: prof } = await supabase!.from("profiles").select("institution_id").eq("id", uid).single();
+        if (prof?.institution_id) setAlreadyHasInstitution(true);
+      }
+    });
   }, []);
 
   const completeOnboarding = async () => {
@@ -26,15 +41,15 @@ export default function Onboarding() {
     setLoading(true);
 
     try {
-      // 1. Update Profile
+      // 1. Update Profile (include institution_id if not already set)
       const updates: any = {};
       if (role === "student") updates.registration_number = regNum;
-      if (role === "parent") updates.registration_number = linkedReg; // Store child's reg temporarily
+      if (role === "parent") updates.registration_number = linkedReg;
+      if (!alreadyHasInstitution && institutionId) updates.institution_id = institutionId;
       
       await supabase.from("profiles").update(updates).eq("id", user.id);
 
-      // 2. Insert/Update Role
-      // Since visitor might exist, we delete it and insert the new one
+      // 2. Update Role
       await supabase.from("user_roles").delete().eq("user_id", user.id);
       await supabase.from("user_roles").insert({ user_id: user.id, role });
 
@@ -112,9 +127,22 @@ export default function Onboarding() {
           </div>
         )}
 
+        {/* Institution Selection — shown if not already detected from signup */}
+        {!alreadyHasInstitution && (
+          <div style={{ marginBottom: 32, animation: "fadeIn 0.3s ease" }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ececec", marginBottom: 8 }}>Your University</label>
+            <select value={institutionId} onChange={e => setInstitutionId(e.target.value)} style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none", appearance: "none" }}>
+              <option value="">Select your university…</option>
+              {institutions.map(inst => (
+                <option key={inst.id} value={inst.id}>{inst.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <button 
           onClick={completeOnboarding}
-          disabled={!role || loading || (role === "student" && !regNum) || (role === "parent" && !linkedReg) || (role === "staff" && !department)}
+          disabled={!role || loading || (role === "student" && !regNum) || (role === "parent" && !linkedReg) || (role === "staff" && !department) || (!alreadyHasInstitution && !institutionId)}
           style={{ width: "100%", background: role ? "#19c37d" : "#1A2A20", color: role ? "#000" : "#8e8ea0", padding: "16px", borderRadius: 12, fontSize: 16, fontWeight: 600, border: "none", cursor: role ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
         >
           {loading ? <Loader2 size={20} className="animate-spin" /> : "Complete Setup"}

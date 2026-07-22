@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ShieldCheck, ArrowRight, Loader2, Building2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { getRoleDestination } from "../../lib/auth";
 
@@ -16,9 +16,40 @@ export default function LoginPage() {
   const [role, setRole] = useState("student");
   const [regNum, setRegNum] = useState("");
   const [departmentId, setDepartmentId] = useState("");
+  const [institutionId, setInstitutionId] = useState("");
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  const [detectedInstitution, setDetectedInstitution] = useState<string | null>(null);
 
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Load institutions when switching to signup mode
+  const loadInstitutions = async () => {
+    if (!supabase || institutions.length > 0) return;
+    const { data } = await supabase.from("institutions").select("id, name, domain").order("name");
+    if (data) setInstitutions(data);
+  };
+
+  // On email blur: detect institution from domain (for sign-in awareness)
+  const handleEmailBlur = async () => {
+    if (!supabase || !email.includes("@")) return;
+    const domain = email.split("@")[1]?.toLowerCase();
+    if (!domain) return;
+
+    // Check exact match or suffix match (e.g. students.dkut.ac.ke → dkut.ac.ke)
+    const { data } = await supabase
+      .from("institutions")
+      .select("id, name")
+      .or(`domain.eq.${domain},domain.ilike.%${domain.split(".").slice(-3).join(".")}`)
+      .limit(1);
+
+    if (data && data.length > 0) {
+      setDetectedInstitution(data[0].name);
+      setInstitutionId(data[0].id);
+    } else {
+      setDetectedInstitution(null);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +60,6 @@ export default function LoginPage() {
     if (mode === "signin") {
       result = await supabase.auth.signInWithPassword({ email, password });
     } else {
-      // Pass the metadata directly into signup
       result = await supabase.auth.signUp({ 
         email, 
         password, 
@@ -39,7 +69,8 @@ export default function LoginPage() {
             full_name: email.split("@")[0],
             role,
             registration_number: role === "student" ? regNum : null,
-            department_id: role === "staff" ? departmentId : null
+            department_id: role === "staff" ? departmentId : null,
+            institution_id: institutionId || null,
           } 
         } 
       });
@@ -52,7 +83,6 @@ export default function LoginPage() {
     }
     
     if (mode === "signup") {
-      // If auto-confirm is enabled, they might already be logged in. If not:
       setMessage("Check your email to confirm your account.");
       setBusy(false);
       return;
@@ -88,10 +118,30 @@ export default function LoginPage() {
         <div style={{ background: "#0B0F14", border: "1px solid #131820", borderRadius: 24, padding: 32, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
           <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             
+            {/* Email — shown first so domain detection can fire early */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Email Address</label>
+              <input 
+                required type="email" value={email}
+                onChange={e => setEmail(e.target.value)}
+                onBlur={handleEmailBlur}
+                placeholder="you@students.dkut.ac.ke"
+                style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", transition: "border-color 0.2s", boxSizing: "border-box" }} 
+                onFocus={e => (e.currentTarget.style.borderColor = "#19c37d")}
+              />
+              {/* Auto-detected institution badge */}
+              {detectedInstitution && (
+                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, background: "rgba(25,195,125,0.08)", border: "1px solid rgba(25,195,125,0.2)", borderRadius: 8, padding: "6px 12px" }}>
+                  <Building2 size={13} color="#19c37d" />
+                  <span style={{ fontSize: 12, color: "#19c37d", fontWeight: 600 }}>Routing to: {detectedInstitution}</span>
+                </div>
+              )}
+            </div>
+
             {mode === "signup" && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Select Your Role</label>
-                <select value={role} onChange={e => setRole(e.target.value)} style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none" }}>
+                <select value={role} onChange={e => setRole(e.target.value)} style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box" }}>
                   <option value="student">Student</option>
                   <option value="staff">Staff Member</option>
                   <option value="parent">Parent</option>
@@ -100,17 +150,37 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* University dropdown — shown only on signup if domain didn't auto-detect */}
+            {mode === "signup" && !detectedInstitution && (
+              <div style={{ animation: "fadeIn 0.3s ease" }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Your University</label>
+                <select
+                  required
+                  value={institutionId}
+                  onChange={e => setInstitutionId(e.target.value)}
+                  onFocus={loadInstitutions}
+                  style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box" }}
+                >
+                  <option value="">Select your university…</option>
+                  {institutions.map(inst => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+                <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 6 }}>Can&apos;t find your university? <Link href="/register-institution" style={{ color: "#19c37d", textDecoration: "none" }}>Register it here.</Link></p>
+              </div>
+            )}
+
             {mode === "signup" && role === "student" && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Registration Number</label>
-                <input required value={regNum} onChange={e => setRegNum(e.target.value)} placeholder="e.g. C026-01-0982/2021" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none" }} />
+                <input required value={regNum} onChange={e => setRegNum(e.target.value)} placeholder="e.g. C026-01-0982/2021" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
               </div>
             )}
 
             {mode === "signup" && role === "staff" && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Department</label>
-                <select required value={departmentId} onChange={e => setDepartmentId(e.target.value)} style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none" }}>
+                <select required value={departmentId} onChange={e => setDepartmentId(e.target.value)} style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box" }}>
                   <option value="">Select Department...</option>
                   <option value="1">Computer Science</option>
                   <option value="2">Engineering</option>
@@ -119,23 +189,13 @@ export default function LoginPage() {
                 </select>
               </div>
             )}
-
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Email Address</label>
-              <input 
-                required type="email" value={email} onChange={e => setEmail(e.target.value)} 
-                placeholder="you@example.com"
-                style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", transition: "border-color 0.2s" }} 
-                onFocus={e => (e.currentTarget.style.borderColor = "#19c37d")} onBlur={e => (e.currentTarget.style.borderColor = "#1A2A20")}
-              />
-            </div>
             
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Password</label>
               <input 
                 required minLength={8} type="password" value={password} onChange={e => setPassword(e.target.value)} 
                 placeholder="••••••••"
-                style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", transition: "border-color 0.2s" }} 
+                style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", transition: "border-color 0.2s", boxSizing: "border-box" }} 
                 onFocus={e => (e.currentTarget.style.borderColor = "#19c37d")} onBlur={e => (e.currentTarget.style.borderColor = "#1A2A20")}
               />
             </div>
@@ -162,7 +222,7 @@ export default function LoginPage() {
               {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
             </span>
             <button 
-              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); }} 
+              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); setDetectedInstitution(null); }} 
               style={{ background: "transparent", border: "none", color: "#19c37d", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0 }}
               onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
               onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
