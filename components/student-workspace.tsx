@@ -167,7 +167,7 @@ export function StudentWorkspace() {
     ]).then(async ([auth, docs, nots, tcks, times, depts, calEvents]) => {
       const user = auth.data.user;
       setProfile(user);
-      setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('@dekut.ac.ke')) || false);
+      setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('@students.dkut.ac.ke')) || false);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
       if (user && supabase) {
         const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions").eq("id", user.id).single();
@@ -1402,10 +1402,10 @@ export function StudentWorkspace() {
                     </span>
                   ) : null}
                 </div>
-                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Link your official @dekut.ac.ke email to securely access your live university grades and fee balances via KiliGuide AI.</p>
+                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Link your official @students.dkut.ac.ke email to securely access your live university grades and fee balances via KiliGuide AI.</p>
                 {!isLinked && (
                   <button onClick={handleLinkUniversity} style={{ background: "#fff", color: "#000", border: "none", padding: "10px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-                    Link @dekut.ac.ke Email
+                    Link @students.dkut.ac.ke Email
                   </button>
                 )}
               </div>
