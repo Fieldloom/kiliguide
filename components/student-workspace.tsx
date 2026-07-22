@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { InstallButton } from "./install-button";
 
 type Tab = "Home" | "Chats" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
 const navigation: [Tab, any][] = [
@@ -486,6 +487,7 @@ export function StudentWorkspace() {
             </motion.button>
           );
         })}
+        <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, borderRadius: 12, padding: "12px 14px", fontSize: 14, fontWeight: 500, color: "#a1a1aa", cursor: "pointer", marginBottom: 4 }} />
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 12px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
