@@ -32,9 +32,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Extracted text was too short or just whitespace. Text was: " + text.slice(0, 200) }, { status: 400, headers: CORS });
     }
     for (let index = 0; index < chunks.length; index++) {
-      const { data: inserted, error } = await supabase.from("document_chunks").insert({ document_id: documentId, content: chunks[index], page_number: pageNumber ?? null, chunk_index: index }).select("id").single();
+      const enrichedChunk = `Document Title: ${document.title}\n\n${chunks[index]}`;
+      const { data: inserted, error } = await supabase.from("document_chunks").insert({ document_id: documentId, content: enrichedChunk, page_number: pageNumber ?? null, chunk_index: index }).select("id").single();
       if (error) throw error;
-      const vector = await embed(chunks[index]);
+      const vector = await embed(enrichedChunk);
       if (!vector) throw new Error("No embedding returned");
       const { error: vectorError } = await supabase.from("embeddings").insert({ chunk_id: inserted.id, embedding: vector });
       if (vectorError) throw vectorError;
