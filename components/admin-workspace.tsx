@@ -181,24 +181,7 @@ export function AdminWorkspace({ role }: { role?: string }) {
 
       {composer && <Compose onClose={() => setComposer(false)} />}
 
-      {/* --- MOBILE BOTTOM NAV --- */}
-      <nav className="lg:hidden" style={{ position: "fixed", bottom: 0, left: 0, right: 0, height: 80, background: "#0B0F14", borderTop: "1px solid rgba(255,255,255,0.05)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-around", paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {[
-          { id: "Overview" as Tab, icon: LayoutDashboard },
-          { id: "AI Assistant" as Tab, icon: MessageSquareText },
-          { id: "Documents" as Tab, icon: FileText },
-          { id: "Tickets" as Tab, icon: Ticket },
-        ].map(item => {
-          const isActive = tab === item.id;
-          return (
-            <button key={item.id} onClick={() => go(item.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, background: "transparent", border: "none", color: isActive ? "#10b981" : "#8e8ea0", position: "relative", width: 60, cursor: "pointer" }}>
-              {isActive && <div style={{ position: "absolute", top: -16, width: 40, height: 3, background: "#10b981", borderRadius: "0 0 4px 4px", boxShadow: "0 4px 12px rgba(16,185,129,0.5)" }} />}
-              <item.icon size={22} style={{ color: isActive ? "#10b981" : "#8e8ea0" }} />
-              <span style={{ fontSize: 10, fontWeight: 600 }}>{item.id === "AI Assistant" ? "Chat" : item.id}</span>
-            </button>
-          );
-        })}
-      </nav>
+
     </main>
   );
 }
