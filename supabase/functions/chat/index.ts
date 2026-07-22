@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
         }
         finalChunks.push(currentChunk);
       }
-      finalChunks.sort((a, b) => b.similarity - a.similarity);
+      finalChunks.sort((a, b) => (b.score ?? b.similarity) - (a.score ?? a.similarity));
       finalChunks = finalChunks.slice(0, 6);
     }
 
