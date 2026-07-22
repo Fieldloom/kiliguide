@@ -124,7 +124,6 @@ export default function LoginPage() {
               <input 
                 required type="email" value={email}
                 onChange={e => setEmail(e.target.value)}
-                onBlur={handleEmailBlur}
                 placeholder="you@students.campus.ac.ke"
                 style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, color: "#ffffff", padding: "16px", fontSize: 15, outline: "none", transition: "all 0.2s", boxSizing: "border-box" }} 
                 onFocus={e => { e.currentTarget.style.borderColor = "#19c37d"; e.currentTarget.style.boxShadow = "0 0 0 1px rgba(25,195,125,0.3)"; }}
