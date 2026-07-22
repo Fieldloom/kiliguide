@@ -1,6 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base; @tailwind components; @tailwind utilities;
 *{box-sizing:border-box} 
-html,body{margin:0;background:#050505;color:#ececec;font-family:"SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;-webkit-font-smoothing:antialiased} 
+html,body{margin:0;background:#050505;color:#ececec;font-family:"SF Pro Text", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;-webkit-font-smoothing:antialiased} 
 button,input,textarea,select{font:inherit} 
 
 /* Custom Scrollbar */
@@ -21,23 +23,23 @@ button,input,textarea,select{font:inherit}
 
 /* SF Pro Font Implementation */
 body {
-  font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "SF Pro Text", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 400; /* Regular for body */
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "SF Pro Display", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 800; /* Heavy/Bold for headings */
 }
 
 button, input, textarea, select {
-  font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "SF Pro Text", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 600; /* Medium/Semibold for UI */
 }
 
 /* Numbers and Data styling */
 .data-number-large {
-  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "SF Pro Display", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
