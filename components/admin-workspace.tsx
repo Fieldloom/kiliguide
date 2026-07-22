@@ -8,6 +8,7 @@ import {
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
 import { AdminChat } from "./admin-chat";
+import { InstallButton } from "./install-button";
 
 type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health" | "Institutions";
 const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
@@ -135,6 +136,7 @@ export function AdminWorkspace({ role }: { role?: string }) {
               {label}
             </button>
           ))}
+          <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: D.muted, cursor: "pointer", marginBottom: 4 }} />
         </nav>
 
         <div style={{ padding: "16px 20px", borderTop: `1px solid ${D.border}` }}>

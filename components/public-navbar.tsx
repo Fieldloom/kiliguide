@@ -4,6 +4,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { InstallButton } from "./install-button";
 
 export function PublicNavbar() {
   const pathname = usePathname();
@@ -84,6 +85,7 @@ export function PublicNavbar() {
 
       {/* Action Buttons */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, zIndex: 10, minWidth: 0 }}>
+        <InstallButton className="hidden sm-flex" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 100, padding: "8px 16px", color: "#10b981", fontSize: 13, fontWeight: 600 }} />
         <button 
           className="lg-hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -131,6 +133,7 @@ export function PublicNavbar() {
             </Link>
           ))}
           <div style={{ height: 1, background: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+          <InstallButton style={{ padding: "12px 16px", color: "#10b981", fontSize: 14, fontWeight: 600, borderRadius: 8, transition: "background 0.2s" }} />
           <Link href="/register-institution" onClick={() => setMobileMenuOpen(false)} style={{ padding: "12px 16px", color: "#19c37d", textDecoration: "none", fontSize: 14, fontWeight: 600, borderRadius: 8, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background="rgba(25,195,125,0.1)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
             Register Institution
           </Link>
