@@ -1,1 +1,23 @@
-{"name":"KiliGuide · DeKUT","short_name":"KiliGuide","start_url":"/","display":"standalone","background_color":"#f7f9fd","theme_color":"#102a5d","description":"Dedan Kimathi University of Technology smart campus guide"}
+{
+  "name": "KiliGuide",
+  "short_name": "KiliGuide",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#19c37d",
+  "description": "The smartest way to navigate campus",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
