@@ -326,7 +326,7 @@ export function StudentWorkspace() {
 
   const handleLinkUniversity = async () => {
     if (!supabase) return;
-    const { error } = await supabase.auth.linkIdentity({ provider: 'google', options: { queryParams: { prompt: 'select_account' } } });
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { queryParams: { prompt: 'select_account' } } });
     if (error) alert("Failed to link account: " + error.message);
   };
 
