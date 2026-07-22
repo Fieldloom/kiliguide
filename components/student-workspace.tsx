@@ -84,9 +84,10 @@ export function StudentWorkspace() {
   const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0);
   const [myCourses, setMyCourses] = useState<Record<string, string>>({});
   const [hiddenCourses, setHiddenCourses] = useState<Set<string>>(new Set());
-  const [timetableMetadata, setTimetableMetadata] = useState<Record<string, { groups: string[], courses: string[] }>>({});
+  const [timetableMetadata, setTimetableMetadata] = useState<Record<string, { groups: string[], courses: string[], mapped?: Record<string, string[]> }>>({});
   const [selectedGroup, setSelectedGroup] = useState<Record<string, string>>({});
   const [selectedCourses, setSelectedCourses] = useState<Record<string, string[]>>({});
+  const [courseSearchFilters, setCourseSearchFilters] = useState<Record<string, string>>({});
   const [extractingMetadataId, setExtractingMetadataId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [language, setLanguage] = useState("en");
@@ -1072,24 +1073,35 @@ export function StudentWorkspace() {
                                 </select>
                               </div>
                               
-                              <div>
-                                <label style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 600, marginBottom: 4, display: "block" }}>2. Select Your Courses</label>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 150, overflowY: "auto", background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }} className="hide-scroll">
-                                  {timetableMetadata[t.id].courses.map(c => (
-                                    <label key={c} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#ececec", cursor: "pointer" }}>
-                                      <input type="checkbox" checked={selectedCourses[t.id]?.includes(c) || false} onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        setSelectedCourses(prev => {
-                                          const curr = prev[t.id] || [];
-                                          return { ...prev, [t.id]: checked ? [...curr, c] : curr.filter(x => x !== c) };
-                                        });
-                                      }} style={{ accentColor: "#8b5cf6", width: 16, height: 16 }} />
-                                      {c}
-                                    </label>
-                                  ))}
-                                  {timetableMetadata[t.id].courses.length === 0 && <span style={{fontSize:12, color:"#a1a1aa"}}>No courses extracted.</span>}
+                                <div>
+                                  <label style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 600, marginBottom: 4, display: "block" }}>2. Select Your Courses</label>
+                                  <input type="text" placeholder="Filter courses by name..." value={courseSearchFilters[t.id] || ""} onChange={e => setCourseSearchFilters(prev => ({...prev, [t.id]: e.target.value}))} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13, outline: "none", width: "100%", marginBottom: 8 }} />
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 150, overflowY: "auto", background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }} className="hide-scroll">
+                                    {timetableMetadata[t.id].courses
+                                      .filter(c => {
+                                        const group = selectedGroup[t.id];
+                                        if (group && timetableMetadata[t.id].mapped?.[group]) {
+                                          if (!timetableMetadata[t.id].mapped[group].includes(c)) return false;
+                                        }
+                                        const query = courseSearchFilters[t.id]?.toLowerCase();
+                                        if (query && !c.toLowerCase().includes(query)) return false;
+                                        return true;
+                                      })
+                                      .map(c => (
+                                      <label key={c} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#ececec", cursor: "pointer" }}>
+                                        <input type="checkbox" checked={selectedCourses[t.id]?.includes(c) || false} onChange={(e) => {
+                                          const checked = e.target.checked;
+                                          setSelectedCourses(prev => {
+                                            const curr = prev[t.id] || [];
+                                            return { ...prev, [t.id]: checked ? [...curr, c] : curr.filter(x => x !== c) };
+                                          });
+                                        }} style={{ accentColor: "#8b5cf6", width: 16, height: 16 }} />
+                                        {c}
+                                      </label>
+                                    ))}
+                                    {timetableMetadata[t.id].courses.length === 0 && <span style={{fontSize:12, color:"#a1a1aa"}}>No courses extracted.</span>}
+                                  </div>
                                 </div>
-                              </div>
                             </div>
 
                             <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: (analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0) ? "not-allowed" : "pointer", opacity: (analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0) ? 0.5 : 1, width: "100%", marginTop: 16 }}>
