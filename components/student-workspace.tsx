@@ -141,6 +141,7 @@ export function StudentWorkspace() {
   const [customInstructions, setCustomInstructions] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [autoRead, setAutoRead] = useState(false);
+  const [reminderMinutes, setReminderMinutes] = useState(30);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
   const messages = activeConv?.messages ?? [];
@@ -148,8 +149,10 @@ export function StudentWorkspace() {
   useEffect(() => {
     const storedReduceMotion = localStorage.getItem("reduceMotion") === "true";
     const storedAutoRead = localStorage.getItem("autoRead") === "true";
+    const storedReminder = localStorage.getItem("reminderMinutes");
     setReduceMotion(storedReduceMotion);
     setAutoRead(storedAutoRead);
+    if (storedReminder) setReminderMinutes(parseInt(storedReminder, 10));
 
     if (!supabase) return;
     Promise.all([
@@ -273,7 +276,7 @@ export function StudentWorkspace() {
     }
 
     const { data, error } = await supabase.functions.invoke("analyze-timetable", {
-      body: { resourceId, semesterStart, semesterEnd, courses: courses.trim() }
+      body: { resourceId, semesterStart, semesterEnd, courses: courses.trim(), reminderMinutes }
     });
     setAnalyzingId(null);
     if (error || data?.error) {
@@ -298,6 +301,48 @@ export function StudentWorkspace() {
     setLanguage(lang);
     if (!supabase || !profile) return;
     await supabase.from("profiles").update({ preferred_language: lang }).eq("id", profile.id);
+  };
+
+  const handleTogglePush = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      alert("Push notifications are not supported by your browser.");
+      return;
+    }
+    
+    if (pushEnabled) {
+      setPushEnabled(false);
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("You need to allow notifications in your browser settings.");
+        return;
+      }
+
+      const sw = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      const { data: vapidData, error: vapidError } = await supabase!.functions.invoke("get-vapid");
+      if (vapidError || !vapidData?.publicKey) throw new Error("Could not get VAPID key");
+
+      const subscription = await sw.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidData.publicKey
+      });
+
+      const { error: saveError } = await supabase!.functions.invoke("save-push-subscription", {
+        body: { subscription }
+      });
+      if (saveError) throw new Error(saveError.message);
+
+      setPushEnabled(true);
+      alert("Push notifications enabled securely!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to enable push notifications: " + err.message);
+    }
   };
 
   const handleToggleReduceMotion = () => {
@@ -1358,7 +1403,28 @@ export function StudentWorkspace() {
                     <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: pushEnabled ? 22 : 2, transition: "0.2s" }} />
                   </button>
                 </div>
-                <p style={{ color: "#a1a1aa", fontSize: 14 }}>Get real-time alerts when your tickets are resolved or a new notice is published.</p>
+                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Get real-time alerts for classes, resolved tickets, and notices.</p>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16 }}>
+                  <div>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff", display: "block" }}>Class Reminder Alarm</span>
+                    <span style={{ fontSize: 13, color: "#a1a1aa" }}>How many minutes before a class should we alert you?</span>
+                  </div>
+                  <select 
+                    value={reminderMinutes} 
+                    onChange={e => {
+                      const val = parseInt(e.target.value, 10);
+                      setReminderMinutes(val);
+                      localStorage.setItem("reminderMinutes", String(val));
+                    }} 
+                    style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, outline: "none", cursor: "pointer" }}
+                  >
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={60}>1 hour</option>
+                  </select>
+                </div>
               </div>
               
               <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
