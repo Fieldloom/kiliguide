@@ -38,10 +38,13 @@ Deno.serve(async (req) => {
 
     let customInstructions = "";
     let institutionId = "00000000-0000-0000-0000-000000000001";
-    const { data: profileData } = await supabase.from("profiles").select("custom_instructions, institution_id").eq("id", user.id).single();
+    const { data: profileData } = await supabase.from("profiles").select("custom_instructions, institution_id, departments(name)").eq("id", user.id).single();
     if (profileData) {
       if (profileData.custom_instructions) customInstructions = profileData.custom_instructions;
       if (profileData.institution_id) institutionId = profileData.institution_id;
+      if (!metadataFilter.department && profileData.departments?.name) {
+        metadataFilter.department = profileData.departments.name;
+      }
     }
 
     let recentTurns: string[] = [];

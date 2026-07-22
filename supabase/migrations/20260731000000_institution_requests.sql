@@ -23,20 +23,14 @@ ALTER TABLE public.institution_requests ENABLE ROW LEVEL SECURITY;
 -- Only super_admin can view and manage all requests
 CREATE POLICY "Super admins can manage institution requests" ON institution_requests
 FOR ALL USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'super_admin')
+  EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'super_admin')
 );
 
 -- Anyone can insert (submit a request)
 CREATE POLICY "Anyone can submit institution request" ON institution_requests
 FOR INSERT WITH CHECK (true);
 
--- Add a super_admin role to Griffin's account
-UPDATE public.profiles SET role = 'super_admin'
-WHERE id IN (
-  SELECT id FROM auth.users WHERE email = 'griffinwekesa65@gmail.com'
-);
-
 -- Also update user_roles
 INSERT INTO public.user_roles (user_id, role)
 SELECT id, 'super_admin' FROM auth.users WHERE email = 'griffinwekesa65@gmail.com'
-ON CONFLICT (user_id) DO UPDATE SET role = 'super_admin';
+ON CONFLICT (user_id, role) DO NOTHING;
