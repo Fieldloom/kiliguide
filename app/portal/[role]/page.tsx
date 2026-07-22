@@ -28,7 +28,7 @@ export default function RolePortal(){
   const params=useParams<{role:string}>(); 
   const role=isAppRole(params.role)?params.role:"student"; 
   
-  if(role === "administrator" || role === "super_admin") return <RoleGate role={role}><AdminWorkspace/></RoleGate>;
+  if(role === "administrator" || role === "super_admin") return <RoleGate role={role}><AdminWorkspace role={role} /></RoleGate>;
   if(role === "parent") return <RoleGate role={role}><ParentWorkspace/></RoleGate>;
   if(role === "lecturer" || role === "staff") return <RoleGate role={role}><LecturerWorkspace/></RoleGate>;
   if(role === "department" || role === "dept_admin") return <RoleGate role={role}><DeptWorkspace/></RoleGate>;
