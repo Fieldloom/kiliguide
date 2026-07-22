@@ -81,6 +81,9 @@ export function PublicNavbar() {
 
       {/* Action Buttons */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, zIndex: 10 }}>
+        <Link href="/register-institution" style={{ background: "rgba(25,195,125,0.1)", border: "1px solid rgba(25,195,125,0.3)", borderRadius: 100, padding: "8px 16px", color: "#19c37d", fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(25,195,125,0.2)"; }} onMouseLeave={e => { e.currentTarget.style.background = "rgba(25,195,125,0.1)"; }} className="hidden sm-flex">
+          Register Institution
+        </Link>
         <Link href="/login" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 100, padding: "8px 16px", color: "#ececec", fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }} onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }} className="hidden sm-flex">
           App Workspaces
         </Link>
