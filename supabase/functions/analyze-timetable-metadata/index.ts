@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const buffer = await fileData.arrayBuffer();
     const base64Data = encodeBase64(new Uint8Array(buffer));
 
-    const promptText = `Analyze this student timetable document. Extract all unique Class Groups (Semesters like 'BBIT 3.1', 'IT 2.1') found in the column headers, and all unique Course/Unit names found in the cells. Return JSON only in this exact format: {"groups":["string"],"courses":["string"]}. Do not include times or dates, just the group strings and course strings.`;
+    const promptText = `Analyze this student timetable document. Extract all unique Class Groups (Semesters like 'BBIT 3.1', 'IT 2.1') found in the column headers, and all unique Course/Unit names found in the cells. Also, map which courses belong to which Class Group. Return JSON only in this exact format: {"groups":["string"],"courses":["string"], "mapped": {"group_name": ["course_name"]}}. Do not include times or dates, just the strings.`;
     
     const payload = {
       contents: [{
@@ -64,7 +64,8 @@ Deno.serve(async (req) => {
     
     return Response.json({
       groups: Array.isArray(parsed.groups) ? parsed.groups : [],
-      courses: Array.isArray(parsed.courses) ? parsed.courses : []
+      courses: Array.isArray(parsed.courses) ? parsed.courses : [],
+      mapped: typeof parsed.mapped === "object" && parsed.mapped !== null ? parsed.mapped : {}
     }, { headers: CORS });
   } catch(e: any) { 
     console.error("Analyze error:", e);
