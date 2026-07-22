@@ -142,6 +142,7 @@ export function StudentWorkspace() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [autoRead, setAutoRead] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState(30);
+  const [isLinked, setIsLinked] = useState(false);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
   const messages = activeConv?.messages ?? [];
@@ -166,6 +167,7 @@ export function StudentWorkspace() {
     ]).then(async ([auth, docs, nots, tcks, times, depts, calEvents]) => {
       const user = auth.data.user;
       setProfile(user);
+      setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('@dekut.ac.ke')) || false);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
       if (user && supabase) {
         const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions").eq("id", user.id).single();
@@ -319,6 +321,12 @@ export function StudentWorkspace() {
     if (!supabase || !profile) return;
     await supabase.from("profiles").update({ custom_instructions: customInstructions }).eq("id", profile.id);
     alert("AI Personalization saved securely.");
+  };
+
+  const handleLinkUniversity = async () => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.linkIdentity({ provider: 'google', options: { queryParams: { prompt: 'select_account' } } });
+    if (error) alert("Failed to link account: " + error.message);
   };
 
   const handleClearChatHistory = async () => {
@@ -1385,6 +1393,23 @@ export function StudentWorkspace() {
                 </div>
               </div>
               
+              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>University Account Link</h3>
+                  {isLinked ? (
+                    <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 12px", borderRadius: 12, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                      <CheckCircle2 size={14} /> Linked
+                    </span>
+                  ) : null}
+                </div>
+                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Link your official @dekut.ac.ke email to securely access your live university grades and fee balances via KiliGuide AI.</p>
+                {!isLinked && (
+                  <button onClick={handleLinkUniversity} style={{ background: "#fff", color: "#000", border: "none", padding: "10px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                    Link @dekut.ac.ke Email
+                  </button>
+                )}
+              </div>
+
               <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>AI Personalization</h3>
                 <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Tell KiliGuide about your preferences. This helps the AI tailor its answers directly to you.</p>
