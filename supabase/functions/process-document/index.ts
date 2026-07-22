@@ -128,6 +128,44 @@ Deno.serve(async (req) => {
       throw new Error(`Text extraction returned insufficient content (${extractedText.length} chars). The document may be empty or password-protected.`);
     }
 
+    try {
+      const apiKey = Deno.env.get("GEMINI_API_KEY_1") || Deno.env.get("GEMINI_API_KEY_2");
+      const { data: depts } = await supabase.from("departments").select("name");
+      const deptNames = depts?.map((d: any) => d.name).join(" | ") || "";
+      
+      const prompt = `Analyze this university document and determine its target audience and department.
+      Respond ONLY with a valid JSON object matching exactly this schema:
+      {
+        "audience": "postgraduate" | "undergraduate" | "staff" | "parent" | "all",
+        "department": "${deptNames} | all"
+      }
+      If the document is general or applies to everyone, you MUST use "all". 
+      Document:
+      ${extractedText.slice(0, 3000)}`;
+
+      const aiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        }
+      );
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawJson) {
+          const tags = JSON.parse(rawJson);
+          await supabase.from("documents").update({ metadata: tags }).eq("id", documentId);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to auto-tag document:", e);
+    }
+
     // Send extracted text to ingest-document for chunking + embeddings
     const ingestUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/ingest-document`;
     const ingestResponse = await fetch(ingestUrl, {

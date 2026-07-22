@@ -79,6 +79,6 @@ CREATE POLICY "Tenant Isolation: Tickets" ON tickets FOR SELECT USING (
   institution_id = (SELECT institution_id FROM profiles WHERE id = auth.uid()) 
   AND (
       created_by = auth.uid() 
-      OR EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role IN ('admin', 'super_admin'))
+      OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role IN ('administrator', 'super_admin'))
   )
 );
