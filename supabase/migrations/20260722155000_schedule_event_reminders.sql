@@ -1,8 +1,7 @@
 -- Enable pg_cron if not already enabled
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- Unschedule just in case it already exists
-SELECT cron.unschedule('dispatch-alarms');
+-- Removed unschedule as it crashes if job does not exist
 
 -- Schedule the edge function to run every minute
 SELECT cron.schedule(
