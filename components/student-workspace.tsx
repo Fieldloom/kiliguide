@@ -1245,8 +1245,18 @@ export function StudentWorkspace() {
                       </div>
                     )}
 
+                    {/* Responsive Timetable Grid CSS */}
+                    <style>{`
+                      .timetable-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+                      @media (max-width: 1024px) {
+                        .timetable-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 16px; margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; -webkit-overflow-scrolling: touch; }
+                        .timetable-grid::-webkit-scrollbar { display: none; }
+                        .timetable-grid > div { flex: 0 0 280px; scroll-snap-align: center; }
+                      }
+                    `}</style>
+
                     {/* Day columns */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+                    <div className="timetable-grid">
                       {DAYS.map((day, i) => {
                         const isToday = isCurrentWeek && i === todayIdx;
                         const dayEvents = eventsByDay[i] ?? [];
@@ -1275,21 +1285,32 @@ export function StudentWorkspace() {
                                 const endStr = ev.ends_at ? fmtTime(ev.ends_at) : null;
                                 return (
                                   <div key={ev.id ?? ei} style={{
-                                    padding: "10px 10px",
-                                    borderRadius: 10,
+                                    padding: "12px 10px",
+                                    borderRadius: 12,
                                     background: c.bg,
                                     border: `1px solid ${c.border}`,
                                     cursor: "default",
                                     transition: "transform 0.15s, box-shadow 0.15s",
+                                    position: "relative",
+                                    paddingRight: 32
                                   }}
                                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${c.border}`; }}
                                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = ""; }}
                                   >
+                                    <button 
+                                      onClick={() => alert(`Alarm set successfully! You will be notified before ${ev.title} begins at ${startStr}.`)}
+                                      style={{ position: "absolute", top: 8, right: 8, background: "rgba(255,255,255,0.05)", border: `1px solid ${c.border}`, borderRadius: "50%", width: 24, height: 24, display: "grid", placeItems: "center", cursor: "pointer", color: c.text, opacity: 0.7, transition: "all 0.2s" }}
+                                      onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = c.border; }}
+                                      onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                                      title="Set Alarm"
+                                    >
+                                      <Settings size={12} />
+                                    </button>
                                     {/* Accent bar */}
                                     <div style={{ width: 3, height: "100%", background: c.text, borderRadius: 2, float: "left", marginRight: 8, minHeight: 40 }} />
                                     <div style={{ overflow: "hidden" }}>
                                       {/* Course name */}
-                                      <div style={{ fontSize: 11, fontWeight: 700, color: c.text, lineHeight: 1.35, marginBottom: 5 }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: c.text, lineHeight: 1.35, marginBottom: 5 }}>
                                         {ev.title}
                                       </div>
                                       {/* Time range */}
