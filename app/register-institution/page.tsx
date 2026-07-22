@@ -2,79 +2,55 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Building2, Paintbrush, Database, Sparkles, CheckCircle2, Loader2, Globe, Mail } from "lucide-react";
+import { ArrowRight, ArrowLeft, Building2, Paintbrush, Mail, Sparkles, CheckCircle2, Loader2, Globe, Clock } from "lucide-react";
 import { PublicNavbar } from "../../components/public-navbar";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 
-const STEPS = ["Your Details", "Branding", "Admin Account", "Done"];
+const STEPS = ["Your Details", "Branding", "Admin Account", "Submitted"];
 
 export default function RegisterInstitution() {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Step 0 — Institution Details
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
-
-  // Step 1 — Branding
   const [themeColor, setThemeColor] = useState("#10b981");
   const [logoUrl, setLogoUrl] = useState("");
-
-  // Step 2 — Admin Account
   const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-
-  // Created institution
-  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [adminName, setAdminName] = useState("");
 
   const next = () => { setError(""); setStep(s => s + 1); };
   const back = () => { setError(""); setStep(s => s - 1); };
 
-  const handleStep0 = async () => {
+  const handleStep0 = () => {
     if (!name.trim() || !domain.trim()) { setError("Please fill in all fields."); return; }
     if (!domain.includes(".")) { setError("Please enter a valid domain (e.g. students.myuniversity.ac.ke)."); return; }
     next();
   };
 
-  const handleStep1 = () => next();
-
   const handleStep2 = async () => {
-    if (!adminEmail.trim() || !adminPassword.trim()) { setError("Please fill in all fields."); return; }
-    if (adminPassword.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (!adminEmail.trim() || !adminName.trim()) { setError("Please fill in all fields."); return; }
     if (!supabase) { setError("Database not connected."); return; }
 
     setBusy(true);
     setError("");
 
     try {
-      // 1. Create Institution record
-      const { data: inst, error: instErr } = await supabase
-        .from("institutions")
-        .insert({ name: name.trim(), domain: domain.trim().toLowerCase(), theme_color: themeColor, logo_url: logoUrl || null })
-        .select("id")
-        .single();
+      const { error: reqErr } = await supabase
+        .from("institution_requests")
+        .insert({
+          name: name.trim(),
+          domain: domain.trim().toLowerCase(),
+          theme_color: themeColor,
+          logo_url: logoUrl || null,
+          admin_email: adminEmail.trim(),
+          admin_name: adminName.trim(),
+          status: "pending",
+        });
 
-      if (instErr) throw instErr;
-      setCreatedId(inst.id);
-
-      // 2. Sign up the Admin user
-      const { error: signUpErr } = await supabase.auth.signUp({
-        email: adminEmail.trim(),
-        password: adminPassword,
-        options: {
-          emailRedirectTo: `${location.origin}/auth/callback`,
-          data: {
-            full_name: adminEmail.split("@")[0],
-            role: "admin",
-            institution_id: inst.id,
-          }
-        }
-      });
-
-      if (signUpErr) throw signUpErr;
-
+      if (reqErr) throw reqErr;
       setStep(3);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -98,19 +74,18 @@ export default function RegisterInstitution() {
 
       <div style={{ position: "relative", zIndex: 10, maxWidth: 680, margin: "0 auto", padding: "60px 24px" }}>
 
-        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(25,195,125,0.1)", border: "1px solid rgba(25,195,125,0.2)", borderRadius: 100, padding: "8px 20px", marginBottom: 20 }}>
             <Sparkles size={14} color="#19c37d" />
-            <span style={{ color: "#19c37d", fontSize: 13, fontWeight: 600 }}>Institution Setup Wizard</span>
+            <span style={{ color: "#19c37d", fontSize: 13, fontWeight: 600 }}>Institution Registration</span>
           </div>
           <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 12px 0" }}>
             Bring KiliGuide to <span style={{ background: "linear-gradient(90deg, #fff 0%, #19c37d 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Your University.</span>
           </h1>
-          <p style={{ fontSize: 16, color: "#a1a1aa", margin: 0 }}>Complete the 3-step setup to get your workspace ready in minutes.</p>
+          <p style={{ fontSize: 16, color: "#a1a1aa", margin: 0 }}>Submit your institution details. Our team reviews every request within 24 hours.</p>
         </div>
 
-        {/* Step Progress Bar */}
+        {/* Step Progress */}
         {step < 3 && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
             {STEPS.slice(0, 3).map((label, i) => (
@@ -127,11 +102,9 @@ export default function RegisterInstitution() {
           </div>
         )}
 
-        {/* Step Card */}
         <div style={{ background: "#0B0F14", border: "1px solid #131820", borderRadius: 24, padding: 40, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
           <AnimatePresence mode="wait">
 
-            {/* STEP 0 — Institution Details */}
             {step === 0 && (
               <motion.div key="step0" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
@@ -154,7 +127,7 @@ export default function RegisterInstitution() {
                       <Globe size={16} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "#666" }} />
                       <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="e.g. students.uonbi.ac.ke" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#fff", padding: "14px 16px 14px 44px", fontSize: 15, outline: "none", boxSizing: "border-box" }} onFocus={e => e.currentTarget.style.borderColor = "#19c37d"} onBlur={e => e.currentTarget.style.borderColor = "#1A2A20"} />
                     </div>
-                    <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 6 }}>Students with this domain will be automatically routed to your workspace on login.</p>
+                    <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 6 }}>Students with this domain will be auto-routed to your workspace on login.</p>
                   </div>
                 </div>
                 {error && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 16, background: "rgba(239,68,68,0.08)", padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.2)" }}>{error}</p>}
@@ -164,7 +137,6 @@ export default function RegisterInstitution() {
               </motion.div>
             )}
 
-            {/* STEP 1 — Branding */}
             {step === 1 && (
               <motion.div key="step1" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
@@ -189,21 +161,19 @@ export default function RegisterInstitution() {
                         <span style={{ color: themeColor, fontWeight: 600, fontSize: 14 }}>{themeColor}</span>
                       </div>
                     </div>
-                    <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 6 }}>This color will theme your KiliGuide workspace accent.</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
                   <button onClick={back} style={{ flex: "0 0 auto", background: "rgba(255,255,255,0.05)", color: "#ececec", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "15px 20px", fontSize: 15, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                     <ArrowLeft size={16} /> Back
                   </button>
-                  <button onClick={handleStep1} style={{ flex: 1, background: "#19c37d", color: "#000", border: "none", borderRadius: 12, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <button onClick={next} style={{ flex: 1, background: "#19c37d", color: "#000", border: "none", borderRadius: 12, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                     Continue <ArrowRight size={18} />
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {/* STEP 2 — Admin Account */}
             {step === 2 && (
               <motion.div key="step2" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
@@ -211,18 +181,22 @@ export default function RegisterInstitution() {
                     <Mail size={22} color="#10b981" />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Admin Account</h2>
-                    <p style={{ fontSize: 13, color: "#a1a1aa", margin: 0 }}>This will be your Super Admin login.</p>
+                    <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Contact Details</h2>
+                    <p style={{ fontSize: 13, color: "#a1a1aa", margin: 0 }}>Who should we contact when approved?</p>
                   </div>
+                </div>
+                <div style={{ marginBottom: 20, padding: 16, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 12, display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <Clock size={16} style={{ color: "#f59e0b", flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: 13, color: "#a1a1aa", margin: 0, lineHeight: 1.6 }}>Your request will be reviewed by our team within <strong style={{ color: "#f59e0b" }}>24–48 hours</strong>. You will receive an email with your admin credentials once approved.</p>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Admin Email Address</label>
-                    <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="admin@youruni.ac.ke" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#fff", padding: "14px 16px", fontSize: 15, outline: "none", boxSizing: "border-box" }} onFocus={e => e.currentTarget.style.borderColor = "#19c37d"} onBlur={e => e.currentTarget.style.borderColor = "#1A2A20"} />
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Your Full Name</label>
+                    <input value={adminName} onChange={e => setAdminName(e.target.value)} placeholder="e.g. Dr. John Kamau" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#fff", padding: "14px 16px", fontSize: 15, outline: "none", boxSizing: "border-box" }} onFocus={e => e.currentTarget.style.borderColor = "#19c37d"} onBlur={e => e.currentTarget.style.borderColor = "#1A2A20"} />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Create Password</label>
-                    <input type="password" value={adminPassword} onChange={e => setAdminPassword(e.target.value)} placeholder="Min 8 characters" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#fff", padding: "14px 16px", fontSize: 15, outline: "none", boxSizing: "border-box" }} onFocus={e => e.currentTarget.style.borderColor = "#19c37d"} onBlur={e => e.currentTarget.style.borderColor = "#1A2A20"} />
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Official Email Address</label>
+                    <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="admin@youruni.ac.ke" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#fff", padding: "14px 16px", fontSize: 15, outline: "none", boxSizing: "border-box" }} onFocus={e => e.currentTarget.style.borderColor = "#19c37d"} onBlur={e => e.currentTarget.style.borderColor = "#1A2A20"} />
                   </div>
                 </div>
                 {error && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 16, background: "rgba(239,68,68,0.08)", padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.2)" }}>{error}</p>}
@@ -231,27 +205,26 @@ export default function RegisterInstitution() {
                     <ArrowLeft size={16} /> Back
                   </button>
                   <button onClick={handleStep2} disabled={busy} style={{ flex: 1, background: "#19c37d", color: "#000", border: "none", borderRadius: 12, padding: "15px", fontSize: 15, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                    {busy ? <Loader2 size={20} className="spin" /> : <><Database size={18} /> Create Workspace</>}
+                    {busy ? <Loader2 size={20} className="spin" /> : <>Submit Request <ArrowRight size={18} /></>}
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {/* STEP 3 — Done! */}
             {step === 3 && (
               <motion.div key="step3" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }} style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(16,185,129,0.1)", border: "2px solid rgba(16,185,129,0.3)", display: "grid", placeItems: "center", margin: "0 auto 24px" }}>
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, delay: 0.2 }} style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(16,185,129,0.1)", border: "2px solid rgba(16,185,129,0.3)", display: "grid", placeItems: "center", margin: "0 auto 24px" }}>
                   <CheckCircle2 size={36} color="#10b981" />
-                </div>
-                <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 12px 0" }}>Workspace Created!</h2>
+                </motion.div>
+                <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 12px 0" }}>Request Submitted!</h2>
                 <p style={{ fontSize: 16, color: "#a1a1aa", marginBottom: 8, lineHeight: 1.6 }}>
-                  <strong style={{ color: "#fff" }}>{name}</strong> is now live on KiliGuide.
+                  Your application for <strong style={{ color: "#fff" }}>{name}</strong> has been received.
                 </p>
-                <p style={{ fontSize: 14, color: "#6b6b80", marginBottom: 32 }}>
-                  Check your email (<strong style={{ color: "#a1a1aa" }}>{adminEmail}</strong>) to confirm your admin account, then log in to start uploading timetables and student data.
+                <p style={{ fontSize: 14, color: "#6b6b80", marginBottom: 32, lineHeight: 1.7 }}>
+                  Our team will review your request and send admin credentials to <strong style={{ color: "#a1a1aa" }}>{adminEmail}</strong> within <strong style={{ color: "#f59e0b" }}>24–48 hours</strong>.
                 </p>
-                <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#19c37d", color: "#000", borderRadius: 12, padding: "14px 32px", fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 8px 24px rgba(25,195,125,0.3)" }}>
-                  Go to Admin Login <ArrowRight size={18} />
+                <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", color: "#ececec", borderRadius: 12, padding: "14px 28px", fontSize: 15, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  Back to Home
                 </Link>
               </motion.div>
             )}
@@ -264,7 +237,6 @@ export default function RegisterInstitution() {
             Already registered? <Link href="/login" style={{ color: "#19c37d", textDecoration: "none" }}>Log in to your workspace.</Link>
           </p>
         )}
-
       </div>
       <style>{`
         .spin { animation: spin 1s linear infinite; }

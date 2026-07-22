@@ -115,33 +115,34 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div style={{ background: "#0B0F14", border: "1px solid #131820", borderRadius: 24, padding: 32, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+        <div style={{ background: "rgba(10, 15, 20, 0.5)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 32, padding: "40px 32px", boxShadow: "0 30px 60px rgba(0,0,0,0.6), inset 0 0 32px rgba(255,255,255,0.02)" }}>
           <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             
             {/* Email — shown first so domain detection can fire early */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Email Address</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8, paddingLeft: 4 }}>Email Address</label>
               <input 
                 required type="email" value={email}
                 onChange={e => setEmail(e.target.value)}
                 onBlur={handleEmailBlur}
-                placeholder="you@students.dkut.ac.ke"
-                style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", transition: "border-color 0.2s", boxSizing: "border-box" }} 
-                onFocus={e => (e.currentTarget.style.borderColor = "#19c37d")}
+                placeholder="you@students.campus.ac.ke"
+                style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, color: "#ffffff", padding: "16px", fontSize: 15, outline: "none", transition: "all 0.2s", boxSizing: "border-box" }} 
+                onFocus={e => { e.currentTarget.style.borderColor = "#19c37d"; e.currentTarget.style.boxShadow = "0 0 0 1px rgba(25,195,125,0.3)"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; handleEmailBlur(); }}
               />
               {/* Auto-detected institution badge */}
               {detectedInstitution && (
-                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, background: "rgba(25,195,125,0.08)", border: "1px solid rgba(25,195,125,0.2)", borderRadius: 8, padding: "6px 12px" }}>
-                  <Building2 size={13} color="#19c37d" />
-                  <span style={{ fontSize: 12, color: "#19c37d", fontWeight: 600 }}>Routing to: {detectedInstitution}</span>
+                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "rgba(25,195,125,0.1)", border: "1px solid rgba(25,195,125,0.2)", borderRadius: 10, padding: "8px 12px" }}>
+                  <Building2 size={14} color="#19c37d" />
+                  <span style={{ fontSize: 13, color: "#19c37d", fontWeight: 600 }}>Routing to: {detectedInstitution}</span>
                 </div>
               )}
             </div>
 
             {mode === "signup" && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Select Your Role</label>
-                <select value={role} onChange={e => setRole(e.target.value)} style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box" }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8, paddingLeft: 4 }}>Select Your Role</label>
+                <select value={role} onChange={e => setRole(e.target.value)} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, color: "#ffffff", padding: "16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box", transition: "all 0.2s" }} onFocus={e => e.currentTarget.style.borderColor = "#19c37d"} onBlur={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}>
                   <option value="student">Student</option>
                   <option value="staff">Staff Member</option>
                   <option value="parent">Parent</option>
@@ -153,34 +154,35 @@ export default function LoginPage() {
             {/* University dropdown — shown only on signup if domain didn't auto-detect */}
             {mode === "signup" && !detectedInstitution && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Your University</label>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8, paddingLeft: 4 }}>Your University</label>
                 <select
                   required
                   value={institutionId}
                   onChange={e => setInstitutionId(e.target.value)}
-                  onFocus={loadInstitutions}
-                  style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box" }}
+                  onFocus={e => { loadInstitutions(); e.currentTarget.style.borderColor = "#19c37d"; }}
+                  onBlur={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}
+                  style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, color: "#ffffff", padding: "16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box", transition: "all 0.2s" }}
                 >
                   <option value="">Select your university…</option>
                   {institutions.map(inst => (
                     <option key={inst.id} value={inst.id}>{inst.name}</option>
                   ))}
                 </select>
-                <p style={{ fontSize: 12, color: "#6b6b80", marginTop: 6 }}>Can&apos;t find your university? <Link href="/register-institution" style={{ color: "#19c37d", textDecoration: "none" }}>Register it here.</Link></p>
+                <p style={{ fontSize: 13, color: "#8e8ea0", marginTop: 8, paddingLeft: 4 }}>Can&apos;t find your university? <Link href="/register-institution" style={{ color: "#19c37d", textDecoration: "none", fontWeight: 600 }}>Register it here.</Link></p>
               </div>
             )}
 
             {mode === "signup" && role === "student" && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Registration Number</label>
-                <input required value={regNum} onChange={e => setRegNum(e.target.value)} placeholder="e.g. C026-01-0982/2021" style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8, paddingLeft: 4 }}>Registration Number</label>
+                <input required value={regNum} onChange={e => setRegNum(e.target.value)} placeholder="e.g. C026-01-0982/2021" style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, color: "#ffffff", padding: "16px", fontSize: 15, outline: "none", transition: "all 0.2s", boxSizing: "border-box" }} onFocus={e => { e.currentTarget.style.borderColor = "#19c37d"; e.currentTarget.style.boxShadow = "0 0 0 1px rgba(25,195,125,0.3)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
               </div>
             )}
 
             {mode === "signup" && role === "staff" && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Department</label>
-                <select required value={departmentId} onChange={e => setDepartmentId(e.target.value)} style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box" }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8, paddingLeft: 4 }}>Department</label>
+                <select required value={departmentId} onChange={e => setDepartmentId(e.target.value)} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, color: "#ffffff", padding: "16px", fontSize: 15, outline: "none", appearance: "none", boxSizing: "border-box", transition: "all 0.2s" }} onFocus={e => e.currentTarget.style.borderColor = "#19c37d"} onBlur={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}>
                   <option value="">Select Department...</option>
                   <option value="1">Computer Science</option>
                   <option value="2">Engineering</option>
@@ -191,41 +193,42 @@ export default function LoginPage() {
             )}
             
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8 }}>Password</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8, paddingLeft: 4 }}>Password</label>
               <input 
                 required minLength={8} type="password" value={password} onChange={e => setPassword(e.target.value)} 
                 placeholder="••••••••"
-                style={{ width: "100%", background: "#06080A", border: "1px solid #1A2A20", borderRadius: 12, color: "#ffffff", padding: "14px 16px", fontSize: 15, outline: "none", transition: "border-color 0.2s", boxSizing: "border-box" }} 
-                onFocus={e => (e.currentTarget.style.borderColor = "#19c37d")} onBlur={e => (e.currentTarget.style.borderColor = "#1A2A20")}
+                style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, color: "#ffffff", padding: "16px", fontSize: 15, outline: "none", transition: "all 0.2s", boxSizing: "border-box" }} 
+                onFocus={e => { e.currentTarget.style.borderColor = "#19c37d"; e.currentTarget.style.boxShadow = "0 0 0 1px rgba(25,195,125,0.3)"; }} 
+                onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }}
               />
             </div>
 
             {message && (
-              <div style={{ background: message.includes("Check") ? "rgba(25, 195, 125, 0.1)" : "rgba(239, 68, 68, 0.1)", border: `1px solid ${message.includes("Check") ? "rgba(25, 195, 125, 0.2)" : "rgba(239, 68, 68, 0.2)"}`, borderRadius: 12, padding: "12px 16px" }}>
-                <p style={{ fontSize: 14, color: message.includes("Check") ? "#19c37d" : "#ef4444", margin: 0 }}>{message}</p>
+              <div style={{ background: message.includes("Check") ? "rgba(25, 195, 125, 0.1)" : "rgba(239, 68, 68, 0.1)", border: `1px solid ${message.includes("Check") ? "rgba(25, 195, 125, 0.2)" : "rgba(239, 68, 68, 0.2)"}`, borderRadius: 16, padding: "16px" }}>
+                <p style={{ fontSize: 14, color: message.includes("Check") ? "#19c37d" : "#ef4444", margin: 0, fontWeight: 500 }}>{message}</p>
               </div>
             )}
 
             <button 
               disabled={busy} 
-              style={{ width: "100%", background: "#19c37d", color: "#000000", border: "none", borderRadius: 12, padding: "16px", fontSize: 16, fontWeight: 700, marginTop: 8, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, transition: "background 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-              onMouseEnter={e => { if (!busy) e.currentTarget.style.background = "#14a367" }}
-              onMouseLeave={e => { if (!busy) e.currentTarget.style.background = "#19c37d" }}
+              style={{ width: "100%", background: "linear-gradient(135deg, #19c37d 0%, #14a367 100%)", color: "#000000", border: "none", borderRadius: 16, padding: "18px", fontSize: 16, fontWeight: 800, marginTop: 12, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: "0 8px 24px rgba(25,195,125,0.3)" }}
+              onMouseEnter={e => { if (!busy) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(25,195,125,0.4)"; } }}
+              onMouseLeave={e => { if (!busy) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(25,195,125,0.3)"; } }}
             >
               {busy ? <Loader2 size={20} className="animate-spin" /> : mode === "signin" ? "Sign In" : "Create Account"}
               {!busy && <ArrowRight size={20} />}
             </button>
           </form>
 
-          <div style={{ marginTop: 24, textAlign: "center" }}>
-            <span style={{ fontSize: 14, color: "#a1a1aa" }}>
+          <div style={{ marginTop: 32, textAlign: "center" }}>
+            <span style={{ fontSize: 15, color: "#8e8ea0" }}>
               {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
             </span>
             <button 
               onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); setDetectedInstitution(null); }} 
-              style={{ background: "transparent", border: "none", color: "#19c37d", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0 }}
-              onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
-              onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
+              style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: 15, fontWeight: 700, cursor: "pointer", padding: 0, transition: "color 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.color = "#19c37d"}
+              onMouseLeave={e => e.currentTarget.style.color = "#ffffff"}
             >
               {mode === "signin" ? "Sign up" : "Log in"}
             </button>

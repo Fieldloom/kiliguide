@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity, BarChart3, Bell, Bot, Check, ChevronDown, ChevronRight,
+  Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
   ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles
 } from "lucide-react";
@@ -9,7 +9,7 @@ import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
 import { AdminChat } from "./admin-chat";
 
-type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health";
+type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health" | "Institutions";
 const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "AI Assistant", icon: MessageSquareText },
@@ -32,7 +32,7 @@ const D = {
   accent: "#10b981",
 };
 
-export function AdminWorkspace() {
+export function AdminWorkspace({ role }: { role?: string }) {
   const [tab, setTab] = useState<Tab>("Overview");
   const [menu, setMenu] = useState(false);
   const [query, setQuery] = useState("");
@@ -115,7 +115,7 @@ export function AdminWorkspace() {
 
         <nav style={{ flex: 1, overflowY: "auto", padding: "24px 12px" }}>
           <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: D.muted, padding: "4px 12px 12px" }}>WORKSPACE</p>
-          {nav.map(({ label, icon: Icon }) => (
+          {(role === "super_admin" ? [...nav, { label: "Institutions" as Tab, icon: Building2 }] : nav).map(({ label, icon: Icon }) => (
             <button
               key={label}
               onClick={() => go(label)}
@@ -180,6 +180,25 @@ export function AdminWorkspace() {
       </div>
 
       {composer && <Compose onClose={() => setComposer(false)} />}
+
+      {/* --- MOBILE BOTTOM NAV --- */}
+      <nav className="lg:hidden" style={{ position: "fixed", bottom: 0, left: 0, right: 0, height: 80, background: "#0B0F14", borderTop: "1px solid rgba(255,255,255,0.05)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-around", paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {[
+          { id: "Overview" as Tab, icon: LayoutDashboard },
+          { id: "AI Assistant" as Tab, icon: MessageSquareText },
+          { id: "Documents" as Tab, icon: FileText },
+          { id: "Tickets" as Tab, icon: Ticket },
+        ].map(item => {
+          const isActive = tab === item.id;
+          return (
+            <button key={item.id} onClick={() => go(item.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, background: "transparent", border: "none", color: isActive ? "#10b981" : "#8e8ea0", position: "relative", width: 60, cursor: "pointer" }}>
+              {isActive && <div style={{ position: "absolute", top: -16, width: 40, height: 3, background: "#10b981", borderRadius: "0 0 4px 4px", boxShadow: "0 4px 12px rgba(16,185,129,0.5)" }} />}
+              <item.icon size={22} style={{ color: isActive ? "#10b981" : "#8e8ea0" }} />
+              <span style={{ fontSize: 10, fontWeight: 600 }}>{item.id === "AI Assistant" ? "Chat" : item.id}</span>
+            </button>
+          );
+        })}
+      </nav>
     </main>
   );
 }
@@ -305,6 +324,8 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
         <NoticesWorkspace />
       ) : tab === "Users" ? (
         <UsersWorkspace />
+      ) : tab === "Institutions" ? (
+        <InstitutionsWorkspace />
       ) : tab === "AI Assistant" ? (
         <AILiveFeed />
       ) : (
@@ -799,5 +820,89 @@ function Compose({ onClose }: { onClose: () => void }) {
         <button onClick={save} style={{ marginTop: 20, width: "100%", borderRadius: 8, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#000", cursor: "pointer", border: "none" }}>Publish Notice</button>
       </section>
     </div>
+  );
+}
+
+// ── INSTITUTIONS (SUPER ADMIN ONLY) ──────────────────────────────────────────
+function InstitutionsWorkspace() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    if (!supabase) return;
+    const { data } = await supabase.from("institution_requests").select("*").order("created_at", { ascending: false });
+    setRequests(data || []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleApprove = async (id: string, name: string) => {
+    if (!supabase || !confirm(`Approve institution ${name}?`)) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("approve_institution", { req_id: id });
+    setBusy(false);
+    if (error) alert("Error approving: " + error.message);
+    else load();
+  };
+
+  const handleReject = async (id: string, name: string) => {
+    if (!supabase || !confirm(`Reject institution ${name}?`)) return;
+    const reason = prompt("Reason for rejection:");
+    if (reason === null) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("reject_institution", { req_id: id, reason });
+    setBusy(false);
+    if (error) alert("Error rejecting: " + error.message);
+    else load();
+  };
+
+  return (
+    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
+      <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 24 }}>Institution Requests</h2>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${D.border}` }}>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>INSTITUTION</th>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>ADMIN</th>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>STATUS</th>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.map(r => (
+              <tr key={r.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+                <td style={{ padding: "20px 16px 20px 0" }}>
+                  <b style={{ display: "block", color: D.text, marginBottom: 4 }}>{r.name}</b>
+                  <small style={{ color: D.muted, fontSize: 13 }}>{r.domain}</small>
+                </td>
+                <td style={{ padding: "20px 16px 20px 0" }}>
+                  <span style={{ display: "block", color: D.text, fontSize: 14 }}>{r.admin_name}</span>
+                  <small style={{ color: D.muted, fontSize: 13 }}>{r.admin_email}</small>
+                </td>
+                <td style={{ padding: "20px 16px 20px 0" }}>
+                  <span style={{ borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, background: r.status === "approved" ? "#19c37d22" : r.status === "rejected" ? "#ef444422" : "#f59e0b22", color: r.status === "approved" ? D.accent : r.status === "rejected" ? "#ef4444" : "#f59e0b", textTransform: "uppercase" }}>
+                    {r.status}
+                  </span>
+                </td>
+                <td style={{ padding: "20px 0", textAlign: "right" }}>
+                  {r.status === "pending" && (
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                      <button disabled={busy} onClick={() => handleApprove(r.id, r.name)} style={{ background: "#19c37d", color: "#000", padding: "6px 12px", borderRadius: 6, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, border: "none" }}>Approve</button>
+                      <button disabled={busy} onClick={() => handleReject(r.id, r.name)} style={{ background: "transparent", border: `1px solid #ef444444`, color: "#ef4444", padding: "6px 12px", borderRadius: 6, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600 }}>Reject</button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {requests.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ padding: "32px 0", textAlign: "center", color: D.muted }}>No requests found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

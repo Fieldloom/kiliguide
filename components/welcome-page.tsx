@@ -99,9 +99,9 @@ export function TrustedBy() {
       transition={{ duration: 1, delay: 0.6 }}
       style={{ marginTop: 80, paddingBottom: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}
     >
-      <span style={{ fontSize: 12, color: "#8e8ea0", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>Exclusive Partner</span>
+      <span style={{ fontSize: 12, color: "#8e8ea0", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>Supporters</span>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Dedan_Kimathi_University_of_Technology_logo.png/220px-Dedan_Kimathi_University_of_Technology_logo.png" alt="DeKUT" style={{ width: 48, height: 48, objectFit: "contain", background: "#fff", borderRadius: "50%", padding: 4 }} />
+        <img src="/dekut_logo.png" alt="DeKUT" style={{ width: 48, height: 48, objectFit: "contain", background: "#fff", borderRadius: "50%", padding: 4 }} />
         <b style={{ fontSize: 18, color: "#ececec", letterSpacing: "-0.02em" }}>Dedan Kimathi University of Technology</b>
       </div>
     </motion.section>
@@ -140,7 +140,7 @@ export function WelcomePage() {
           >
             The smartest way to <br/>
             <span style={{ background: "linear-gradient(90deg, #ffffff 0%, #19c37d 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              navigate DeKUT.
+              navigate campus.
             </span>
           </motion.h1>
 
