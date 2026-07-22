@@ -37,9 +37,11 @@ Deno.serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     let customInstructions = "";
-    const { data: profileData } = await supabase.from("profiles").select("custom_instructions").eq("id", user.id).single();
-    if (profileData?.custom_instructions) {
-      customInstructions = profileData.custom_instructions;
+    let institutionId = "00000000-0000-0000-0000-000000000001";
+    const { data: profileData } = await supabase.from("profiles").select("custom_instructions, institution_id").eq("id", user.id).single();
+    if (profileData) {
+      if (profileData.custom_instructions) customInstructions = profileData.custom_instructions;
+      if (profileData.institution_id) institutionId = profileData.institution_id;
     }
 
     let recentTurns: string[] = [];
@@ -78,7 +80,7 @@ Deno.serve(async (req) => {
     if (!vector) throw new Error("No embedding generated.");
 
     // 1. Semantic Caching Check (using contextualized vector)
-    const { data: cacheHit } = await supabase.rpc("match_cached_query", { query_embedding: vector, match_threshold: 0.95 });
+    const { data: cacheHit } = await supabase.rpc("match_cached_query", { query_embedding: vector, p_institution_id: institutionId, match_threshold: 0.95 });
     if (cacheHit && cacheHit.length > 0) {
       const hit = cacheHit[0];
       if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: hit.answer, sources: hit.sources, confidence: hit.confidence }]);
@@ -86,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
     // 2. Hybrid Search (RRF) (using contextualized text)
-    const { data: rawChunks, error } = await supabase.rpc("hybrid_search_chunks", { query_text: standaloneQuery, query_embedding: vector, metadata_filter: metadataFilter, match_count: 15 });
+    const { data: rawChunks, error } = await supabase.rpc("hybrid_search_chunks", { query_text: standaloneQuery, query_embedding: vector, p_institution_id: institutionId, metadata_filter: metadataFilter, match_count: 15 });
     if (error) throw error;
 
     // 3. Context Compression
@@ -216,14 +218,10 @@ ${context || "(No relevant documents found for this question)"}`;
 
     // 5. Cache Write
     if (answer !== unavailable && !escalate && providerUsed !== "none") {
-      supabase.from("query_cache").insert({
-        query: standaloneQuery,
-        embedding: vector,
-        answer,
-        sources,
-        confidence,
-        metadata: metadataFilter
-      }).then();
+      const uniqueSources = new Set(sources.map((s: any) => JSON.stringify(s)));
+      supabase.from("query_cache").insert([{ query: standaloneQuery, embedding: vector, answer, sources: Array.from(uniqueSources).map((s: any) => JSON.parse(s)), confidence, institution_id: institutionId }]).then(({ error }) => {
+        if (error) console.error("Error saving cache:", error);
+      });
     }
 
     if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: answer, sources, confidence }]);
