@@ -4,10 +4,42 @@ import { geminiFetch } from "../_shared/gemini.ts";
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const gemini = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent";
 
-function chunkText(text: string, size = 2800, overlap = 400) {
-  const clean = text.replace(/\s+/g, " ").trim();
+function chunkText(text: string, size = 2500) {
+  const clean = text.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  const paragraphs = clean.split("\n\n");
+  
   const chunks: string[] = [];
-  for (let start = 0; start < clean.length; start += size - overlap) chunks.push(clean.slice(start, start + size));
+  let currentChunk = "";
+  let activeHeader = "General Context";
+
+  for (let i = 0; i < paragraphs.length; i++) {
+    let p = paragraphs[i].trim();
+    if (!p) continue;
+
+    const isHeader = p.length < 80 && !p.match(/[.!?]$/);
+    if (isHeader) {
+      activeHeader = p;
+    }
+
+    let textToAppend = p;
+    if (currentChunk.length === 0 && activeHeader !== "General Context" && !isHeader) {
+      textToAppend = `Section Topic: ${activeHeader}\n\n${p}`;
+    } else if (currentChunk.length === 0 && isHeader) {
+      textToAppend = `Section Topic: ${p}`;
+    }
+
+    if (currentChunk.length + textToAppend.length > size && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = activeHeader !== p ? `Section Topic: ${activeHeader}\n\n${p}` : `Section Topic: ${p}`;
+    } else {
+      currentChunk += (currentChunk ? "\n\n" : "") + textToAppend;
+    }
+  }
+  
+  if (currentChunk.trim().length > 0) {
+    chunks.push(currentChunk.trim());
+  }
+  
   return chunks.filter((chunk) => chunk.length > 80);
 }
 
