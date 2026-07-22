@@ -303,48 +303,6 @@ export function StudentWorkspace() {
     await supabase.from("profiles").update({ preferred_language: lang }).eq("id", profile.id);
   };
 
-  const handleTogglePush = async () => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      alert("Push notifications are not supported by your browser.");
-      return;
-    }
-    
-    if (pushEnabled) {
-      setPushEnabled(false);
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        alert("You need to allow notifications in your browser settings.");
-        return;
-      }
-
-      const sw = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
-
-      const { data: vapidData, error: vapidError } = await supabase!.functions.invoke("get-vapid");
-      if (vapidError || !vapidData?.publicKey) throw new Error("Could not get VAPID key");
-
-      const subscription = await sw.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidData.publicKey
-      });
-
-      const { error: saveError } = await supabase!.functions.invoke("save-push-subscription", {
-        body: { subscription }
-      });
-      if (saveError) throw new Error(saveError.message);
-
-      setPushEnabled(true);
-      alert("Push notifications enabled securely!");
-    } catch (err: any) {
-      console.error(err);
-      alert("Failed to enable push notifications: " + err.message);
-    }
-  };
-
   const handleToggleReduceMotion = () => {
     const val = !reduceMotion;
     setReduceMotion(val);
