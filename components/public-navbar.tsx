@@ -102,12 +102,6 @@ export function PublicNavbar() {
             </svg>
           </motion.div>
         </button>
-        <Link href="/register-institution" style={{ background: "rgba(25,195,125,0.1)", border: "1px solid rgba(25,195,125,0.3)", borderRadius: 100, padding: "8px 16px", color: "#19c37d", fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(25,195,125,0.2)"; }} onMouseLeave={e => { e.currentTarget.style.background = "rgba(25,195,125,0.1)"; }} className="hidden sm-flex">
-          Register Institution
-        </Link>
-        <Link href="/login" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 100, padding: "8px 16px", color: "#ececec", fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }} onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }} className="hidden sm-flex">
-          App Workspaces
-        </Link>
         <Link href="/login" style={{ background: "#ffffff", color: "#000", border: "none", borderRadius: 100, padding: "8px 20px", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "transform 0.2s, opacity 0.2s", boxShadow: "0 4px 14px rgba(255,255,255,0.2)" }} onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}>
           Sign In <ArrowRight size={14} />
         </Link>
