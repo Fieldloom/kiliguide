@@ -85,14 +85,15 @@ export function PublicNavbar() {
 
       {/* Action Buttons */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, zIndex: 10, minWidth: 0 }}>
-        <InstallButton className="hidden sm-flex" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 100, padding: "8px 16px", color: "#10b981", fontSize: 13, fontWeight: 600, width: "auto", flexShrink: 0, whiteSpace: "nowrap" }} />
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           style={{ 
             background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", 
             borderRadius: 100, padding: "8px 16px", color: "#ececec", fontSize: 13, fontWeight: 600, 
-            display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap"
+            display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", transition: "background 0.2s"
           }}
+          onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.1)"}
+          onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"}
         >
           Explore
           <motion.div animate={{ rotate: mobileMenuOpen ? 180 : 0 }}>
@@ -109,14 +110,15 @@ export function PublicNavbar() {
       {/* Dropdown Menu */}
       {mobileMenuOpen && (
         <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
           style={{
-            position: "absolute", top: 80, right: 24, width: 220,
-            background: "rgba(10, 15, 20, 0.95)", backdropFilter: "blur(40px)",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
-            padding: 8, display: "flex", flexDirection: "column", gap: 4,
-            boxShadow: "0 20px 40px rgba(0,0,0,0.5)", zIndex: 90
+            position: "absolute", top: 80, right: 24, width: 240,
+            background: "rgba(20, 20, 22, 0.65)", backdropFilter: "blur(48px) saturate(200%)",
+            border: "1px solid rgba(255,255,255,0.15)", borderRadius: 20,
+            padding: 10, display: "flex", flexDirection: "column", gap: 6,
+            boxShadow: "0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15)", zIndex: 90
           }}
         >
           <div className="lg-hidden" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
