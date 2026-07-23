@@ -85,14 +85,13 @@ export function PublicNavbar() {
 
       {/* Action Buttons */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, zIndex: 10, minWidth: 0 }}>
-        <InstallButton className="hidden sm-flex" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 100, padding: "8px 16px", color: "#10b981", fontSize: 13, fontWeight: 600 }} />
+        <InstallButton className="hidden sm-flex" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 100, padding: "8px 16px", color: "#10b981", fontSize: 13, fontWeight: 600, width: "auto", flexShrink: 0, whiteSpace: "nowrap" }} />
         <button 
-          className="lg-hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           style={{ 
             background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", 
             borderRadius: 100, padding: "8px 16px", color: "#ececec", fontSize: 13, fontWeight: 600, 
-            display: "flex", alignItems: "center", gap: 6, cursor: "pointer" 
+            display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap"
           }}
         >
           Explore
@@ -102,31 +101,32 @@ export function PublicNavbar() {
             </svg>
           </motion.div>
         </button>
-        <Link href="/login" className="hidden sm-flex" style={{ background: "#ffffff", color: "#000", border: "none", borderRadius: 100, padding: "8px 20px", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "transform 0.2s, opacity 0.2s", boxShadow: "0 4px 14px rgba(255,255,255,0.2)" }} onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}>
+        <Link href="/login" className="hidden sm-flex" style={{ background: "#ffffff", color: "#000", border: "none", borderRadius: 100, padding: "8px 20px", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "transform 0.2s, opacity 0.2s", boxShadow: "0 4px 14px rgba(255,255,255,0.2)", flexShrink: 0, whiteSpace: "nowrap" }} onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}>
           Sign In <ArrowRight size={14} />
         </Link>
       </div>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Dropdown Menu */}
       {mobileMenuOpen && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           style={{
-            position: "absolute", top: 80, left: 24, right: 24,
+            position: "absolute", top: 80, right: 24, width: 220,
             background: "rgba(10, 15, 20, 0.95)", backdropFilter: "blur(40px)",
             border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
             padding: 8, display: "flex", flexDirection: "column", gap: 4,
             boxShadow: "0 20px 40px rgba(0,0,0,0.5)", zIndex: 90
           }}
-          className="lg-hidden"
         >
-          {tabs.map(item => (
-            <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} style={{ padding: "12px 16px", color: "#ececec", textDecoration: "none", fontSize: 14, fontWeight: 500, borderRadius: 8, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-              {item.label}
-            </Link>
-          ))}
-          <div style={{ height: 1, background: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+          <div className="lg-hidden" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {tabs.map(item => (
+              <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} style={{ padding: "12px 16px", color: "#ececec", textDecoration: "none", fontSize: 14, fontWeight: 500, borderRadius: 8, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                {item.label}
+              </Link>
+            ))}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+          </div>
           <InstallButton style={{ padding: "12px 16px", color: "#10b981", fontSize: 14, fontWeight: 600, borderRadius: 8, transition: "background 0.2s" }} />
           <Link href="/register-institution" onClick={() => setMobileMenuOpen(false)} style={{ padding: "12px 16px", color: "#19c37d", textDecoration: "none", fontSize: 14, fontWeight: 600, borderRadius: 8, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background="rgba(25,195,125,0.1)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
             Register Institution
