@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ArrowRight, Loader2, Building2 } from "lucide-react";
@@ -22,6 +22,17 @@ export default function LoginPage() {
 
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [allowRegistration, setAllowRegistration] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.from("system_settings").select("value").eq("key", "allow_institution_registration").single().then(({ data }) => {
+      if (data && data.value === 'false') {
+        setAllowRegistration(false);
+        setInstitutionId("00000000-0000-0000-0000-000000000001");
+      }
+    });
+  }, []);
 
   // Load institutions when switching to signup mode
   const loadInstitutions = async () => {
@@ -150,8 +161,8 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* University dropdown — shown only on signup if domain didn't auto-detect */}
-            {mode === "signup" && !detectedInstitution && (
+            {/* University dropdown — shown only on signup if domain didn't auto-detect, and registration is allowed */}
+            {mode === "signup" && !detectedInstitution && allowRegistration && (
               <div style={{ animation: "fadeIn 0.3s ease" }}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#a1a1aa", marginBottom: 8, paddingLeft: 4 }}>Your University</label>
                 <select

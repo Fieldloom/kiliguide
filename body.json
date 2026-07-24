@@ -1,0 +1,7 @@
+{
+  "model": "deepseek-ai/deepseek-v4-pro",
+  "messages": [{"role": "user", "content": "hello"}],
+  "max_tokens": 100,
+  "temperature": 1,
+  "top_p": 0.95
+}

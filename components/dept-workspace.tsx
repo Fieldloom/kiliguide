@@ -70,6 +70,7 @@ export function DeptWorkspace() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Department Admin");
+  const [showDocuments, setShowDocuments] = useState(false);
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
@@ -107,6 +108,9 @@ export function DeptWorkspace() {
       if (user && supabase) {
         const { data: prof } = await supabase.from("profiles").select("preferred_language").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
+        
+        const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
+        if (settings && settings.value === 'true') setShowDocuments(true);
       }
       setDocuments(docs.data ?? []);
       setNotices(nots.data ?? []);
@@ -270,7 +274,7 @@ export function DeptWorkspace() {
       </div>
 
       <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        {navigation.map(([label, Icon]) => {
+        {navigation.filter(([lbl]) => lbl !== "Documents" || showDocuments).map(([label, Icon]) => {
           const isActive = tab === label && !(label === "Chats" && !activeConvId && tab !== "Chats");
           return (
             <motion.button whileHover={{ scale: isActive ? 1 : 1.02 }} whileTap={{ scale: 0.98 }} key={label} onClick={() => switchTab(label)}

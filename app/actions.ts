@@ -8,9 +8,6 @@ export async function scrapeDeKut(url: string) {
     return { error: "No URL provided." };
   }
 
-  if (!url.includes("dkut.ac.ke")) {
-    return { error: "Only dkut.ac.ke URLs are permitted." };
-  }
 
   try {
     // Custom HTTPS agent to bypass missing intermediate certs on DeKUT's server
