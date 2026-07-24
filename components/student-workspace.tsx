@@ -34,36 +34,7 @@ function groupByDate(convs: Conversation[]) {
   return r;
 }
 
-function MarkdownMessage({ content }: { content: string }) {
-  return (
-    <div className="md-body">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          p: ({ children }) => <p style={{ margin: "0 0 12px", lineHeight: 1.75 }}>{children}</p>,
-          strong: ({ children }) => <strong style={{ fontWeight: 700, color: "#ffffff" }}>{children}</strong>,
-          em: ({ children }) => <em style={{ fontStyle: "italic", color: "#c0c0c0" }}>{children}</em>,
-          h1: ({ children }) => <h1 style={{ fontSize: 20, fontWeight: 800, margin: "18px 0 10px", color: "#ffffff", letterSpacing: "-0.02em" }}>{children}</h1>,
-          h2: ({ children }) => <h2 style={{ fontSize: 17, fontWeight: 700, margin: "16px 0 8px", color: "#ffffff" }}>{children}</h2>,
-          h3: ({ children }) => <h3 style={{ fontSize: 15, fontWeight: 700, margin: "14px 0 6px", color: "#ffffff" }}>{children}</h3>,
-          ul: ({ children }) => <ul style={{ margin: "8px 0 12px", paddingLeft: 26, listStyleType: "disc" }}>{children}</ul>,
-          ol: ({ children }) => <ol style={{ margin: "8px 0 12px", paddingLeft: 26, listStyleType: "decimal" }}>{children}</ol>,
-          li: ({ children }) => <li style={{ lineHeight: 1.75, color: "#ececec", marginBottom: 5, display: "list-item", paddingLeft: 4 }}>{children}</li>,
-          code: ({ children, className }) => {
-            const isBlock = className?.includes("language-");
-            if (isBlock) return <pre style={{ background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "12px 16px", overflowX: "auto", margin: "10px 0", border: "1px solid rgba(255,255,255,0.05)" }}><code style={{ fontSize: 13, fontFamily: "monospace", color: "#a8ff78" }}>{children}</code></pre>;
-            return <code style={{ background: "rgba(0,0,0,0.3)", borderRadius: 4, padding: "2px 6px", fontSize: 13, fontFamily: "monospace", color: "#a8ff78" }}>{children}</code>;
-          },
-          blockquote: ({ children }) => <blockquote style={{ borderLeft: "3px solid rgba(255,255,255,0.2)", paddingLeft: 14, margin: "10px 0", color: "#a1a1aa", fontStyle: "italic" }}>{children}</blockquote>,
-          hr: () => <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", margin: "16px 0" }} />,
-          a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "underline" }}>{children}</a>,
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
-  );
-}
+import { MarkdownRender as MarkdownMessage } from "./markdown-render";
 
 export function StudentWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
@@ -71,7 +42,10 @@ export function StudentWorkspace() {
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Student");
   const [query, setQuery] = useState("");
+  const [showTools, setShowTools] = useState(false);
+  const [attachment, setAttachment] = useState<{name: string, type: string, base64: string} | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
@@ -394,7 +368,7 @@ export function StudentWorkspace() {
     } else {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language === "sw" ? "sw-KE" : "en-US";
+      utterance.lang = language === "sw" ? "sw-KE" : "en-KE";
       utterance.onend = () => setReadingMsgId(null);
       utterance.onerror = () => setReadingMsgId(null);
       window.speechSynthesis.speak(utterance);
@@ -420,14 +394,15 @@ export function StudentWorkspace() {
       setConversations(prev => [{ id: convId!, title, messages: [], createdAt: Date.now() }, ...prev]);
       setActiveConvId(convId);
     }
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content: value };
+    const userMsg: Message = { id: Date.now().toString(), role: "user", content: value + (attachment ? `\n\n[Attachment: ${attachment.name}]` : "") };
     setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, userMsg], title: c.title === "New chat" ? value.slice(0, 42) : c.title } : c));
     
-    // Prefix Swahili if selected so KiliGuide answers appropriately
     const finalQuery = language === "sw" ? "(Please answer in Swahili) " + value : value;
-    const { data, error } = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId } });
-    setAsking(false);
+    const { data, error } = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId, attachment } });
     
+    setAsking(false);
+    setAttachment(null);
+
     let astMsg: Message;
     if (error) {
       let realMsg = error.message;
@@ -914,8 +889,61 @@ export function StudentWorkspace() {
                   className="glazed-widget" 
                   animate={asking ? { boxShadow: ["0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 15px rgba(16, 185, 129, 0.3)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)"] } : {}}
                   transition={asking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : {}}
-                  style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px", border: "none" }}
+                  style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px", border: "none", position: "relative" }}
                 >
+                  <AnimatePresence>
+                    {showTools && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        style={{ position: "absolute", bottom: "100%", left: 0, marginBottom: 12, background: "rgba(16, 185, 129, 0.1)", backdropFilter: "blur(24px)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 16, padding: 8, zIndex: 50, minWidth: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}
+                      >
+                        <button 
+                          onClick={() => {
+                            fileInputRef.current?.click();
+                            setShowTools(false);
+                          }}
+                          style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 12px", background: "transparent", border: "none", color: "#ececec", borderRadius: 8, cursor: "pointer", fontSize: 14, textAlign: "left", transition: "background 0.2s" }}
+                          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                        >
+                          <FileIcon size={18} style={{ color: "#10b981" }} />
+                          Upload Attachment
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    style={{ display: "none" }} 
+                    accept=".pdf,.png,.jpg,.jpeg,.webp" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const base64 = (event.target?.result as string).split(',')[1];
+                        setAttachment({ name: file.name, type: file.type, base64 });
+                      };
+                      reader.readAsDataURL(file);
+                    }} 
+                  />
+                  
+                  {attachment && (
+                    <div style={{ position: "absolute", bottom: "100%", left: 0, marginBottom: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, color: "#ececec", fontSize: 13 }}>
+                      <FileIcon size={14} style={{ color: "#10b981" }} />
+                      <span style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{attachment.name}</span>
+                      <button onClick={() => setAttachment(null)} style={{ background: "none", border: "none", color: "#a1a1aa", cursor: "pointer", display: "flex" }}><X size={14} /></button>
+                    </div>
+                  )}
+                  
+                  <button onClick={() => setShowTools(!showTools)} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#ececec", transition: "0.2s", transform: showTools ? "rotate(45deg)" : "none", flexShrink: 0 }}>
+                    <Plus size={18} />
+                  </button>
+
                   <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Processing..." : isListening ? "Listening..." : "Ask anything about DeKUT…"} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200, opacity: asking ? 0.7 : 1 }} />
                   <button onClick={toggleListening} style={{ background: "none", border: "none", color: isListening ? "#19c37d" : "#a1a1aa", cursor: "pointer", padding: 4, transition: "color 0.2s" }}>
                     {isListening ? (

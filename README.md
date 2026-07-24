@@ -28,15 +28,16 @@ Each role has its own workspace at `/portal/[role]`:
 
 The user-role model is in place. When Supabase Auth is connected, navigation and access will be enforced from each user’s `user_roles` record.
 
-### Gemini RAG architecture
+### Advanced Multi-stage RAG Orchestrator
 
-KiliGuide answers questions only after retrieving matching university documents.
+KiliGuide uses a sophisticated chat orchestrator pipeline to balance speed, cost, and accuracy when answering university questions:
 
-1. A document is uploaded to Supabase Storage.
-2. Its extracted text is sent to the `ingest-document` function.
-3. The function chunks text, creates 768-dimensional embeddings using Gemini Embedding 2, and stores vectors in PostgreSQL with pgvector.
-4. The `chat` function embeds a student’s question, finds relevant chunks, and calls Gemini 2.5 Flash with retrieved context only.
-5. The answer includes sources and a retrieval confidence score. If retrieval is insufficient, it returns: `Sorry, I could not find this information in the university knowledge base.`
+1. **Document Ingestion**: Documents uploaded to Supabase are chunked, embedded using Gemini Embedding 2 (768-dim), and stored in PostgreSQL using pgvector.
+2. **Query Contextualization**: When a user asks a follow-up question, a fast LLM rewrites it into a standalone query using the conversation history.
+3. **Semantic Caching**: The orchestrator checks the `query_cache` table for a >95% vector match. If found, it serves an instant response without querying the generation LLM.
+4. **Hybrid Search & Context Compression**: It uses a hybrid search (semantic vector + keyword text match) to retrieve relevant chunks, automatically merging adjacent chunks from the same document to restore lost context.
+5. **Confidence-based LLM Bypass**: For purely factual queries with a similarity score > 85%, the orchestrator skips the generation LLM entirely and serves the raw extracted text directly to the user.
+6. **LLM Routing & Generation**: If generation is needed, the orchestrator attempts to route to Groq (Llama-3.3) for ultra-fast inference, then falls back to NVIDIA NIM (Llama-3.1-70B), and seamlessly falls back to Gemini 2.5 Flash if both fail. The response includes sources and confidence scores.
 
 ### Edge Functions
 

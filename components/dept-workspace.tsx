@@ -200,7 +200,7 @@ export function DeptWorkspace() {
     } else {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language === "sw" ? "sw-KE" : "en-US";
+      utterance.lang = language === "sw" ? "sw-KE" : "en-KE";
       utterance.onend = () => setReadingMsgId(null);
       utterance.onerror = () => setReadingMsgId(null);
       window.speechSynthesis.speak(utterance);

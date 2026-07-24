@@ -313,6 +313,8 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
         <InstitutionsWorkspace />
       ) : tab === "AI Assistant" ? (
         <AILiveFeed />
+      ) : tab === "System Health" ? (
+        <SystemHealthWorkspace />
       ) : (
         <div style={{ borderRadius: 12, background: D.card, padding: 48, textAlign: "center", border: `1px solid ${D.border}` }}>
           <Bot size={36} style={{ color: D.muted, margin: "0 auto 12px" }} />
@@ -322,6 +324,54 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
           </p>
         </div>
       )}
+    </section>
+  );
+}
+
+// ── SYSTEM HEALTH ────────────────────────────────────────────────────────
+function SystemHealthWorkspace() {
+  const [imageLimit, setImageLimit] = useState(5);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase?.from("app_settings").select("image_generation_limit").eq("id", "global").single().then(({ data }) => {
+      if (data) setImageLimit(data.image_generation_limit);
+    });
+  }, []);
+
+  const save = async () => {
+    if (!supabase) return;
+    setSaving(true);
+    await supabase.from("app_settings").upsert({ id: "global", image_generation_limit: imageLimit });
+    setSaving(false);
+    alert("Settings saved!");
+  };
+
+  return (
+    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
+      <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 24 }}>System Settings</h2>
+      
+      <div style={{ padding: 24, borderRadius: 12, background: D.bg, border: `1px solid ${D.border}` }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: D.text }}>Image Generation Quota</h3>
+        <p style={{ fontSize: 13, color: D.muted, marginTop: 4, marginBottom: 16 }}>Set the maximum number of images a user can generate using the /image command.</p>
+        
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <input 
+            type="number" 
+            min={0}
+            value={imageLimit} 
+            onChange={(e) => setImageLimit(parseInt(e.target.value) || 0)}
+            style={{ width: 100, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, color: D.text, padding: "8px 12px", borderRadius: 8, outline: "none" }}
+          />
+          <button 
+            disabled={saving}
+            onClick={save}
+            style={{ background: D.accent, color: "#000", border: "none", padding: "8px 16px", borderRadius: 8, fontWeight: 600, cursor: "pointer", opacity: saving ? 0.7 : 1 }}
+          >
+            {saving ? "Saving..." : "Save Limit"}
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
@@ -602,9 +652,9 @@ function OfficialSourceImport() {
         <div style={{ margin: "32px 0", borderTop: `1px solid ${D.border}` }} />
 
         <p style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, fontWeight: 700, color: D.text }}>
-          <Upload size={18} /> Upload PDF, DOCX, or TXT
+          <Upload size={18} /> Upload Document or Image
         </p>
-        <input onChange={e => setFile(e.target.files?.[0] ?? null)} accept=".pdf,.docx,.txt" type="file"
+        <input onChange={e => setFile(e.target.files?.[0] ?? null)} accept=".pdf,.docx,.txt,image/*" type="file"
           style={{ display: "block", marginTop: 16, fontSize: 14, color: D.muted, width: "100%" }} />
         <button disabled={busy || !file} onClick={upload} style={{ marginTop: 16, borderRadius: 10, border: `1px solid ${D.border}`, padding: "12px 20px", fontSize: 14, fontWeight: 700, color: busy || !file ? D.muted : D.text, cursor: busy || !file ? "not-allowed" : "pointer", background: "rgba(255,255,255,0.03)" }}>
           {busy ? "Working…" : file ? `Upload ${file.name}` : "Choose a file"}

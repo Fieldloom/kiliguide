@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Send, Loader2, Bot, Sparkles, Trash2, ShieldCheck, X } from "lucide-react";
+import { Mic, Send, Loader2, Bot, Sparkles, Trash2, ShieldCheck, X, Plus } from "lucide-react";
 
 type Source = { title: string; page?: number | null };
 type Message = { id: string; role: "user" | "assistant"; content: string; sources?: Source[]; confidence?: number; escalate?: boolean; };
@@ -48,7 +48,9 @@ export function AdminChat() {
   const [query, setQuery] = useState("");
   const [asking, setAsking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [attachment, setAttachment] = useState<{ file: File; base64: string; name: string; type: string } | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export function AdminChat() {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = "en-US";
+      recognition.lang = "en-KE";
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
@@ -133,9 +135,12 @@ export function AdminChat() {
           question: q,
           conversationId: convId,
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-          admin_mode: true
+          admin_mode: true,
+          attachment: attachment ? { base64: attachment.base64, name: attachment.name, type: attachment.type } : undefined
         }
       });
+      setAttachment(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
 
       if (error) throw new Error(error.message);
 
@@ -243,7 +248,32 @@ export function AdminChat() {
         {/* Input Area */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 24, background: "linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)" }}>
           <div style={{ maxWidth: 800, margin: "0 auto" }}>
+            
+            {/* Attachment Pill */}
+            <AnimatePresence>
+              {attachment && (
+                <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "6px 12px", borderRadius: 100, marginBottom: 12 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#10b981", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{attachment.name}</span>
+                  <button onClick={() => { setAttachment(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} style={{ background: "none", border: "none", color: "#10b981", cursor: "pointer", padding: 2, display: "flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <motion.div className="glazed-widget" animate={asking ? { boxShadow: ["0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 15px rgba(16, 185, 129, 0.3)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)"] } : {}} transition={asking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : {}} style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(20px)" }}>
+              <input type="file" ref={fileInputRef} style={{ display: "none" }} accept=".pdf,image/png,image/jpeg,image/webp" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  const b64 = (ev.target?.result as string).split(",")[1];
+                  setAttachment({ file, base64: b64, name: file.name, type: file.type });
+                };
+                reader.readAsDataURL(file);
+              }} />
+              <button onClick={() => fileInputRef.current?.click()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#a1a1aa", cursor: "pointer", padding: 8, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+                <Plus size={20} />
+              </button>
+
               <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Running admin query..." : isListening ? "Listening..." : "Query system knowledge..."} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200, opacity: asking ? 0.7 : 1 }} />
               <button onClick={toggleListening} style={{ background: "none", border: "none", color: isListening ? "#19c37d" : "#a1a1aa", cursor: "pointer", padding: 4, transition: "color 0.2s" }}>
                 {isListening ? (
