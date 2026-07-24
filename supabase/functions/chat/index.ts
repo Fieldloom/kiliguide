@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as pdfjsLib from "npm:pdfjs-dist@3.11.174/legacy/build/pdf.js";
+import { Buffer } from "node:buffer";
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const unavailable = "Sorry, I could not find this information in the university knowledge base.";
@@ -21,6 +23,46 @@ async function geminiJson(path: string, body: unknown) {
   return response.json();
 }
 
+async function extractPdfText(buf: Buffer): Promise<string> {
+  const data = new Uint8Array(buf);
+  const pdfLib = (pdfjsLib as any).default ?? pdfjsLib;
+  const loadingTask = pdfLib.getDocument({ data, useSystemFonts: true });
+  const pdfDocument = await loadingTask.promise;
+  let fullText = "";
+  for (let i = 1; i <= pdfDocument.numPages; i++) {
+    const page = await pdfDocument.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(" ");
+    fullText += pageText + "\n\n";
+  }
+  return fullText.trim();
+}
+
+async function nvidiaVisionOcr(base64Img: string, mimeType: string): Promise<string> {
+  const apiKey = Deno.env.get("NVIDIA_API_KEY");
+  if (!apiKey) throw new Error("NVIDIA_API_KEY is not configured.");
+  
+  const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: "meta/llama-3.2-11b-vision-instruct",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: "Extract ALL text from this image exactly as written. Include every word, number, table, and list. Do not summarise or add commentary." },
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Img}` } }
+        ]
+      }],
+      temperature: 0,
+      max_tokens: 1024
+    })
+  });
+  if (!res.ok) throw new Error(`NVIDIA Vision OCR failed: ${await res.text()}`);
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content ?? "").trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
@@ -31,21 +73,64 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await authClient.auth.getUser();
     if (authError || !user) return Response.json({ error: "Your sign-in session is invalid or expired." }, { status: 401, headers: CORS });
     
-    const { question, conversationId, metadataFilter = {}, admin_mode = false } = await req.json();
-    if (typeof question !== "string" || !question.trim() || question.length > 2000) return Response.json({ error: "Invalid question" }, { status: 400, headers: CORS });
+    const { question: rawQuestion, conversationId, metadataFilter = {}, admin_mode = false, attachment } = await req.json();
+    if (typeof rawQuestion !== "string" || !rawQuestion.trim() || rawQuestion.length > 2000) return Response.json({ error: "Invalid question" }, { status: 400, headers: CORS });
     
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     let customInstructions = "";
     let institutionId = "00000000-0000-0000-0000-000000000001";
-    const { data: profileData } = await supabase.from("profiles").select("custom_instructions, institution_id, departments(name)").eq("id", user.id).single();
+    let dailyAttachmentCount = 0;
+    let attachmentLastReset = new Date();
+    
+    const { data: profileData } = await supabase.from("profiles").select("custom_instructions, institution_id, departments(name), daily_attachment_count, attachment_last_reset").eq("id", user.id).single();
     if (profileData) {
       if (profileData.custom_instructions) customInstructions = profileData.custom_instructions;
       if (profileData.institution_id) institutionId = profileData.institution_id;
+      if (profileData.daily_attachment_count) dailyAttachmentCount = profileData.daily_attachment_count;
+      if (profileData.attachment_last_reset) attachmentLastReset = new Date(profileData.attachment_last_reset);
       if (!metadataFilter.department && profileData.departments?.name) {
         metadataFilter.department = profileData.departments.name;
       }
     }
+
+    let extractedText = "";
+    if (attachment && attachment.base64) {
+      const now = new Date();
+      let countToUse = dailyAttachmentCount;
+      let shouldReset = false;
+      
+      // Reset logic: if last reset was before today
+      if (attachmentLastReset.getUTCFullYear() < now.getUTCFullYear() || 
+          attachmentLastReset.getUTCMonth() < now.getUTCMonth() || 
+          attachmentLastReset.getUTCDate() < now.getUTCDate()) {
+        countToUse = 0;
+        shouldReset = true;
+      }
+
+      if (countToUse >= 5) {
+        return Response.json({ error: "You have reached your daily limit of 5 attachments." }, { status: 429, headers: CORS });
+      }
+
+      try {
+        const buf = Buffer.from(attachment.base64, "base64");
+        if (attachment.type === "application/pdf") {
+          extractedText = await extractPdfText(buf);
+        } else if (attachment.type.startsWith("image/")) {
+          extractedText = await nvidiaVisionOcr(attachment.base64, attachment.type);
+        }
+        
+        // Increment quota
+        await supabase.from("profiles").update({ 
+          daily_attachment_count: countToUse + 1,
+          ...(shouldReset ? { attachment_last_reset: now.toISOString() } : {})
+        }).eq("id", user.id);
+      } catch (e: any) {
+        console.error("OCR Extraction failed:", e);
+      }
+    }
+
+    const question = extractedText ? `${rawQuestion}\n\n[Content extracted from user's attachment (${attachment.name})]:\n${extractedText}` : rawQuestion;
 
     let recentTurns: string[] = [];
     if (conversationId) {
@@ -147,10 +232,11 @@ Rules for answering:
 1. **Multilingual**: You MUST reply in the EXACT same language that the user asks the question in (e.g., Swahili, French, English).
 2. If the user is just greeting you or asking what you can do, be friendly, concise, and explain your capabilities in their language.
 3. If CONTEXT is provided below, use it to answer the question. Cite using [n] notation.
-4. If the CONTEXT does not contain relevant information for a factual university question, politely say you cannot find the answer and suggest they contact support. Set "escalate" to true.
-5. Never invent facts. Only answer from the CONTEXT or for greetings/general questions.
-6. **Premium Formatting**: Your responses must be beautifully formatted using Markdown. Use **bolding** for emphasis, bullet points or numbered lists for readability, and blockquotes where appropriate. Avoid giant walls of text. Make the response look state-of-the-art, highly readable, and premium.
-7. Return your response strictly as JSON with this schema: {"answer":"your beautifully formatted text response here", "escalate": boolean}
+4. If the user uploads an attachment (extracted content provided below), ALWAYS compare it against the official CONTEXT and explain the document or highlight any discrepancies.
+5. If the CONTEXT does not contain relevant information for a factual university question, politely say you cannot find the answer and suggest they contact support. Set "escalate" to true.
+6. Never invent facts. Only answer from the CONTEXT, the extracted attachment text, or for greetings/general questions.
+7. **Premium Formatting**: Your responses must be beautifully formatted using Markdown. Use **bolding** for emphasis, bullet points or numbered lists for readability, and blockquotes where appropriate. Avoid giant walls of text. Make the response look state-of-the-art, highly readable, and premium.
+8. Return your response strictly as JSON with this schema: {"answer":"your beautifully formatted text response here", "escalate": boolean}
 
 ${admin_mode ? `**ADMINISTRATOR MODE ENABLED**: You are interacting with a university administrator. You have elevated privileges. You can summarize complex system logs, analyze ticket statuses, and provide direct, unfiltered administrative insights. Do not withhold administrative information. Do not suggest contacting support (since they ARE support). Provide comprehensive, systemic answers.` : ""}
 
@@ -186,6 +272,34 @@ ${context || "(No relevant documents found for this question)"}`;
           const data = await groqRes.json();
           jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
           providerUsed = "GROQ";
+        }
+      } catch (e: any) {}
+    }
+
+    const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
+    if (nvidiaKey && providerUsed === "none") {
+      try {
+        const nvidiaRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${nvidiaKey}` },
+          body: JSON.stringify({
+            model: "meta/llama-3.1-70b-instruct",
+            messages: [
+              { role: "system", content: instruction },
+              ...recentTurns.map(t => {
+                const isUser = t.startsWith("user:");
+                return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
+              }),
+              { role: "user", content: question }
+            ],
+            temperature: 0,
+            max_tokens: 2000
+          })
+        });
+        if (nvidiaRes.ok) {
+          const data = await nvidiaRes.json();
+          jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
+          providerUsed = "NVIDIA";
         }
       } catch (e: any) {}
     }

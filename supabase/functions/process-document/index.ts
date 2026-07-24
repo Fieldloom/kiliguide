@@ -76,6 +76,38 @@ async function geminiOcr(buf: Buffer, mimeType: string): Promise<string> {
   return (genData.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
 }
 
+async function nvidiaVisionOcr(buf: Buffer, extension: string): Promise<string> {
+  const apiKey = Deno.env.get("NVIDIA_API_KEY");
+  if (!apiKey) throw new Error("NVIDIA_API_KEY is not configured.");
+  
+  let mimeType = "image/jpeg";
+  if (extension === "png") mimeType = "image/png";
+  if (extension === "webp") mimeType = "image/webp";
+
+  const base64Img = buf.toString("base64");
+  
+  const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: "meta/llama-3.2-11b-vision-instruct",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: "Extract ALL text from this image exactly as written. Include every word, number, table, and list. Do not summarise or add commentary." },
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Img}` } }
+        ]
+      }],
+      temperature: 0,
+      max_tokens: 2000
+    })
+  });
+  
+  if (!res.ok) throw new Error(`NVIDIA Vision API failed: ${await res.text()}`);
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content ?? "").trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -120,6 +152,10 @@ Deno.serve(async (req) => {
     } else if (extension === "docx") {
       const result = await mammoth.extractRawText({ buffer });
       extractedText = result.value.trim();
+    } else if (["png", "jpg", "jpeg", "webp"].includes(extension.toLowerCase())) {
+      console.log(`Using NVIDIA Llama 3.2 Vision for image (${extension})...`);
+      extractedText = await nvidiaVisionOcr(buffer, extension.toLowerCase());
+      console.log(`NVIDIA Vision extracted ${extractedText.length} chars`);
     } else {
       throw new Error(`Unsupported extension: ${extension}`);
     }
