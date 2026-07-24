@@ -402,8 +402,18 @@ export function StudentWorkspace() {
     setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, userMsg], title: c.title === "New chat" ? value.slice(0, 42) : c.title } : c));
     
     const finalQuery = language === "sw" ? "(Please answer in Swahili) " + value : value;
-    const { data, error } = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId, attachment } });
+    let { data, error } = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId, attachment } });
     
+    if (data?.escalate) {
+       const tempId = Date.now().toString() + "-temp";
+       setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, { id: tempId, role: "assistant", content: "Searching official government and university sources (kuccps.net, helb.co.ke, etc.)..." }] } : c));
+       
+       const fallbackRes = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId, attachment, forceWebSearch: true } });
+       data = fallbackRes.data;
+       error = fallbackRes.error;
+       
+       setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: c.messages.filter(m => m.id !== tempId) } : c));
+    }
     setAsking(false);
     setAttachment(null);
 
