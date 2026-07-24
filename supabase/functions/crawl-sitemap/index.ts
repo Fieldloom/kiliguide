@@ -59,14 +59,9 @@ function extractUrlsFromSitemap(xml: string): string[] {
 function shouldCrawl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase();
-    // Must be a trusted domain
-    if (!TRUSTED_DOMAINS.some(d => hostname === d || hostname.endsWith(`.${d}`))) return false;
     // Skip file downloads
     if (SKIP_EXTENSIONS.test(parsed.pathname)) return false;
-    // Must match at least one allowed path pattern (or be the homepage)
-    if (parsed.pathname === "/" || parsed.pathname === "") return true;
-    return ALLOWED_PATH_PATTERNS.some(pattern => pattern.test(parsed.pathname));
+    return true;
   } catch {
     return false;
   }
