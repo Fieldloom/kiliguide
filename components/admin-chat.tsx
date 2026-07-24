@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Send, Loader2, Bot, Sparkles, Trash2, ShieldCheck, X, Plus } from "lucide-react";
+import { Mic, Send, Loader2, Bot, Sparkles, Trash2, ShieldCheck, X, Paperclip } from "lucide-react";
 
 type Source = { title: string; page?: number | null };
 type Message = { id: string; role: "user" | "assistant"; content: string; sources?: Source[]; confidence?: number; escalate?: boolean; };
@@ -271,7 +271,7 @@ export function AdminChat() {
                 reader.readAsDataURL(file);
               }} />
               <button onClick={() => fileInputRef.current?.click()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#a1a1aa", cursor: "pointer", padding: 8, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
-                <Plus size={20} />
+                <Paperclip size={20} />
               </button>
 
               <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Running admin query..." : isListening ? "Listening..." : "Query system knowledge..."} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200, opacity: asking ? 0.7 : 1 }} />
