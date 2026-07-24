@@ -130,7 +130,7 @@ export function AdminChat() {
     setMessages(newMessages);
 
     try {
-      const { data, error } = await supabase.functions.invoke("chat", {
+      let { data, error } = await supabase.functions.invoke("chat", {
         body: {
           question: q,
           conversationId: convId,
@@ -139,6 +139,26 @@ export function AdminChat() {
           attachment: attachment ? { base64: attachment.base64, name: attachment.name, type: attachment.type } : undefined
         }
       });
+
+      if (data?.escalate) {
+         const tempId = crypto.randomUUID();
+         setMessages(prev => [...prev, { id: tempId, role: "assistant", content: "Searching official government and university sources (kuccps.net, helb.co.ke, etc.)..." }]);
+         
+         const fallbackRes = await supabase.functions.invoke("chat", {
+           body: {
+             question: q,
+             conversationId: convId,
+             messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+             admin_mode: true,
+             attachment: attachment ? { base64: attachment.base64, name: attachment.name, type: attachment.type } : undefined,
+             forceWebSearch: true
+           }
+         });
+         data = fallbackRes.data;
+         error = fallbackRes.error;
+         
+         setMessages(prev => prev.filter(m => m.id !== tempId));
+      }
       setAttachment(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
 
