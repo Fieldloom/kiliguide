@@ -329,8 +329,39 @@ ${context || "(No relevant documents found for this question)"}`;
       parseError = e.message;
     }
 
-    if (escalate && answer === unavailable) {
-      answer = "I found your document in the knowledge base but could not extract a clear answer. Please try rephrasing your question or contact support for assistance.";
+    if (escalate || answer === unavailable) {
+      try {
+        const fallbackInstruction = `You are a helpful university AI assistant. The user asked a question that was not in our local database. Please use your Google Search tool to find the answer on the university's official website or other legitimate education sites in Kenya (e.g. helb.co.ke, kuccps.net, cue.or.ke).
+IMPORTANT: If you find an answer using the search tool, return ONLY the answer in clear, beautiful Markdown format. Do NOT wrap it in JSON. If you cannot find the answer on the web, reply with exactly the word "UNAVAILABLE".`;
+
+        const fallbackPayload = {
+          system_instruction: { parts: [{ text: fallbackInstruction }] },
+          contents: [
+            ...recentTurns.map(t => {
+              const isUser = t.startsWith("user:");
+              return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
+            }),
+            { role: "user", parts: [{ text: `Search the web for this query: ${standaloneQuery}` }] }
+          ],
+          tools: [{ googleSearch: {} }],
+          generationConfig: { temperature: 0 }
+        };
+
+        const fallbackRes = await geminiJson("gemini-flash-latest:generateContent", fallbackPayload);
+        const fallbackText = fallbackRes.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        if (fallbackText && fallbackText !== "UNAVAILABLE" && fallbackText.length > 10 && !fallbackText.toUpperCase().includes("UNAVAILABLE")) {
+          answer = fallbackText;
+          escalate = false;
+          sources.push({ title: "Live Web Search (dkut.ac.ke & partners)", page: null });
+          providerUsed = "GEMINI_WEB_SEARCH";
+        } else {
+          answer = "I could not find the answer in our local database or on the live web. Please try rephrasing your question or contact support for assistance.";
+        }
+      } catch (err: any) {
+        console.error("Web search fallback failed:", err);
+        answer = "I could not extract a clear answer from the database, and the web search fallback encountered an error. Please contact support.";
+      }
     }
 
     // 5. Cache Write
