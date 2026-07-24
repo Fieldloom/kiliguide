@@ -2,7 +2,7 @@ export const appRoles = ["super_admin", "dept_admin", "administrator", "departme
 export type AppRole = (typeof appRoles)[number];
 
 export const roleHome: Record<AppRole, string> = {
-  super_admin: "/portal/admin",
+  super_admin: "/portal/super_admin",
   dept_admin: "/portal/dept_admin",
   administrator: "/portal/administrator",
   department: "/portal/department",
