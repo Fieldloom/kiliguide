@@ -593,10 +593,11 @@ function OfficialSourceImport() {
     setStatus("Saving document record...");
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
+    const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
     const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
     const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
     if (se) { setBusy(false); setStatus(se.message); return; }
-    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "DeKUT Webpage", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, metadata: { processing_status: "processing" } }).select("id").single();
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "DeKUT Webpage", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, institution_id: profile?.institution_id, metadata: { processing_status: "processing" } }).select("id").single();
     if (de) { setBusy(false); setStatus(de.message); return; }
     setStatus("Creating embeddings...");
     const { error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });
@@ -609,11 +610,12 @@ function OfficialSourceImport() {
     setBusy(true); setStatus("Uploading document...");
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
+    const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
     const ext = file.name.split(".").pop()?.toLowerCase() || "file";
     const path = `admin/${user.id}/${crypto.randomUUID()}.${ext}`;
     const { error: se } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type || "application/octet-stream" });
     if (se) { setBusy(false); setStatus(se.message); return; }
-    const { data: doc, error: de } = await supabase.from("documents").insert({ title: file.name.replace(/\.[^.]+$/, ""), category: "Administration", storage_path: path, file_type: ext, uploaded_by: user.id, metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } }).select("id,title").single();
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: file.name.replace(/\.[^.]+$/, ""), category: "Administration", storage_path: path, file_type: ext, uploaded_by: user.id, institution_id: profile?.institution_id, metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } }).select("id,title").single();
     if (de) { setBusy(false); setStatus(de.message); return; }
     if (ext === "txt") {
       const text = await file.text();
@@ -817,22 +819,39 @@ function DocumentLibrary() {
 function Compose({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
 
   const save = async () => {
     if(!supabase || !title.trim() || !body.trim()) return;
+    setBusy(true);
+    setStatus("Publishing notice...");
     const { data: { user } } = await supabase.auth.getUser();
-    const { data } = await supabase.from("notices").insert({
+    if (!user) { setStatus("Session expired."); setBusy(false); return; }
+
+    const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+    
+    const { data, error } = await supabase.from("notices").insert({
       title,
       body,
       summary: body.substring(0, 100),
-      author_id: user?.id,
+      author_id: user.id,
+      institution_id: profile?.institution_id,
       category: "General"
     }).select("id").single();
+    
+    if (error) {
+      setBusy(false);
+      setStatus(error.message);
+      return;
+    }
+
     if (data) {
       supabase.functions.invoke("send-push", {
         body: { recipientId: "all", title: "New Campus Notice", body: title, url: "/portal/student", tag: `notice-${data.id}` }
       });
     }
+    setBusy(false);
     onClose();
   };
 
@@ -841,20 +860,16 @@ function Compose({ onClose }: { onClose: () => void }) {
       <section style={{ width: "100%", maxWidth: 460, borderRadius: 14, background: D.card, padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Create a Notice</h2>
-          <button onClick={onClose} style={{ color: D.muted, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}><X size={18} /></button>
+          <button onClick={onClose} disabled={busy} style={{ color: D.muted, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}><X size={18} /></button>
         </div>
         <label style={{ display: "block", marginTop: 20, fontSize: 12, fontWeight: 700, color: D.muted }}>
           TITLE
-          <input value={title} onChange={e=>setTitle(e.target.value)} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }} placeholder="Add a clear title"
+          <input value={title} onChange={e=>setTitle(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }} placeholder="Add a clear title"
             onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
             onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
         </label>
         <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
           MESSAGE
-          <textarea value={body} onChange={e=>setBody(e.target.value)} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", minHeight: 100, resize: "vertical" }} placeholder="What should the university community know?"
-            onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
-            onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
-        </label>
         <button onClick={save} style={{ marginTop: 20, width: "100%", borderRadius: 8, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#000", cursor: "pointer", border: "none" }}>Publish Notice</button>
       </section>
     </div>
