@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
     if (!forceWebSearch) {
       // 1. Semantic Caching Check (using contextualized vector)
       const { data: cacheHit } = await supabase.rpc("match_cached_query", { query_embedding: vector, p_institution_id: institutionId, match_threshold: 0.95 });
-      if (cacheHit && cacheHit.length > 0) {
+      if (cacheHit && cacheHit.length > 0 && cacheHit[0].answer !== "escalating...") {
         const hit = cacheHit[0];
         if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: hit.answer, sources: hit.sources, confidence: hit.confidence }]);
         return Response.json({ answer: hit.answer, sources: hit.sources, confidence: hit.confidence, escalate: false, debug: { provider: "CACHE", similarity: hit.similarity } }, { headers: CORS });
