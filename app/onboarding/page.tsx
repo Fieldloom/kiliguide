@@ -19,6 +19,7 @@ export default function Onboarding() {
   const [institutionId, setInstitutionId] = useState("");
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [alreadyHasInstitution, setAlreadyHasInstitution] = useState(false);
+  const [allowRegistration, setAllowRegistration] = useState(true);
 
   useEffect(() => {
     if (!supabase) return;
@@ -32,6 +33,12 @@ export default function Onboarding() {
       if (uid) {
         const { data: prof } = await supabase!.from("profiles").select("institution_id").eq("id", uid).single();
         if (prof?.institution_id) setAlreadyHasInstitution(true);
+      }
+      
+      const { data: settings } = await supabase!.from("system_settings").select("value").eq("key", "allow_institution_registration").single();
+      if (settings && settings.value === 'false') {
+        setAllowRegistration(false);
+        setInstitutionId("00000000-0000-0000-0000-000000000001");
       }
     });
   }, []);
@@ -127,8 +134,8 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* Institution Selection — shown if not already detected from signup */}
-        {!alreadyHasInstitution && (
+        {/* Institution Selection — shown if not already detected from signup, and registration allowed */}
+        {!alreadyHasInstitution && allowRegistration && (
           <div style={{ marginBottom: 32, animation: "fadeIn 0.3s ease" }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ececec", marginBottom: 8 }}>Your University</label>
             <select value={institutionId} onChange={e => setInstitutionId(e.target.value)} style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none", appearance: "none" }}>

@@ -41,6 +41,7 @@ export function StudentWorkspace() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Student");
+  const [showDocuments, setShowDocuments] = useState(false);
   const [query, setQuery] = useState("");
   const [showTools, setShowTools] = useState(false);
   const [attachment, setAttachment] = useState<{name: string, type: string, base64: string} | null>(null);
@@ -148,6 +149,9 @@ export function StudentWorkspace() {
         const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
         if (prof?.custom_instructions) setCustomInstructions(prof.custom_instructions);
+        
+        const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
+        if (settings && settings.value === 'true') setShowDocuments(true);
       }
       setDocuments(docs.data ?? []);
       setNotices(nots.data ?? []);
@@ -451,7 +455,7 @@ export function StudentWorkspace() {
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveConvId(null); setTab("Chats"); setMobileSidebar(false); }} style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 600, background: "linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", cursor: "pointer", marginBottom: 12, boxShadow: "0 4px 12px rgba(16, 185, 129, 0.1)" }}>
           <Plus size={18} /> New Chat
         </motion.button>
-        {navigation.map(([label, Icon]) => {
+        {navigation.filter(([lbl]) => lbl !== "Documents" || showDocuments).map(([label, Icon]) => {
           const isActive = tab === label && !(label === "Chats" && !activeConvId && tab !== "Chats");
           return (
             <motion.button whileHover={{ scale: isActive ? 1 : 1.02 }} whileTap={{ scale: 0.98 }} key={label} onClick={() => switchTab(label)}

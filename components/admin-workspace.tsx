@@ -3,14 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
-  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles
+  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
 import { AdminChat } from "./admin-chat";
 import { InstallButton } from "./install-button";
 
-type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health" | "Institutions";
+type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health" | "Institutions" | "Web Crawler";
 const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "AI Assistant", icon: MessageSquareText },
@@ -20,6 +20,7 @@ const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
   { label: "Users", icon: Users },
   { label: "Analytics", icon: BarChart3 },
   { label: "System Health", icon: Settings },
+  { label: "Web Crawler", icon: Globe as any },
 ];
 
 const D = {
@@ -315,6 +316,8 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
         <AILiveFeed />
       ) : tab === "System Health" ? (
         <SystemHealthWorkspace />
+      ) : tab === "Web Crawler" ? (
+        <WebCrawlerWorkspace />
       ) : (
         <div style={{ borderRadius: 12, background: D.card, padding: 48, textAlign: "center", border: `1px solid ${D.border}` }}>
           <Bot size={36} style={{ color: D.muted, margin: "0 auto 12px" }} />
@@ -862,14 +865,37 @@ function Compose({ onClose }: { onClose: () => void }) {
 function InstitutionsWorkspace() {
   const [requests, setRequests] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
+  const [allowRegistration, setAllowRegistration] = useState(true);
+  const [showDocuments, setShowDocuments] = useState(false);
 
   const load = async () => {
     if (!supabase) return;
     const { data } = await supabase.from("institution_requests").select("*").order("created_at", { ascending: false });
     setRequests(data || []);
+    const { data: settings } = await supabase.from("system_settings").select("*").in("key", ["allow_institution_registration", "show_documents_to_users"]);
+    if (settings) {
+      const reg = settings.find(s => s.key === "allow_institution_registration");
+      if (reg) setAllowRegistration(reg.value === 'true');
+      const doc = settings.find(s => s.key === "show_documents_to_users");
+      if (doc) setShowDocuments(doc.value === 'true');
+    }
   };
 
   useEffect(() => { load(); }, []);
+
+  const toggleRegistration = async () => {
+    if (!supabase) return;
+    const newValue = !allowRegistration;
+    setAllowRegistration(newValue);
+    await supabase.from("system_settings").update({ value: newValue ? 'true' : 'false' }).eq("key", "allow_institution_registration");
+  };
+
+  const toggleDocuments = async () => {
+    if (!supabase) return;
+    const newValue = !showDocuments;
+    setShowDocuments(newValue);
+    await supabase.from("system_settings").upsert({ key: "show_documents_to_users", value: newValue ? 'true' : 'false' });
+  };
 
   const handleApprove = async (id: string, name: string) => {
     if (!supabase || !confirm(`Approve institution ${name}?`)) return;
@@ -893,6 +919,33 @@ function InstitutionsWorkspace() {
 
   return (
     <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, paddingBottom: 24, borderBottom: `1px solid ${D.border}` }}>
+        <div>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text }}>Global Settings</h2>
+          <p style={{ marginTop: 4, fontSize: 13, color: D.muted }}>Control system-wide features.</p>
+        </div>
+        <div style={{ display: "flex", gap: 32 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: D.text }}>Show Documents Tab to Users</span>
+            <div 
+              onClick={toggleDocuments}
+              style={{ width: 44, height: 24, borderRadius: 12, background: showDocuments ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
+            >
+              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showDocuments ? 22 : 2, transition: "all 0.2s" }} />
+            </div>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: D.text }}>Allow Institution Registration</span>
+            <div 
+              onClick={toggleRegistration}
+              style={{ width: 44, height: 24, borderRadius: 12, background: allowRegistration ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
+            >
+              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: allowRegistration ? 22 : 2, transition: "all 0.2s" }} />
+            </div>
+          </label>
+        </div>
+      </div>
+
       <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 24 }}>Institution Requests</h2>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: 14 }}>
@@ -935,6 +988,154 @@ function InstitutionsWorkspace() {
                 <td colSpan={4} style={{ padding: "32px 0", textAlign: "center", color: D.muted }}>No requests found.</td>
               </tr>
             )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// ── WEB CRAWLER ─────────────────────────────────────────────────────────
+function WebCrawlerWorkspace() {
+  const [crawlStatus, setCrawlStatus] = useState<any>(null);
+  const [crawlQueue, setCrawlQueue] = useState<any[]>([]);
+  const [crawling, setCrawling] = useState(false);
+  const [crawlMessage, setCrawlMessage] = useState("");
+
+  const fetchData = async () => {
+    if (!supabase) return;
+    const [crawlSummaryResult, crawlQueueResult] = await Promise.all([
+      supabase.from("crawl_queue").select("status").then(r => r),
+      supabase.from("crawl_queue").select("id, url, status, error, last_crawled_at").order("discovered_at", { ascending: false }).limit(50),
+    ]);
+    setCrawlQueue(crawlQueueResult.data || []);
+    const rows = crawlSummaryResult.data || [];
+    const summary = { pending: 0, crawling: 0, done: 0, failed: 0, total: rows.length, last_crawled_at: null };
+    for (const r of rows) {
+      if (r.status === "pending") summary.pending++;
+      else if (r.status === "crawling") summary.crawling++;
+      else if (r.status === "done") summary.done++;
+      else if (r.status === "failed") summary.failed++;
+    }
+    setCrawlStatus(summary);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const triggerCrawl = async (mode: "discover" | "crawl" | "full") => {
+    if (!supabase) return;
+    setCrawling(true);
+    setCrawlMessage(`Running "${mode}" mode — please wait...`);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/crawl-sitemap`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ mode, max: 20 }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setCrawlMessage(`✅ ${result.message}`);
+        fetchData();
+      } else {
+        setCrawlMessage(`❌ Error: ${result.error}`);
+      }
+    } catch (e: any) {
+      setCrawlMessage(`❌ Network error: ${e.message}`);
+    }
+    setCrawling(false);
+  };
+
+  return (
+    <section>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+
+        {/* Discover Card */}
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 16, padding: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <Globe size={20} style={{ color: "#3b82f6" }} />
+            <b style={{ fontSize: 16, color: D.text }}>1. Discover URLs</b>
+          </div>
+          <p style={{ fontSize: 13, color: D.muted, marginBottom: 20, lineHeight: 1.6 }}>
+            Fetch the sitemap and add all eligible pages to the crawl queue. Does not scrape yet.
+          </p>
+          <button disabled={crawling} onClick={() => triggerCrawl("discover")} style={{ width: "100%", background: "#3b82f622", color: "#60a5fa", border: "1px solid #3b82f640", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Globe size={16} /> Discover Pages
+          </button>
+        </div>
+
+        {/* Crawl Pending Card */}
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 16, padding: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <Zap size={20} style={{ color: "#facc15" }} />
+            <b style={{ fontSize: 16, color: D.text }}>2. Crawl & Embed</b>
+          </div>
+          <p style={{ fontSize: 13, color: D.muted, marginBottom: 20, lineHeight: 1.6 }}>
+            Scrape {crawlStatus?.pending ?? 0} pending URLs, extract text, and store AI vector embeddings. Processes 20 at a time.
+          </p>
+          <button disabled={crawling} onClick={() => triggerCrawl("crawl")} style={{ width: "100%", background: "#facc1522", color: "#facc15", border: "1px solid #facc1540", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Zap size={16} /> Process Queue
+          </button>
+        </div>
+      </div>
+
+      {/* Full Crawl */}
+      <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid #f8717140", borderRadius: 16, padding: 24, marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <RefreshCw size={20} style={{ color: "#f87171" }} />
+              <b style={{ fontSize: 16, color: D.text }}>Full Crawl (Discover + Process)</b>
+            </div>
+            <p style={{ fontSize: 13, color: D.muted }}>Discovers new pages from sitemap AND processes 20 pending URLs in one shot.</p>
+          </div>
+          <button disabled={crawling} onClick={() => triggerCrawl("full")} style={{ whiteSpace: "nowrap", background: "#f87171", color: "#000", border: "none", padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: crawling ? 0.6 : 1 }}>
+            {crawling ? <><RefreshCw size={16} style={{ animation: "spin 1s linear infinite" }} /> Running...</> : <><RefreshCw size={16} /> Run Full Crawl</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Crawl Log Message */}
+      {crawlMessage && (
+        <div style={{ background: crawlMessage.startsWith("✅") ? "rgba(25,195,125,0.1)" : "rgba(248,113,113,0.1)", border: `1px solid ${crawlMessage.startsWith("✅") ? "#19c37d40" : "#f8717140"}`, borderRadius: 10, padding: 16, marginBottom: 24, fontSize: 14, color: crawlMessage.startsWith("✅") ? "#19c37d" : "#f87171" }}>
+          {crawlMessage}
+        </div>
+      )}
+
+      {/* Recent Crawl Queue */}
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: D.text }}>Recent Crawl Queue</h3>
+      <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "rgba(255,255,255,0.02)", textAlign: "left", fontSize: 12, color: D.muted, textTransform: "uppercase" }}>
+              <th style={{ padding: "12px 20px" }}>URL</th>
+              <th style={{ padding: "12px 20px" }}>Status</th>
+              <th style={{ padding: "12px 20px" }}>Last Crawled</th>
+            </tr>
+          </thead>
+          <tbody>
+            {crawlQueue.length === 0 ? (
+              <tr><td colSpan={3} style={{ padding: "32px 20px", textAlign: "center", color: D.muted }}>No pages in queue yet. Run "Discover Pages" first.</td></tr>
+            ) : crawlQueue.map(row => (
+              <tr key={row.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+                <td style={{ padding: "12px 20px", fontSize: 12, color: D.text, maxWidth: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <a href={row.url} target="_blank" rel="noopener noreferrer" style={{ color: "#60a5fa", textDecoration: "none" }}>{row.url}</a>
+                </td>
+                <td style={{ padding: "12px 20px" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: row.status === "done" ? "rgba(25,195,125,0.1)" : row.status === "failed" ? "rgba(248,113,113,0.1)" : row.status === "crawling" ? "rgba(251,191,36,0.1)" : "rgba(255,255,255,0.05)", color: row.status === "done" ? "#19c37d" : row.status === "failed" ? "#f87171" : row.status === "crawling" ? "#fbbf24" : D.muted }}>
+                    {row.status === "done" ? <CheckCircle2 size={12} /> : row.status === "failed" ? <XCircle size={12} /> : <Clock size={12} />}
+                    {row.status}
+                  </span>
+                  {row.error && <span title={row.error} style={{ fontSize: 11, color: "#f87171", display: "block", marginTop: 4 }}>⚠ {row.error.slice(0, 60)}...</span>}
+                </td>
+                <td style={{ padding: "12px 20px", fontSize: 12, color: D.muted }}>
+                  {row.last_crawled_at ? new Date(row.last_crawled_at).toLocaleString() : "—"}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
