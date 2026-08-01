@@ -35,6 +35,7 @@ function groupByDate(convs: Conversation[]) {
 }
 
 import { MarkdownRender as MarkdownMessage } from "./markdown-render";
+import { EscalateModal } from "./escalate-modal";
 
 export function StudentWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
@@ -76,6 +77,7 @@ export function StudentWorkspace() {
   const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [semesterStart, setSemesterStart] = useState("");
+  const [escalatePayload, setEscalatePayload] = useState<{subject: string, body: string} | null>(null);
 
   const toggleListening = () => {
     if (isListening) {
@@ -381,9 +383,9 @@ export function StudentWorkspace() {
   };
 
   const escalateToHuman = (msgContent: string) => {
-    setTicketSubject(`Question about: ${activeConv?.title || 'KiliGuide Answer'}`);
-    setTicketDesc(`I need further human clarification regarding this response:\n\n"${msgContent.substring(0, 100)}..."`);
-    switchTab("Support");
+    const subject = `Question about: ${activeConv?.title || 'KiliGuide Answer'}`;
+    const body = `I need further human clarification regarding this response:\n\n"${msgContent.substring(0, 100)}..."`;
+    setEscalatePayload({ subject, body });
   };
 
   const ask = async (value = query) => {
@@ -1548,8 +1550,7 @@ export function StudentWorkspace() {
         ) : null}
       </section>
 
-
-
+      <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} />
     </main>
   );
 }

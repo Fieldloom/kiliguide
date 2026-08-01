@@ -65,8 +65,11 @@ function MarkdownMessage({ content }: { content: string }) {
   );
 }
 
+import { EscalateModal } from "./escalate-modal";
+
 export function LecturerWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
+  const [escalatePayload, setEscalatePayload] = useState<{subject: string, body: string} | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Lecturer");
@@ -201,9 +204,9 @@ export function LecturerWorkspace() {
   };
 
   const escalateToHuman = (msgContent: string) => {
-    setTicketSubject(`Question about: ${activeConv?.title || 'KiliGuide Answer'}`);
-    setTicketDesc(`I need further human clarification regarding this response:\n\n"${msgContent.substring(0, 100)}..."`);
-    switchTab("Support");
+    const subject = `Question about: ${activeConv?.title || 'KiliGuide Answer'}`;
+    const body = `I need further human clarification regarding this response:\n\n"${msgContent.substring(0, 100)}..."`;
+    setEscalatePayload({ subject, body });
   };
 
   const ask = async (value = query) => {
@@ -819,8 +822,7 @@ export function LecturerWorkspace() {
         ) : null}
       </section>
 
-
-
+      <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} />
     </main>
   );
 }
