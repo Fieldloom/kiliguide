@@ -870,6 +870,10 @@ function Compose({ onClose }: { onClose: () => void }) {
         </label>
         <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
           MESSAGE
+          <textarea value={body} onChange={e=>setBody(e.target.value)} disabled={busy} rows={5} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", resize: "vertical" }} placeholder="Type the notice..."
+            onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
+            onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
+        </label>
         <button onClick={save} style={{ marginTop: 20, width: "100%", borderRadius: 8, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#000", cursor: "pointer", border: "none" }}>Publish Notice</button>
       </section>
     </div>
