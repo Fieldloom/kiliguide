@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+apscheduler
+trafilatura
+beautifulsoup4
+lxml
+httpx
+pymupdf
+pydantic-settings
+psycopg2-binary
+pgvector
+playwright

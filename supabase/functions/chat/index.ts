@@ -176,63 +176,62 @@ Deno.serve(async (req) => {
     let sources: any[] = [];
     let context = "";
 
-    if (!forceWebSearch) {
-      // 1. Semantic Caching Check (using contextualized vector)
-      const { data: cacheHit } = await supabase.rpc("match_cached_query", { query_embedding: vector, p_institution_id: institutionId, match_threshold: 0.95 });
-      if (cacheHit && cacheHit.length > 0 && cacheHit[0].answer !== "escalating...") {
-        const hit = cacheHit[0];
-        if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: hit.answer, sources: hit.sources, confidence: hit.confidence }]);
-        return Response.json({ answer: hit.answer, sources: hit.sources, confidence: hit.confidence, escalate: false, debug: { provider: "CACHE", similarity: hit.similarity } }, { headers: CORS });
+    // 1. Semantic Caching Check (using contextualized vector)
+    const { data: cacheHit } = await supabase.rpc("match_cached_query", { query_embedding: vector, p_institution_id: institutionId, match_threshold: 0.95 });
+    if (cacheHit && cacheHit.length > 0 && cacheHit[0].answer !== "escalating...") {
+      const hit = cacheHit[0];
+      if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: hit.answer, sources: hit.sources, confidence: hit.confidence }]);
+      return Response.json({ answer: hit.answer, sources: hit.sources, confidence: hit.confidence, escalate: false, debug: { provider: "CACHE", similarity: hit.similarity } }, { headers: CORS });
+    }
+
+    // 2. Hybrid Search (RRF) (using contextualized text)
+    const { data: rawChunks, error } = await supabase.rpc("hybrid_search_chunks", { query_text: standaloneQuery, query_embedding: vector, p_institution_id: institutionId, metadata_filter: metadataFilter, match_count: 15 });
+    if (error) throw error;
+
+    // 3. Context Compression
+    let finalChunks: any[] = [];
+    if (rawChunks && rawChunks.length > 0) {
+      const docMap = new Map<string, any[]>();
+      for (const chunk of rawChunks) {
+        if (!docMap.has(chunk.document_id)) docMap.set(chunk.document_id, []);
+        docMap.get(chunk.document_id)!.push(chunk);
       }
-
-      // 2. Hybrid Search (RRF) (using contextualized text)
-      const { data: rawChunks, error } = await supabase.rpc("hybrid_search_chunks", { query_text: standaloneQuery, query_embedding: vector, p_institution_id: institutionId, metadata_filter: metadataFilter, match_count: 15 });
-      if (error) throw error;
-
-      // 3. Context Compression
-      let finalChunks: any[] = [];
-      if (rawChunks && rawChunks.length > 0) {
-        const docMap = new Map<string, any[]>();
-        for (const chunk of rawChunks) {
-          if (!docMap.has(chunk.document_id)) docMap.set(chunk.document_id, []);
-          docMap.get(chunk.document_id)!.push(chunk);
-        }
-        for (const [_, docChunks] of docMap.entries()) {
-          docChunks.sort((a, b) => a.chunk_index - b.chunk_index);
-          let currentChunk = { ...docChunks[0] };
-          for (let i = 1; i < docChunks.length; i++) {
-            const next = docChunks[i];
-            if (next.chunk_index === currentChunk.chunk_index + 1) {
-              currentChunk.content += "\n\n" + next.content;
-              currentChunk.chunk_index = next.chunk_index; 
-            } else {
-              finalChunks.push(currentChunk);
-              currentChunk = { ...next };
-            }
+      for (const [_, docChunks] of docMap.entries()) {
+        docChunks.sort((a, b) => a.chunk_index - b.chunk_index);
+        let currentChunk = { ...docChunks[0] };
+        for (let i = 1; i < docChunks.length; i++) {
+          const next = docChunks[i];
+          if (next.chunk_index === currentChunk.chunk_index + 1) {
+            currentChunk.content += "\n\n" + next.content;
+            currentChunk.chunk_index = next.chunk_index; 
+          } else {
+            finalChunks.push(currentChunk);
+            currentChunk = { ...next };
           }
-          finalChunks.push(currentChunk);
         }
-        finalChunks.sort((a, b) => (b.score ?? b.similarity) - (a.score ?? a.similarity));
-        finalChunks = finalChunks.slice(0, 6);
+        finalChunks.push(currentChunk);
       }
+      finalChunks.sort((a, b) => (b.score ?? b.similarity) - (a.score ?? a.similarity));
+      finalChunks = finalChunks.slice(0, 6);
+    }
 
-      const isGreeting = /^(hi|hello|hey|greetings|help|who are you|what can you do)[\s\W]*$/i.test(question);
+    const isGreeting = /^(hi|hello|hey|greetings|help|who are you|what can you do)[\s\W]*$/i.test(question);
 
-      if (finalChunks.length > 0 && !isGreeting) { // Trust the hybrid search ranking
-        context = finalChunks.map((chunk: any, index: number) => `[${index + 1}] ${chunk.content}`).join("\n\n");
-        confidence = finalChunks[0].similarity;
-        sources = finalChunks.map((chunk: any) => ({ title: chunk.title, page: chunk.page_number }));
-      }
+    if (finalChunks.length > 0 && !isGreeting) { // Trust the hybrid search ranking
+      context = finalChunks.map((chunk: any, index: number) => `[${index + 1}] ${chunk.content}`).join("\n\n");
+      confidence = finalChunks[0].similarity;
+      sources = finalChunks.map((chunk: any) => ({ title: chunk.title, page: chunk.page_number }));
+    }
 
-      // 4. Confidence-based LLM Bypass
-      const isFactual = !/summarize|compare|list|explain|write|generate/i.test(question);
-      if (finalChunks.length > 0 && finalChunks[0].similarity > 0.85 && isFactual) {
-        const answer = `Extracted directly from documentation:\n\n${finalChunks[0].content}`;
-        if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: answer, sources, confidence }]);
-        return Response.json({ answer, sources, confidence, escalate: false, debug: { provider: "DIRECT_BYPASS", similarity: finalChunks[0].similarity } }, { headers: CORS });
-      }
+    // 4. Confidence-based LLM Bypass
+    const isFactual = !/summarize|compare|list|explain|write|generate/i.test(question);
+    if (finalChunks.length > 0 && finalChunks[0].similarity > 0.85 && isFactual) {
+      const answer = `Extracted directly from documentation:\n\n${finalChunks[0].content}`;
+      if (conversationId) await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: question }, { conversation_id: conversationId, role: "assistant", content: answer, sources, confidence }]);
+      return Response.json({ answer, sources, confidence, escalate: false, debug: { provider: "DIRECT_BYPASS", similarity: finalChunks[0].similarity } }, { headers: CORS });
+    }
 
-      const instruction = `You are KiliGuide, a smart-campus assistant for DeKUT (Dedan Kimathi University of Technology).
+    const instruction = `You are KiliGuide, a smart-campus assistant for DeKUT (Dedan Kimathi University of Technology).
 Your capabilities: You can answer questions about the university based on official documents, check timetables, and help with campus notices.
 Rules for answering:
 1. **Multilingual**: You MUST reply in the EXACT same language that the user asks the question in (e.g., Swahili, French, English).
@@ -250,95 +249,89 @@ ${customInstructions ? `USER'S CUSTOM INSTRUCTIONS:\nThe user has provided the f
 CONTEXT:
 ${context || "(No relevant documents found for this question)"}`;
 
-      const groqKey = Deno.env.get("GROQ_API_KEY");
-      if (groqKey && providerUsed === "none") {
-        try {
-          const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${groqKey}` },
-            body: JSON.stringify({
-              model: "llama-3.3-70b-versatile",
-              messages: [
-                { role: "system", content: instruction },
-                ...recentTurns.map(t => {
-                  const isUser = t.startsWith("user:");
-                  return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
-                }),
-                { role: "user", content: question }
-              ],
-              temperature: 0,
-              max_tokens: 2000,
-              response_format: { type: "json_object" }
-            })
-          });
-          if (groqRes.ok) {
-            const data = await groqRes.json();
-            jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
-            providerUsed = "GROQ";
-          }
-        } catch (e: any) {}
-      }
-
-      const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
-      if (nvidiaKey && providerUsed === "none") {
-        try {
-          const nvidiaRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${nvidiaKey}` },
-            body: JSON.stringify({
-              model: "meta/llama-3.1-70b-instruct",
-              messages: [
-                { role: "system", content: instruction },
-                ...recentTurns.map(t => {
-                  const isUser = t.startsWith("user:");
-                  return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
-                }),
-                { role: "user", content: question }
-              ],
-              temperature: 0,
-              max_tokens: 2000
-            })
-          });
-          if (nvidiaRes.ok) {
-            const data = await nvidiaRes.json();
-            jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
-            providerUsed = "NVIDIA";
-          }
-        } catch (e: any) {}
-      }
-
-      if (providerUsed === "none") {
-        const contents = [
-          ...recentTurns.map(t => {
-            const isUser = t.startsWith("user:");
-            return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
-          }),
-          { role: "user", parts: [{ text: question }] }
-        ];
-        const completion = await geminiJson("gemini-flash-latest:generateContent", { system_instruction: { parts: [{ text: instruction }] }, contents, generationConfig: { temperature: 0, maxOutputTokens: 2000, responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { answer: { type: "STRING" }, escalate: { type: "BOOLEAN" } }, required: ["answer", "escalate"] } } });
-        jsonStr = completion.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
-        providerUsed = "GEMINI";
-      }
-
-      const cleanJson = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    const groqKey = Deno.env.get("GROQ_API_KEY");
+    if (groqKey && providerUsed === "none") {
       try {
-        const parsed = JSON.parse(cleanJson);
-        if (parsed.answer != null && parsed.answer !== "") answer = String(parsed.answer);
-        if (parsed.escalate) escalate = true;
-      } catch (e: any) {
-        parseError = e.message;
-      }
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: instruction },
+              ...recentTurns.map(t => {
+                const isUser = t.startsWith("user:");
+                return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
+              }),
+              { role: "user", content: question }
+            ],
+            temperature: 0,
+            max_tokens: 2000,
+            response_format: { type: "json_object" }
+          })
+        });
+        if (groqRes.ok) {
+          const data = await groqRes.json();
+          jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
+          providerUsed = "GROQ";
+        }
+      } catch (e: any) {}
+    }
 
-      // If local search fails, return escalate IMMEDIATELY without saving to DB.
-      // The frontend will show "Searching official sources..." and call us back with forceWebSearch=true.
-      if (escalate || answer === unavailable) {
-         return Response.json({ answer: "escalating...", escalate: true }, { headers: CORS });
-      }
+    const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
+    if (nvidiaKey && providerUsed === "none") {
+      try {
+        const nvidiaRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${nvidiaKey}` },
+          body: JSON.stringify({
+            model: "meta/llama-3.1-70b-instruct",
+            messages: [
+              { role: "system", content: instruction },
+              ...recentTurns.map(t => {
+                const isUser = t.startsWith("user:");
+                return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
+              }),
+              { role: "user", content: question }
+            ],
+            temperature: 0,
+            max_tokens: 2000
+          })
+        });
+        if (nvidiaRes.ok) {
+          const data = await nvidiaRes.json();
+          jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
+          providerUsed = "NVIDIA";
+        }
+      } catch (e: any) {}
+    }
 
-    } else {
-      // ----------------------------------------------------
-      // FORCE WEB SEARCH MODE
-      // ----------------------------------------------------
+    if (providerUsed === "none") {
+      const contents = [
+        ...recentTurns.map(t => {
+          const isUser = t.startsWith("user:");
+          return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
+        }),
+        { role: "user", parts: [{ text: question }] }
+      ];
+      const completion = await geminiJson("gemini-flash-latest:generateContent", { system_instruction: { parts: [{ text: instruction }] }, contents, generationConfig: { temperature: 0, maxOutputTokens: 2000, responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { answer: { type: "STRING" }, escalate: { type: "BOOLEAN" } }, required: ["answer", "escalate"] } } });
+      jsonStr = completion.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
+      providerUsed = "GEMINI";
+    }
+
+    const cleanJson = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    try {
+      const parsed = JSON.parse(cleanJson);
+      if (parsed.answer != null && parsed.answer !== "") answer = String(parsed.answer);
+      if (parsed.escalate) escalate = true;
+    } catch (e: any) {
+      parseError = e.message;
+    }
+
+    // ----------------------------------------------------
+    // FALLBACK: LIVE WEB SEARCH
+    // ----------------------------------------------------
+    if (escalate || answer === unavailable) {
       try {
         const fallbackInstruction = `You are an AI assistant specializing in Kenyan higher education. The user asked a question that was not in our local database. Please use your Google Search tool to find the answer.
 Use ONLY official government and institution websites as sources when answering questions. If information is unavailable, state that clearly rather than guessing.
@@ -385,28 +378,36 @@ Guidelines:
 
         if (fallbackText && fallbackText !== "UNAVAILABLE" && fallbackText.length > 10 && !fallbackText.toUpperCase().includes("UNAVAILABLE")) {
           answer = fallbackText;
-          escalate = false;
+          escalate = false; // We found the answer on the web, no need to escalate to human
           
           // Parse dynamic web sources from Gemini Grounding Metadata
           const chunks = fallbackRes.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
           let hasWebSource = false;
+          let sourceMarkdown = "\n\n---\n**Official Web Sources:**\n";
+          
           for (const chunk of chunks) {
             if (chunk.web?.uri) {
                sources.push({ title: chunk.web.title || "Web Search", url: chunk.web.uri });
+               sourceMarkdown += `- [${chunk.web.title || chunk.web.uri}](${chunk.web.uri})\n`;
                hasWebSource = true;
             }
           }
           if (!hasWebSource) {
              sources.push({ title: "Live Web Search (dkut.ac.ke & partners)", url: null });
+             sourceMarkdown += `- Live Web Search\n`;
           }
           
+          // Append the sources directly to the text so the user definitely sees them!
+          answer += sourceMarkdown;
           providerUsed = "GEMINI_WEB_SEARCH";
         } else {
           answer = "I could not find the answer in our local database or on the live web. Please try rephrasing your question or contact support for assistance.";
+          escalate = true;
         }
       } catch (err: any) {
         console.error("Web search fallback failed:", err);
         answer = "I could not extract a clear answer from the database, and the web search fallback encountered an error. Please contact support.";
+        escalate = true;
       }
     }
 
