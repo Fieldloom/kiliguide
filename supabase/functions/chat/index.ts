@@ -274,8 +274,12 @@ ${context || "(No relevant documents found for this question)"}`;
           const data = await groqRes.json();
           jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
           providerUsed = "GROQ";
+        } else {
+          console.error("Groq failed:", groqRes.status, await groqRes.text());
         }
-      } catch (e: any) {}
+      } catch (e: any) {
+        console.error("Groq exception:", e);
+      }
     }
 
     const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
@@ -314,9 +318,15 @@ ${context || "(No relevant documents found for this question)"}`;
         }),
         { role: "user", parts: [{ text: question }] }
       ];
-      const completion = await geminiJson("gemini-flash-latest:generateContent", { system_instruction: { parts: [{ text: instruction }] }, contents, generationConfig: { temperature: 0, maxOutputTokens: 2000, responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { answer: { type: "STRING" }, escalate: { type: "BOOLEAN" } }, required: ["answer", "escalate"] } } });
-      jsonStr = completion.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
-      providerUsed = "GEMINI";
+      try {
+        const completion = await geminiJson("gemini-flash-latest:generateContent", { system_instruction: { parts: [{ text: instruction }] }, contents, generationConfig: { temperature: 0, maxOutputTokens: 2000, responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { answer: { type: "STRING" }, escalate: { type: "BOOLEAN" } }, required: ["answer", "escalate"] } } });
+        jsonStr = completion.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
+        providerUsed = "GEMINI";
+      } catch (e: any) {
+        console.error("Gemini fallback failed:", e);
+        // All models failed!
+        return Response.json({ answer: "The AI providers are currently experiencing high demand or errors. Please try again in a few moments.", escalate: true, sources: [], confidence: 0 }, { headers: CORS });
+      }
     }
 
     const cleanJson = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();

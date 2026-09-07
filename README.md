@@ -14,6 +14,7 @@ KiliGuide is a source-grounded smart-campus platform by KiliMind AI. It helps st
 - Support tickets: create tickets and view their department, status, and updates
 - Profile and notification settings interface
 - English / Kiswahili language switch control
+- **OpenAPI Developer Portal**: Interactive `/developers` API documentation route for easy 3rd-party integration.
 
 ### Role-based portals
 
@@ -26,24 +27,33 @@ Each role has its own workspace at `/portal/[role]`:
 | Department staff | `/portal/department` | Manage departmental notices/documents and assign support tickets |
 | Administrator | `/portal/administrator` | Manage platform operations, users, knowledge-base health, and analytics |
 
-The user-role model is in place. When Supabase Auth is connected, navigation and access will be enforced from each user’s `user_roles` record.
-
 ### Advanced Multi-stage RAG Orchestrator
 
 KiliGuide uses a sophisticated chat orchestrator pipeline to balance speed, cost, and accuracy when answering university questions:
 
-1. **Document Ingestion**: Documents uploaded to Supabase are chunked, embedded using Gemini Embedding 2 (768-dim), and stored in PostgreSQL using pgvector.
-2. **Query Contextualization**: When a user asks a follow-up question, a fast LLM rewrites it into a standalone query using the conversation history.
-3. **Semantic Caching**: The orchestrator checks the `query_cache` table for a >95% vector match. If found, it serves an instant response without querying the generation LLM.
-4. **Hybrid Search & Context Compression**: It uses a hybrid search (semantic vector + keyword text match) to retrieve relevant chunks, automatically merging adjacent chunks from the same document to restore lost context.
-5. **Confidence-based LLM Bypass**: For purely factual queries with a similarity score > 85%, the orchestrator skips the generation LLM entirely and serves the raw extracted text directly to the user.
-6. **LLM Routing & Generation**: If generation is needed, the orchestrator attempts to route to Groq (Llama-3.3) for ultra-fast inference, then falls back to NVIDIA NIM (Llama-3.1-70B), and seamlessly falls back to Gemini 2.5 Flash if both fail. The response includes sources and confidence scores.
+1. **Automated Crawler (Python)**: A background Python ingestion service continuously scrapes university sitemaps, extracting deep web pages and embedded PDFs automatically.
+2. **Document Ingestion**: Documents uploaded to Supabase (or scraped by the crawler) are chunked, embedded using Gemini Embedding 2 (768-dim), and stored in PostgreSQL using pgvector.
+3. **Query Contextualization**: When a user asks a follow-up question, a fast LLM rewrites it into a standalone query using the conversation history.
+4. **Semantic Caching**: The orchestrator checks the `query_cache` table for a >95% vector match. If found, it serves an instant response without querying the generation LLM.
+5. **Hybrid Search & Context Compression**: It uses a hybrid search (semantic vector + keyword text match) to retrieve relevant chunks, automatically merging adjacent chunks from the same document to restore lost context.
+6. **Confidence-based LLM Bypass**: For purely factual queries with a similarity score > 85%, the orchestrator skips the generation LLM entirely and serves the raw extracted text directly to the user.
+7. **LLM Routing & Web Fallback**: If generation is needed, the orchestrator attempts to route to Groq (Llama-3.3) for ultra-fast inference, then falls back to NVIDIA NIM (Llama-3.1-70B), and seamlessly falls back to Gemini 2.5 Flash if both fail. If the internal knowledge base lacks the answer, the AI safely utilizes a **Web Search Fallback** to dynamically search trusted official educational sites.
+
+### Python Automated Crawler & Ingestion Service
+
+The `ingestion-service/` directory contains a robust, production-ready Python backend built on **FastAPI**. This service handles the heavy lifting of keeping the AI's knowledge base perfectly synchronized with the university website.
+
+* **Sitemap Scraping:** Automatically reads and parses `sitemap.xml`.
+* **Playwright SPA Rendering:** Uses headless Chromium to render JavaScript-heavy pages before scraping.
+* **Smart PDF Extraction:** Automatically discovers linked `.pdf` files and parses their text using PyMuPDF and LlamaParse/NVIDIA Vision APIs.
+* **Ghost Vector Deletion:** Cross-references the live sitemap with the Supabase database to automatically prune stale embeddings for deleted pages.
+* **APScheduler:** Fully configurable background execution interval (e.g., runs every hour).
 
 ### Edge Functions
 
 | Function | Purpose |
 | --- | --- |
-| `chat` | Source-grounded Gemini chat, source attribution, confidence scoring, conversation logging |
+| `chat` | Source-grounded Gemini chat, web search fallback, source attribution, confidence scoring |
 | `ingest-document` | Text chunking, Gemini embeddings, pgvector indexing, document processing status |
 | `summarize-notice` | Concise Gemini notice summaries and important-date extraction |
 | `publish-update` | Matches a new document/notice audience to registered users and creates in-app notifications |
@@ -51,31 +61,23 @@ KiliGuide uses a sophisticated chat orchestrator pipeline to balance speed, cost
 | `dispatch-event-reminders` | Delivers due in-app class reminders; schedule it every minute or two |
 | `save-push-subscription` | Saves an authenticated user's device-specific browser push subscription |
 
-### Audience-aware update workflow
-
-During registration, profiles can carry programme, study year, campus, department, and role data. Administrators add an `audience` to a document or notice—for example, students in a specific programme/year or a specific department. If `notify_on_ready` is enabled, ingestion automatically calls `publish-update` after indexing. It matches eligible profiles, creates deduplicated in-app notifications, and respects the document audience rather than broadcasting to everyone.
-
-### Private personal timetable automation
-
-Students can upload a timetable to the private `personal-resources` bucket. `analyze-timetable` uses Gemini to extract and expand classes across a specified semester date range, creates private calendar events, and adds an in-app reminder (30 minutes by default). Their timetable remains private: it is never inserted into the shared RAG knowledge base or available to other users. Schedule `dispatch-event-reminders` with Supabase Cron to create class alarms shortly before each event.
-
-KiliGuide is also a PWA. Users can visit `/notifications`, choose **Enable class alarms**, and grant browser permission. The service worker receives Web Push messages and displays operating-system notifications even when the web app is closed. Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in Vercel and `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` as Supabase Edge Function secrets.
-
-### Optional Python LangGraph service
-
-`rag_service/` contains a Python/FastAPI alternative for the chat RAG pipeline. It uses LangGraph to make the workflow explicit: retrieve official chunks → deterministic evidence gate → answer or refuse. Use it when you want Python deployment, graph tracing, and a foundation for future approval or ticket-routing workflows. See [`rag_service/README.md`](rag_service/README.md).
-
 ## Technical stack
 
 - Next.js 15, React 19, TypeScript, Tailwind CSS
 - Supabase Auth, PostgreSQL, Storage, Edge Functions
 - pgvector for semantic retrieval
 - Gemini API: Gemini Embedding 2 and Gemini 2.5 Flash
-- Vercel for frontend deployment
+- Python 3.12, FastAPI, BeautifulSoup4, Trafilatura, Playwright (Ingestion Service)
+- Vercel for frontend CI/CD deployment
+
+## OpenAPI Developer Portal
+
+KiliGuide now features a centralized **Developer Portal** located at `/developers`. 
+This interactive portal uses `swagger-ui-react` to parse the `public/openapi.yaml` specification, allowing third-party developers, student organizations, and external university systems to safely consume the KiliGuide Chat API and Ingestion Webhooks.
 
 ## Database and security
 
-The Supabase migration creates profiles, roles, departments, documents, chunks, embeddings, conversations, messages, reminders, notices, tickets, and ticket messages.
+The Supabase migration creates profiles, roles, departments, documents, chunks, embeddings, conversations, messages, reminders, notices, tickets, ticket messages, and crawled pages.
 
 Row-Level Security is enabled for application data. The schema includes policies for user-owned records, ticket participants, administrators, active documents, document storage, and role checks. Never expose the Supabase service-role key or Gemini API key to the browser.
 
@@ -92,12 +94,12 @@ Row-Level Security is enabled for application data. The schema includes policies
 
 4. Open `http://localhost:3000`.
 
-The UI can be explored without credentials using preview data. Authentication and live data activate after Supabase is configured.
+To view the interactive API Documentation, navigate to `http://localhost:3000/developers`.
 
 ## Supabase configuration
 
 1. Create a Supabase project.
-2. Apply `supabase/migrations/20260717000000_kiliguide_schema.sql` through the Supabase CLI or SQL Editor.
+2. Apply `supabase/migrations/20260717000000_kiliguide_schema.sql` and `20260801000000_add_crawled_pages.sql` through the Supabase CLI or SQL Editor.
 3. Enable Email/Password authentication and configure permitted redirect URLs, including `http://localhost:3000/auth/callback` for development.
 4. Add the frontend Supabase URL and anon key to `.env.local`.
 5. Store server-only secrets in Supabase—not in `.env.local` committed to source control:
@@ -107,38 +109,10 @@ The UI can be explored without credentials using preview data. Authentication an
    supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    ```
 
-6. Deploy functions:
+## Deployment & Version Control
 
-   ```bash
-   supabase functions deploy chat
-   supabase functions deploy ingest-document
-   supabase functions deploy summarize-notice
-   supabase functions deploy publish-update
-   supabase functions deploy analyze-timetable
-   supabase functions deploy dispatch-event-reminders
-   supabase functions deploy save-push-subscription
-   ```
+KiliGuide uses a secure Continuous Deployment (CI/CD) pipeline integrated with GitHub and Vercel.
 
-7. After the initial administrator has signed up, run `supabase/scripts/assign_initial_administrator.sql` once in the Supabase SQL Editor. This is a one-time bootstrap action, not a permanent email-based privilege rule.
-
-## Document ingestion contract
-
-Upload the original PDF, DOCX, or TXT file to the private `documents` Storage bucket, create the corresponding row in `documents`, extract text using a worker or trusted server process, then call `ingest-document` with:
-
-```json
-{ "documentId": "uuid", "text": "Extracted document text", "pageNumber": 1 }
-```
-
-For large documents, process text extraction and ingestion in a background queue. Reprocessing a document safely replaces its existing chunks before recreating embeddings.
-
-## Deployment
-
-1. Deploy the Next.js app to Vercel.
-2. Add the production Supabase URL and anon key to Vercel environment variables.
-3. Deploy Supabase Edge Functions and set their server-only secrets.
-4. Add the Vercel production URL to Supabase Auth redirect URLs.
-5. Run `npm run build` before release.
-
-## Important implementation status
-
-The interface, role portals, schema, RLS foundation, Gemini RAG functions, and frontend API contracts are implemented. To make every interface live, connect the Supabase project, deploy the functions, and wire each screen to the real records. Production roles should be assigned by administrators through `user_roles`, never chosen by users at sign-up.
+1. **Staging Environment:** All active development happens on the `staging` branch, which Vercel automatically builds into a Preview URL.
+2. **Production:** Once features are tested in staging, a Pull Request is merged into `main`, which instantly deploys to the live production domain.
+3. **Secrets Management:** Environment variables (`.env.local` and `.env.vercel`) are strictly excluded via `.gitignore` and must be entered securely via the Vercel Dashboard.

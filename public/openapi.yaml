@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: KiliGuide API
+  description: Public API documentation for the KiliGuide smart campus platform. Access internal university data, chat functions, and the AI ingestion engine.
+  version: "0.2.0"
+servers:
+  - url: https://jxspwvfxugckztzuogot.supabase.co/functions/v1
+    description: Supabase Edge Functions (Production)
+  - url: http://localhost:8000
+    description: Local Ingestion Service
+tags:
+  - name: Chat
+    description: Core conversational AI endpoints
+  - name: Ingestion
+    description: Crawler and embedding engine endpoints
+paths:
+  /chat:
+    post:
+      summary: Ask KiliGuide a question
+      description: Submit a query to the KiliGuide AI assistant. Returns an answer generated from the official Dedan Kimathi University vector database or official Kenyan educational web sources.
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: The query to ask the AI
+                  example: "How do I apply for a HELB loan?"
+      responses:
+        "200":
+          description: Successful AI response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: string
+                    description: The Markdown formatted answer
+                  escalate:
+                    type: boolean
+                    description: True if the AI cannot find the answer and the user should be routed to human support
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+                  confidence:
+                    type: number
+                    description: The similarity score from the vector database
+      security:
+        - BearerAuth: []
+
+  /ingest/crawl:
+    post:
+      summary: Trigger web crawler
+      description: Triggers the Python background crawler to scan the sitemap and ingest new pages into the vector database.
+      tags:
+        - Ingestion
+      responses:
+        "202":
+          description: Crawler triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "accepted"
+
+  /ingest/status:
+    get:
+      summary: Get ingestion status
+      description: Returns the status of the current or most recent crawler job.
+      tags:
+        - Ingestion
+      responses:
+        "200":
+          description: Status response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "idle"
+                  total_urls:
+                    type: integer
+                  embedded:
+                    type: integer
+                  errors:
+                    type: integer
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Your Supabase Anon Key (for public endpoints) or Service Role Key (for protected ingestion routes).
