@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       if (!nvidiaKey) throw new Error("NVIDIA_API_KEY is not configured.");
 
       const payload = {
-        model: "meta/llama-3.2-90b-vision-instruct",
+        model: "meta/llama-3.2-11b-vision-instruct",
         messages: [
           {
             role: "user",
