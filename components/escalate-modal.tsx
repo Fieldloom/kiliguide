@@ -22,8 +22,9 @@ export function EscalateModal({
   ];
 
   const handleDraft = (email: string) => {
-    const url = `mailto:${email}?subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(payload.body)}`;
-    window.location.href = url;
+    const enhancedBody = `Hello Support,\n\nI need some help regarding a query I asked KiliGuide.\n\n${payload.body}\n\nCould you please provide further clarification?\n\nBest regards,`;
+    const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(enhancedBody)}`;
+    window.open(url, '_blank');
     onClose();
   };
 
