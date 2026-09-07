@@ -30,28 +30,66 @@ Deno.serve(async (req) => {
 
     const promptText = `Analyze this student timetable document. Extract all unique Class Groups (Semesters like 'BBIT 3.1', 'IT 2.1') found in the column headers, and all unique Course/Unit names found in the cells. Also, map which courses belong to which Class Group. Return JSON only in this exact format: {"groups":["string"],"courses":["string"], "mapped": {"group_name": ["course_name"]}}. Do not include times or dates, just the strings.`;
     
-    const payload = {
-      contents: [{
-        parts: [
-          { text: promptText },
-          { inline_data: { mime_type: mimeType, data: base64Data } }
-        ]
-      }],
-      generationConfig: { temperature: 0, responseMimeType: "application/json" }
-    };
+    let textResult = "{}";
 
-    const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Gemini API error body:", errText);
-      throw new Error("Gemini request failed: " + errText);
+    if (mimeType.startsWith("image/")) {
+      // Use Groq for images
+      const groqKey = Deno.env.get("GROQ_API_KEY");
+      if (!groqKey) throw new Error("GROQ_API_KEY is not configured.");
+
+      const payload = {
+        model: "llama-3.2-90b-vision-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: promptText },
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } }
+            ]
+          }
+        ],
+        temperature: 0,
+        response_format: { type: "json_object" }
+      };
+
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${groqKey}` }, body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Groq API error body:", errText);
+        throw new Error("Groq request failed: " + errText);
+      }
+
+      const result = await response.json();
+      textResult = result.choices?.[0]?.message?.content ?? "{}";
+    } else {
+      // Use Gemini for PDFs
+      const payload = {
+        contents: [{
+          parts: [
+            { text: promptText },
+            { inline_data: { mime_type: mimeType, data: base64Data } }
+          ]
+        }],
+        generationConfig: { temperature: 0, responseMimeType: "application/json" }
+      };
+
+      const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Gemini API error body:", errText);
+        throw new Error("Gemini request failed: " + errText);
+      }
+      
+      const result = await response.json(); 
+      textResult = result.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
     }
     
-    const result = await response.json(); 
-    let textResult = result.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
     textResult = textResult.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
     
     let parsed: any = {};
@@ -59,7 +97,7 @@ Deno.serve(async (req) => {
       parsed = JSON.parse(textResult);
     } catch (parseErr) {
       console.error("JSON parse error:", parseErr, "Text:", textResult);
-      throw new Error("Failed to parse Gemini response as JSON.");
+      throw new Error("Failed to parse AI response as JSON.");
     }
     
     return Response.json({
