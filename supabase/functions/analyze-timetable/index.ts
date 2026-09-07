@@ -42,12 +42,12 @@ Deno.serve(async (req) => {
     let textResult = "{}";
 
     if (mimeType.startsWith("image/")) {
-      // Use Groq for images
-      const groqKey = Deno.env.get("GROQ_API_KEY");
-      if (!groqKey) throw new Error("GROQ_API_KEY is not configured.");
+      // Use NVIDIA for images
+      const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
+      if (!nvidiaKey) throw new Error("NVIDIA_API_KEY is not configured.");
 
       const payload = {
-        model: "llama-3.2-90b-vision-preview",
+        model: "meta/llama-3.2-90b-vision-instruct",
         messages: [
           {
             role: "user",
@@ -58,17 +58,17 @@ Deno.serve(async (req) => {
           }
         ],
         temperature: 0,
-        response_format: { type: "json_object" }
+        max_tokens: 2000
       };
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${groqKey}` }, body: JSON.stringify(payload)
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${nvidiaKey}` }, body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error("Groq API error body:", errText);
-        throw new Error("Groq request failed: " + errText);
+        console.error("NVIDIA API error body:", errText);
+        throw new Error("NVIDIA request failed: " + errText);
       }
 
       const result = await response.json();
