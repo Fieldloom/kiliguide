@@ -249,14 +249,14 @@ ${customInstructions ? `USER'S CUSTOM INSTRUCTIONS:\nThe user has provided the f
 CONTEXT:
 ${context || "(No relevant documents found for this question)"}`;
 
-    const groqKey = Deno.env.get("GROQ_API_KEY");
-    if (groqKey && providerUsed === "none") {
+    const cerebrasKey = Deno.env.get("CEREBRAS_API_KEY");
+    if (cerebrasKey && providerUsed === "none") {
       try {
-        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const cerebrasRes = await fetch("https://api.cerebras.ai/v1/chat/completions", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${groqKey}` },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cerebrasKey}` },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model: "llama3.1-70b",
             messages: [
               { role: "system", content: instruction },
               ...recentTurns.map(t => {
@@ -266,7 +266,40 @@ ${context || "(No relevant documents found for this question)"}`;
               { role: "user", content: question }
             ],
             temperature: 0,
-            max_tokens: 2000,
+            max_tokens: 1000,
+            response_format: { type: "json_object" }
+          })
+        });
+        if (cerebrasRes.ok) {
+          const data = await cerebrasRes.json();
+          jsonStr = data.choices?.[0]?.message?.content?.trim() || "{}";
+          providerUsed = "CEREBRAS";
+        } else {
+          console.error("Cerebras failed:", cerebrasRes.status, await cerebrasRes.text());
+        }
+      } catch (e: any) {
+        console.error("Cerebras exception:", e);
+      }
+    }
+
+    const groqKey = Deno.env.get("GROQ_API_KEY");
+    if (groqKey && providerUsed === "none") {
+      try {
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: "openai/gpt-oss-120b",
+            messages: [
+              { role: "system", content: instruction },
+              ...recentTurns.map(t => {
+                const isUser = t.startsWith("user:");
+                return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
+              }),
+              { role: "user", content: question }
+            ],
+            temperature: 0,
+            max_tokens: 1000,
             response_format: { type: "json_object" }
           })
         });
@@ -339,87 +372,13 @@ ${context || "(No relevant documents found for this question)"}`;
     }
 
     // ----------------------------------------------------
-    // FALLBACK: LIVE WEB SEARCH
+    // FALLBACK: LIVE WEB SEARCH (DISABLED BY USER)
     // ----------------------------------------------------
+    /*
     if (escalate || answer === unavailable) {
-      try {
-        const fallbackInstruction = `You are an AI assistant specializing in Kenyan higher education. The user asked a question that was not in our local database. Please use your Google Search tool to find the answer.
-Use ONLY official government and institution websites as sources when answering questions. If information is unavailable, state that clearly rather than guessing.
-
-Official sources to restrict your search to (in addition to the university's main website):
-- Higher Education Loans Board (HELB): https://www.helb.co.ke
-- Higher Education Financing (HEF): https://www.hef.co.ke
-- Kenya Universities and Colleges Central Placement Service (KUCCPS): https://www.kuccps.net
-- KUCCPS Student Portal: https://students.kuccps.ac.ke
-- Ministry of Education (MoE): https://www.education.go.ke
-- Kenya National Examinations Council (KNEC): https://www.knec.ac.ke
-- Commission for University Education (CUE): https://www.cue.or.ke
-- Universities Fund (UF): https://www.ufb.go.ke
-- Technical and Vocational Education and Training Authority (TVETA): https://www.tveta.go.ke
-- Kenya Institute of Curriculum Development (KICD): https://kicd.ac.ke
-- Kenya National Qualifications Authority (KNQA): https://www.knqa.go.ke
-- Kenya Universities and Colleges Placement Service Programmes Portal: https://programmes.kuccps.net
-- Ministry of Education Grade 10 Placement Portal: https://placement.education.go.ke
-
-Guidelines:
-1. Prioritize official sources over blogs or news websites. Use 'site:domain.com' in your searches when possible.
-2. Cite the exact source URL used.
-3. If multiple official sources contain relevant information, synthesize the information and cite each source.
-4. Never fabricate information.
-5. Clearly distinguish between policies, announcements, application procedures, deadlines, and eligibility requirements.
-6. Return ONLY the answer in clear, beautiful Markdown format. Do NOT wrap it in JSON.
-7. If you cannot find the answer on the official web sources, reply with exactly the word "UNAVAILABLE".`;
-
-        const fallbackPayload = {
-          system_instruction: { parts: [{ text: fallbackInstruction }] },
-          contents: [
-            ...recentTurns.map(t => {
-              const isUser = t.startsWith("user:");
-              return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
-            }),
-            { role: "user", parts: [{ text: `Search the web for this query: ${standaloneQuery}` }] }
-          ],
-          tools: [{ googleSearch: {} }],
-          generationConfig: { temperature: 0 }
-        };
-
-        const fallbackRes = await geminiJson("gemini-flash-latest:generateContent", fallbackPayload);
-        const fallbackText = fallbackRes.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-        if (fallbackText && fallbackText !== "UNAVAILABLE" && fallbackText.length > 10 && !fallbackText.toUpperCase().includes("UNAVAILABLE")) {
-          answer = fallbackText;
-          escalate = false; // We found the answer on the web, no need to escalate to human
-          
-          // Parse dynamic web sources from Gemini Grounding Metadata
-          const chunks = fallbackRes.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-          let hasWebSource = false;
-          let sourceMarkdown = "\n\n---\n**Official Web Sources:**\n";
-          
-          for (const chunk of chunks) {
-            if (chunk.web?.uri) {
-               sources.push({ title: chunk.web.title || "Web Search", url: chunk.web.uri });
-               sourceMarkdown += `- [${chunk.web.title || chunk.web.uri}](${chunk.web.uri})\n`;
-               hasWebSource = true;
-            }
-          }
-          if (!hasWebSource) {
-             sources.push({ title: "Live Web Search (dkut.ac.ke & partners)", url: null });
-             sourceMarkdown += `- Live Web Search\n`;
-          }
-          
-          // Append the sources directly to the text so the user definitely sees them!
-          answer += sourceMarkdown;
-          providerUsed = "GEMINI_WEB_SEARCH";
-        } else {
-          answer = "I could not find the answer in our local database or on the live web. Please try rephrasing your question or contact support for assistance.";
-          escalate = true;
-        }
-      } catch (err: any) {
-        console.error("Web search fallback failed:", err);
-        answer = "I could not extract a clear answer from the database, and the web search fallback encountered an error. Please contact support.";
-        escalate = true;
-      }
+      ...
     }
+    */
 
     // 5. Cache Write
     if (answer !== unavailable && !escalate && providerUsed !== "none" && !forceWebSearch) {
