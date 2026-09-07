@@ -1,7 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiFetch } from "../_shared/gemini.ts";
 import { encodeBase64 } from "jsr:@std/encoding/base64";
+import * as pdfjsLib from "npm:pdfjs-dist@4.4.162";
 
+async function extractPdfText(buf: ArrayBuffer): Promise<string> {
+  const data = new Uint8Array(buf);
+  const pdfLib = (pdfjsLib as any).default ?? pdfjsLib;
+  const loadingTask = pdfLib.getDocument({ data, useSystemFonts: true });
+  const pdfDocument = await loadingTask.promise;
+  let fullText = "";
+  for (let i = 1; i <= pdfDocument.numPages; i++) {
+    const page = await pdfDocument.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(" ");
+    fullText += pageText + "\n\n";
+  }
+  return fullText.trim();
+}
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
 Deno.serve(async (req) => {
@@ -65,29 +80,35 @@ Deno.serve(async (req) => {
       const result = await response.json();
       textResult = result.choices?.[0]?.message?.content ?? "{}";
     } else {
-      // Use Gemini for PDFs
+      // Use Cerebras for PDFs after extracting text
+      const cerebrasKey = Deno.env.get("CEREBRAS_API_KEY");
+      if (!cerebrasKey) throw new Error("CEREBRAS_API_KEY is not configured.");
+      
+      const pdfText = await extractPdfText(buffer);
+      if (!pdfText) throw new Error("No text could be extracted from this PDF.");
+
       const payload = {
-        contents: [{
-          parts: [
-            { text: promptText },
-            { inline_data: { mime_type: mimeType, data: base64Data } }
-          ]
-        }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json" }
+        model: "llama3.1-70b",
+        messages: [
+          { role: "system", content: "You are a highly accurate data extraction system. You only output valid JSON based on the user's instructions." },
+          { role: "user", content: promptText + "\n\nRaw Extracted Timetable Text:\n" + pdfText }
+        ],
+        temperature: 0,
+        response_format: { type: "json_object" }
       };
 
-      const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+        method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cerebrasKey}` }, body: JSON.stringify(payload)
       });
       
       if (!response.ok) {
         const errText = await response.text();
-        console.error("Gemini API error body:", errText);
-        throw new Error("Gemini request failed: " + errText);
+        console.error("Cerebras API error body:", errText);
+        throw new Error("Cerebras request failed: " + errText);
       }
       
       const result = await response.json(); 
-      textResult = result.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+      textResult = result.choices?.[0]?.message?.content ?? "{}";
     }
     
     textResult = textResult.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
