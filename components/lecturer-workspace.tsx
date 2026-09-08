@@ -205,7 +205,7 @@ export function LecturerWorkspace() {
 
   const escalateToHuman = (msgContent: string) => {
     const subject = `Question about: ${activeConv?.title || 'KiliGuide Answer'}`;
-    const body = `I need further human clarification regarding this response:\n\n"${msgContent.substring(0, 100)}..."`;
+    const body = msgContent;
     setEscalatePayload({ subject, body });
   };
 

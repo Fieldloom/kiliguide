@@ -21,8 +21,49 @@ export function EscalateModal({
     { name: "IT / Webmaster", email: "webmaster@dkut.ac.ke" }
   ];
 
-  const handleDraft = (email: string) => {
-    const enhancedBody = `Hello Support,\n\nI need some help regarding a query I asked KiliGuide.\n\n${payload.body}\n\nCould you please provide further clarification?\n\nBest regards,`;
+  /** Strip markdown formatting so the email reads as clean plain text */
+  const stripMarkdown = (md: string): string =>
+    md
+      .replace(/```[\s\S]*?```/g, '')           // remove code blocks
+      .replace(/`([^`]+)`/g, '$1')               // inline code → plain
+      .replace(/\*\*([^*]+)\*\*/g, '$1')         // **bold** → plain
+      .replace(/\*([^*]+)\*/g, '$1')             // *italic* → plain
+      .replace(/^#{1,6}\s+/gm, '')               // ### headings → plain
+      .replace(/^\s*[-*]\s+/gm, '• ')            // bullet lists
+      .replace(/^\s*\d+\.\s+/gm, (m) => m.trim() + ' ') // numbered lists
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')   // [text](url) → text
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')    // images → remove
+      .replace(/>\s?/gm, '')                     // blockquotes
+      .replace(/\n{3,}/g, '\n\n')                // collapse excess newlines
+      .trim();
+
+  const handleDraft = (email: string, deptName: string) => {
+    const cleanResponse = stripMarkdown(payload.body);
+    // Take a meaningful excerpt (up to 300 chars, break at sentence)
+    let excerpt = cleanResponse.substring(0, 300);
+    const lastPeriod = excerpt.lastIndexOf('.');
+    if (lastPeriod > 100) excerpt = excerpt.substring(0, lastPeriod + 1);
+    else excerpt += '...';
+
+    const enhancedBody = [
+      `Dear ${deptName},`,
+      '',
+      `I am writing to seek clarification on a matter I was unable to fully resolve through KiliGuide (the university AI assistant).`,
+      '',
+      `Topic: ${payload.subject.replace('Question about: ', '')}`,
+      '',
+      `What KiliGuide provided:`,
+      `"${excerpt}"`,
+      '',
+      `I would appreciate your guidance or clarification on this matter.`,
+      '',
+      `Thank you for your time.`,
+      '',
+      `Kind regards,`,
+      `[Your Name]`,
+      `[Your Registration/Staff Number]`,
+    ].join('\n');
+
     const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(enhancedBody)}`;
     window.open(url, '_blank');
     onClose();
@@ -44,7 +85,7 @@ export function EscalateModal({
         
         <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "50vh", overflowY: "auto", paddingRight: 4 }}>
           {departments.map(dept => (
-            <button key={dept.email} onClick={() => handleDraft(dept.email)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, color: "#fff", cursor: "pointer", transition: "0.2s", textAlign: "left" }} onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.08)"} onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+            <button key={dept.email} onClick={() => handleDraft(dept.email, dept.name)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, color: "#fff", cursor: "pointer", transition: "0.2s", textAlign: "left" }} onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.08)"} onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{dept.name}</span>
                 <span style={{ fontSize: 12, color: "#a1a1aa" }}>{dept.email}</span>

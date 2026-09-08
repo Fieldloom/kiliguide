@@ -3,17 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 const supabase = createClient('https://jxspwvfxugckztzuogot.supabase.co', process.env.SUPABASE_ANON_KEY || 'dummy');
 
 async function test() {
-  const { data, error } = await supabase.functions.invoke('scrape-dekut', {
-    body: { url: 'https://www.dkut.ac.ke/index.php/about-dekut/administrative-units/directorate-of-ict' }
+  const res = await fetch('https://jxspwvfxugckztzuogot.supabase.co/functions/v1/crawl-sitemap', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({ mode: 'discover', max: 5 })
   });
+  console.log('Status:', res.status);
+  const data = await res.text();
   console.log('Data:', data);
-  if (error) {
-    console.error('Error:', error.message);
-    try {
-      console.log('Error context:', await error.context.json());
-    } catch (e) {
-      console.log('No extra context');
-    }
-  }
 }
 test();

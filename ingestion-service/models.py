@@ -23,4 +23,4 @@ class GlobalDocument(Base):
     id = Column(String, primary_key=True, server_default=func.gen_random_uuid())
     content = Column(String, nullable=False)
     embedding = Column(Vector(768))
-    metadata = Column(JSONB, nullable=True)
+    metadata_ = Column("metadata", JSONB, nullable=True)

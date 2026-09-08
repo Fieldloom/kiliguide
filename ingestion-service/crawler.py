@@ -104,7 +104,7 @@ async def crawl_page(url: str, lastmod: str, db: Session) -> tuple[str, list[str
     
     # 6. Database Insertion
     try:
-        db.execute(delete(GlobalDocument).where(GlobalDocument.metadata['url'].astext == url))
+        db.execute(delete(GlobalDocument).where(GlobalDocument.metadata_['url'].astext == url))
         
         docs_to_insert = []
         for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
@@ -120,7 +120,7 @@ async def crawl_page(url: str, lastmod: str, db: Session) -> tuple[str, list[str
             doc = GlobalDocument(
                 content=chunk,
                 embedding=embedding,
-                metadata=metadata
+                metadata_=metadata
             )
             docs_to_insert.append(doc)
             
