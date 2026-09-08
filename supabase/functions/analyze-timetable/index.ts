@@ -1,9 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiFetch } from "../_shared/gemini.ts";
 import { encodeBase64 } from "jsr:@std/encoding/base64";
-import * as pdfjsLib from "npm:pdfjs-dist@3.11.174/legacy/build/pdf.js";
 
 async function extractPdfText(buf: ArrayBuffer): Promise<string> {
+  const pdfjsLib = await import("npm:pdfjs-dist@3.11.174/legacy/build/pdf.js");
   const data = new Uint8Array(buf);
   const pdfLib = (pdfjsLib as any).default ?? pdfjsLib;
   const loadingTask = pdfLib.getDocument({ data, useSystemFonts: true });

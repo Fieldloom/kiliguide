@@ -1,9 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiFetch } from "../_shared/gemini.ts";
 import { encodeBase64 } from "jsr:@std/encoding/base64";
-import * as pdfjsLib from "npm:pdfjs-dist@3.11.174/legacy/build/pdf.js";
 
 async function extractPdfText(buf: ArrayBuffer): Promise<string> {
+  const pdfjsLib = await import("npm:pdfjs-dist@3.11.174/legacy/build/pdf.js");
   const data = new Uint8Array(buf);
   const pdfLib = (pdfjsLib as any).default ?? pdfjsLib;
   const loadingTask = pdfLib.getDocument({ data, useSystemFonts: true });
@@ -51,6 +51,8 @@ Deno.serve(async (req) => {
       // Use NVIDIA for images
       const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
       if (!nvidiaKey) throw new Error("NVIDIA_API_KEY is not configured.");
+      
+      console.log(`Image size: ${base64Data.length} base64 chars (~${Math.round(base64Data.length * 0.75 / 1024)}KB), mime: ${mimeType}`);
 
       const payload = {
         model: "meta/llama-3.2-11b-vision-instruct",
@@ -142,7 +144,7 @@ Deno.serve(async (req) => {
       mapped: typeof parsed.mapped === "object" && parsed.mapped !== null ? parsed.mapped : {}
     }, { headers: CORS });
   } catch(e: any) { 
-    console.error("Analyze error:", e);
+    console.error("Analyze metadata error:", e?.message || e);
     return Response.json({ error: e.message || "Unable to extract metadata." }, { status: 200, headers: CORS }); 
   }
 });
