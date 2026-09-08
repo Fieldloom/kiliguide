@@ -65,6 +65,10 @@ Deno.serve(async (req) => {
         model: "meta/llama-3.2-11b-vision-instruct",
         messages: [
           {
+            role: "system",
+            content: "You are a JSON-only data extraction system. You MUST respond with ONLY a valid JSON object. No explanations, no markdown, no text before or after the JSON. Just the raw JSON object."
+          },
+          {
             role: "user",
             content: [
               { type: "text", text: promptText },
@@ -73,7 +77,7 @@ Deno.serve(async (req) => {
           }
         ],
         temperature: 0,
-        max_tokens: 2000
+        max_tokens: 4000
       };
 
       const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
@@ -126,8 +130,19 @@ Deno.serve(async (req) => {
     try {
       parsed = JSON.parse(textResult);
     } catch (parseErr) {
-      console.error("JSON parse error:", parseErr, "Text:", textResult);
-      throw new Error("Failed to parse AI response as JSON.");
+      // Try to extract JSON object from within the text
+      const jsonMatch = textResult.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch (innerErr) {
+          console.error("JSON parse error (both attempts):", "Text:", textResult.substring(0, 500));
+          throw new Error("Failed to parse AI response as JSON.");
+        }
+      } else {
+        console.error("No JSON found in response:", textResult.substring(0, 500));
+        throw new Error("Failed to parse AI response as JSON.");
+      }
     }
     
     const events: ClassEvent[] = Array.isArray(parsed.events) ? parsed.events : [];
