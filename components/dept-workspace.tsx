@@ -14,6 +14,7 @@ const navigation: [Tab, any][] = [
   ["Notices", Bell],
   ["Manage Tickets", Ticket],
   ["Support", Ticket],
+  ["Settings", Settings],
 ];
 
 type Source = { title: string; page?: number | null };

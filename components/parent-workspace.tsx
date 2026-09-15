@@ -14,6 +14,7 @@ const navigation: [Tab, any][] = [
   ["Notices", Bell],
   ["Fee Statements", Wallet],
   ["Support", Ticket],
+  ["Settings", Settings],
 ];
 
 type Source = { title: string; page?: number | null };

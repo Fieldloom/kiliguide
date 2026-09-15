@@ -15,6 +15,7 @@ const navigation: [Tab, any][] = [
   ["Notices", Bell],
   ["My timetable", CalendarDays],
   ["Support", Ticket],
+  ["Settings", Settings],
 ];
 
 type Source = { title: string; page?: number | null };
@@ -489,6 +490,21 @@ export function StudentWorkspace() {
           </div>
         ))}
       </div>
+
+      <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: 10 }}>
+        <button onClick={() => switchTab("Profile")} style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", cursor: "pointer", padding: "6px 8px", borderRadius: 10, textAlign: "left", minWidth: 0 }}>
+          <span style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+            {name.charAt(0).toUpperCase()}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#fff", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{name}</span>
+            <span style={{ display: "block", fontSize: 11, color: "#a1a1aa", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{profile?.email || "Student Account"}</span>
+          </div>
+        </button>
+        <button onClick={() => switchTab("Settings")} title="Settings" style={{ padding: 8, borderRadius: 10, background: tab === "Settings" ? "rgba(16, 185, 129, 0.2)" : "rgba(255,255,255,0.05)", border: tab === "Settings" ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(255,255,255,0.1)", color: tab === "Settings" ? "#10b981" : "#a1a1aa", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <Settings size={18} />
+        </button>
+      </div>
     </>
   );
 
@@ -873,13 +889,13 @@ export function StudentWorkspace() {
               </div>
             </div>
 
-            <div style={{ position: "absolute", bottom: 80, left: 0, right: 0, padding: "0 20px", background: "transparent" }}>
+            <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, padding: "0 12px", background: "transparent", zIndex: 30 }}>
               <div style={{ maxWidth: 760, margin: "0 auto" }}>
                 <motion.div 
-                  className="glazed-widget" 
+                  className="glass-panel" 
                   animate={asking ? { boxShadow: ["0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 15px rgba(16, 185, 129, 0.3)", "0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0px rgba(16, 185, 129, 0)"] } : {}}
                   transition={asking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : {}}
-                  style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px", border: "none", position: "relative" }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, borderRadius: 24, padding: "8px 12px", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(18, 24, 32, 0.95)", backdropFilter: "blur(16px)", position: "relative" }}
                 >
                   <AnimatePresence>
                     {showTools && (
@@ -934,8 +950,8 @@ export function StudentWorkspace() {
                     <Paperclip size={18} />
                   </button>
 
-                  <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Processing..." : isListening ? "Listening..." : "Ask anything about DeKUT…"} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200, opacity: asking ? 0.7 : 1 }} />
-                  <button onClick={toggleListening} style={{ background: "none", border: "none", color: isListening ? "#19c37d" : "#a1a1aa", cursor: "pointer", padding: 4, transition: "color 0.2s" }}>
+                  <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Processing..." : isListening ? "Listening..." : "Ask anything about DeKUT…"} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 14, lineHeight: "1.4", color: "#fff", padding: "6px 0", minHeight: 24, maxHeight: 160, opacity: asking ? 0.7 : 1, overflowY: "auto" }} />
+                  <button onClick={toggleListening} style={{ background: "none", border: "none", color: isListening ? "#19c37d" : "#a1a1aa", cursor: "pointer", padding: 4, transition: "color 0.2s", flexShrink: 0 }}>
                     {isListening ? (
                       <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
                         <Mic size={20} style={{ color: "#19c37d" }} />
@@ -944,13 +960,13 @@ export function StudentWorkspace() {
                       <Mic size={20} />
                     )}
                   </button>
-                  <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() || asking ? "linear-gradient(180deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)" }}>
+                  <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() || asking ? "linear-gradient(180deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)", flexShrink: 0 }}>
                     {asking ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "grid", placeItems: "center" }}>
-                        <Loader2 size={18} color="#fff" />
+                        <Loader2 size={16} color="#fff" />
                       </motion.div>
                     ) : (
-                      <Send size={18} color={query.trim() ? "#fff" : "#a1a1aa"} />
+                      <Send size={16} color={query.trim() ? "#fff" : "#a1a1aa"} />
                     )}
                   </motion.button>
                 </motion.div>
