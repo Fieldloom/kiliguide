@@ -451,61 +451,144 @@ export function StudentWorkspace() {
   };
 
   const SidebarContent = () => (
-    <>
-      <div style={{ padding: "24px 20px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ width: 36, height: 36, borderRadius: 12, overflow: "hidden", display: "grid", placeItems: "center", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-            <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.3) translateY(2px)" }} />
-          </span>
-          <div>
-            <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: "#fff" }}>KiliGuide</span>
-            <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", marginTop: 2 }}>Smarter Campus. Better Tomorrow.</span>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "rgba(11, 15, 20, 0.95)", backdropFilter: "blur(20px)" }}>
+      {/* 1. Header & Brand */}
+      <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 34, height: 34, borderRadius: 10, overflow: "hidden", display: "grid", placeItems: "center", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+              <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
+            </span>
+            <div>
+              <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>KiliGuide</span>
+              <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", marginTop: 1 }}>DeKUT Campus AI</span>
+            </div>
           </div>
+          {mobileSidebar && (
+            <button onClick={() => setMobileSidebar(false)} style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "none", color: "#a1a1aa", cursor: "pointer", display: "grid", placeItems: "center" }}>
+              <X size={18} />
+            </button>
+          )}
         </div>
-      </div>
 
-      <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setActiveConvId(null); setTab("Chats"); setMobileSidebar(false); }} style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 600, background: "linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", cursor: "pointer", marginBottom: 12, boxShadow: "0 4px 12px rgba(16, 185, 129, 0.1)" }}>
-          <Plus size={18} /> New Chat
-        </motion.button>
-        {navigation.filter(([lbl]) => lbl !== "Documents" || showDocuments).map(([label, Icon]) => {
-          const isActive = tab === label && !(label === "Chats" && !activeConvId && tab !== "Chats");
-          return (
-            <motion.button whileHover={{ scale: isActive ? 1 : 1.02 }} whileTap={{ scale: 0.98 }} key={label} onClick={() => switchTab(label)}
-              style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, borderRadius: 12, padding: "12px 14px", fontSize: 14, fontWeight: 500, background: isActive ? "rgba(16, 185, 129, 0.15)" : "transparent", color: isActive ? "#10b981" : "#a1a1aa", border: isActive ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid transparent", cursor: "pointer", marginBottom: 4 }}
-            >
-              <Icon size={18} />
-              {label}
-            </motion.button>
-          );
-        })}
-        <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, borderRadius: 12, padding: "12px 14px", fontSize: 14, fontWeight: 500, color: "#a1a1aa", cursor: "pointer", marginBottom: 4 }} />
-      </div>
-
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 12px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
-        {conversations.length > 0 && groups.today.map(c => (
-          <div key={c.id} onClick={() => loadConv(c.id)} className="conv-item" style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 12, padding: "8px 12px", cursor: "pointer", background: activeConvId === c.id && tab === "Chats" ? "rgba(255,255,255,0.1)" : "transparent" }}>
-            <span style={{ flex: 1, fontSize: 13, color: activeConvId === c.id && tab === "Chats" ? "#fff" : "#a1a1aa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
-            <button onClick={(e) => deleteConv(c.id, e)} className="del-btn" style={{ opacity: 0, color: "#a1a1aa", background: "transparent", border: "none", cursor: "pointer" }}><Trash2 size={12} /></button>
+        {/* ChatGPT "+ New Chat" Button */}
+        <motion.button 
+          whileHover={{ scale: 1.01 }} 
+          whileTap={{ scale: 0.98 }} 
+          onClick={() => { setActiveConvId(null); setTab("Chats"); setMobileSidebar(false); }} 
+          style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 8, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600, background: "linear-gradient(180deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.08) 100%)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", cursor: "pointer", boxShadow: "0 4px 12px rgba(16, 185, 129, 0.1)" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Plus size={16} /> <span>New Chat</span>
           </div>
-        ))}
+          <span style={{ fontSize: 10, opacity: 0.6, background: "rgba(16,185,129,0.2)", padding: "2px 6px", borderRadius: 4 }}>Ctrl+K</span>
+        </motion.button>
       </div>
 
-      <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: 10 }}>
-        <button onClick={() => switchTab("Profile")} style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", cursor: "pointer", padding: "6px 8px", borderRadius: 10, textAlign: "left", minWidth: 0 }}>
-          <span style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+      {/* 2. Main Scrollable Container */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+        
+        {/* Navigation / Workspace Tools */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 8px 8px" }}>
+            Navigation
+          </div>
+          {navigation.filter(([lbl]) => lbl !== "Documents" || showDocuments).map(([label, Icon]) => {
+            const isActive = tab === label && !(label === "Chats" && !activeConvId);
+            return (
+              <button 
+                key={label} 
+                onClick={() => switchTab(label)}
+                style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, borderRadius: 10, padding: "9px 10px", fontSize: 13, fontWeight: 500, background: isActive ? "rgba(16, 185, 129, 0.15)" : "transparent", color: isActive ? "#10b981" : "#d4d4d8", border: isActive ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid transparent", cursor: "pointer", marginBottom: 2, transition: "background 0.15s" }}
+              >
+                <Icon size={16} style={{ color: isActive ? "#10b981" : "#a1a1aa", flexShrink: 0 }} />
+                <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+              </button>
+            );
+          })}
+          <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, borderRadius: 10, padding: "9px 10px", fontSize: 13, fontWeight: 500, color: "#a1a1aa", cursor: "pointer", marginBottom: 2 }} />
+        </div>
+
+        {/* ChatGPT-style Recent Conversations */}
+        {conversations.length > 0 && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px 8px" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                Recent Chats
+              </span>
+              <span style={{ fontSize: 10, color: "#52525b" }}>{conversations.length}</span>
+            </div>
+            
+            {groups.today.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: "#52525b", padding: "2px 8px 6px" }}>Today</div>
+                {groups.today.map(c => {
+                  const isActive = activeConvId === c.id && tab === "Chats";
+                  return (
+                    <div 
+                      key={c.id} 
+                      onClick={() => loadConv(c.id)} 
+                      className="conv-item" 
+                      style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, padding: "7px 10px", cursor: "pointer", background: isActive ? "rgba(255,255,255,0.08)" : "transparent", marginBottom: 2 }}
+                    >
+                      <MessageSquare size={14} style={{ color: isActive ? "#10b981" : "#71717a", flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, color: isActive ? "#fff" : "#a1a1aa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                      <button onClick={(e) => deleteConv(c.id, e)} className="del-btn" style={{ opacity: 0, color: "#a1a1aa", background: "transparent", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {(groups.yesterday.length > 0 || groups.week.length > 0 || groups.older.length > 0) && (
+              <div>
+                <div style={{ fontSize: 10, color: "#52525b", padding: "2px 8px 6px" }}>Previous</div>
+                {[...groups.yesterday, ...groups.week, ...groups.older].map(c => {
+                  const isActive = activeConvId === c.id && tab === "Chats";
+                  return (
+                    <div 
+                      key={c.id} 
+                      onClick={() => loadConv(c.id)} 
+                      className="conv-item" 
+                      style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, padding: "7px 10px", cursor: "pointer", background: isActive ? "rgba(255,255,255,0.08)" : "transparent", marginBottom: 2 }}
+                    >
+                      <MessageSquare size={14} style={{ color: isActive ? "#10b981" : "#71717a", flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, color: isActive ? "#fff" : "#a1a1aa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                      <button onClick={(e) => deleteConv(c.id, e)} className="del-btn" style={{ opacity: 0, color: "#a1a1aa", background: "transparent", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Bottom ChatGPT-Style User Profile Bar */}
+      <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.3)" }}>
+        <button onClick={() => switchTab("Profile")} style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", cursor: "pointer", padding: "4px", borderRadius: 8, textAlign: "left", minWidth: 0 }}>
+          <span style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 2px 8px rgba(16,185,129,0.2)" }}>
             {name.charAt(0).toUpperCase()}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#fff", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{name}</span>
-            <span style={{ display: "block", fontSize: 11, color: "#a1a1aa", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{profile?.email || "Student Account"}</span>
+            <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>Student Plan</span>
           </div>
         </button>
-        <button onClick={() => switchTab("Settings")} title="Settings" style={{ padding: 8, borderRadius: 10, background: tab === "Settings" ? "rgba(16, 185, 129, 0.2)" : "rgba(255,255,255,0.05)", border: tab === "Settings" ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(255,255,255,0.1)", color: tab === "Settings" ? "#10b981" : "#a1a1aa", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-          <Settings size={18} />
+        
+        <button onClick={() => switchTab("Settings")} title="Settings" style={{ padding: 7, borderRadius: 8, background: tab === "Settings" ? "rgba(16, 185, 129, 0.2)" : "rgba(255,255,255,0.05)", border: tab === "Settings" ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(255,255,255,0.08)", color: tab === "Settings" ? "#10b981" : "#a1a1aa", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <Settings size={16} />
+        </button>
+
+        <button onClick={handleSignOut} title="Sign Out" style={{ padding: 7, borderRadius: 8, background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", color: "#ef4444", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <LogOut size={16} />
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
