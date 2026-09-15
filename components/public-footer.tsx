@@ -3,15 +3,19 @@ import Link from "next/link";
 
 export function PublicFooter() {
   return (
-    <footer style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "32px 0", marginTop: 40, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#8e8ea0", fontSize: 13 }}>
+    <footer className="w-full border-t border-white/5 py-8 sm:py-10 mt-10 flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-0 text-zinc-400 text-xs sm:text-sm px-4 sm:px-8 text-center sm:text-left">
       <div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: "-0.02em" }}>KiliGuide</h2>
-        <span style={{ fontSize: 11, color: "#8e8ea0" }}>A product of KiliMind AI.</span>
-        <div>© {new Date().getFullYear()} KiliGuide. Built for DeKUT.</div>
+        <h2 className="text-base sm:text-lg font-bold m-0 tracking-tight text-white">KiliGuide</h2>
+        <span className="text-xs text-zinc-400 block mt-0.5">A product of KiliMind AI.</span>
+        <div className="mt-1 text-zinc-500">© {new Date().getFullYear()} KiliGuide. Built for DeKUT.</div>
       </div>
-      <div style={{ display: "flex", gap: 24 }}>
-        <Link href="/privacy" style={{ background: "none", border: "none", color: "#8e8ea0", cursor: "pointer", padding: 0, textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#8e8ea0"}>Privacy Policy</Link>
-        <Link href="/terms" style={{ background: "none", border: "none", color: "#8e8ea0", cursor: "pointer", padding: 0, textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "#8e8ea0"}>Terms of Use</Link>
+      <div className="flex items-center gap-6">
+        <Link href="/privacy" className="text-zinc-400 hover:text-white no-underline transition-colors">
+          Privacy Policy
+        </Link>
+        <Link href="/terms" className="text-zinc-400 hover:text-white no-underline transition-colors">
+          Terms of Use
+        </Link>
       </div>
     </footer>
   );

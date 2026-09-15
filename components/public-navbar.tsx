@@ -21,31 +21,26 @@ export function PublicNavbar() {
   ];
 
   return (
-    <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 100, padding: "0 24px", position: "relative", zIndex: 100 }}>
+    <header className="relative z-[100] flex h-16 sm:h-20 w-full items-center justify-between px-4 sm:px-8">
       
       {/* Logo */}
-      <div style={{ flex: 1, display: "flex", justifyContent: "flex-start", minWidth: 0 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "inherit", zIndex: 10 }}>
-          <span style={{ width: 36, height: 36, borderRadius: 10, background: "#0B0F14", display: "grid", placeItems: "center", border: "1px solid #1A2A20", flexShrink: 0 }}>
-            <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
+      <div className="flex flex-shrink-0 items-center min-w-0">
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 text-inherit no-underline z-10">
+          <span className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-[#0B0F14] border border-[#1A2A20] flex-shrink-0 overflow-hidden shadow-md">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover transform scale-125" />
           </span>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, lineHeight: 1 }}>KiliGuide</h1>
-            <span style={{ fontSize: 11, color: "#a1a1aa" }}>Smarter Campus.</span>
+          <div className="flex flex-col">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight m-0 leading-none text-white whitespace-nowrap">KiliGuide</h1>
+            <span className="text-[10px] sm:text-xs text-zinc-400 font-medium whitespace-nowrap mt-0.5">Smarter Campus.</span>
           </div>
         </Link>
       </div>
 
-      {/* Apple Vision Pro Style Floating Tab Bar */}
-      <div className="lg-flex" style={{ display: "none", flex: "0 0 auto", justifyContent: "center", zIndex: 20 }}>
+      {/* Apple Vision Pro Style Floating Tab Bar (Desktop) */}
+      <div className="hidden lg:flex flex-initial justify-center z-20">
         <nav 
           onMouseLeave={() => setHoveredTab(null)}
-          style={{ 
-            display: "flex", alignItems: "center", gap: 4, 
-            background: "rgba(255,255,255,0.03)", backdropFilter: "blur(24px)", 
-            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, 
-            padding: "6px", boxShadow: "0 20px 40px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,255,255,0.02)" 
-          }} 
+          className="flex items-center gap-1 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-full p-1.5 shadow-2xl"
         >
         {tabs.map(item => {
           const isActive = pathname === item.href;
@@ -56,27 +51,25 @@ export function PublicNavbar() {
               key={item.href}
               href={item.href} 
               onMouseEnter={() => setHoveredTab(item.href)}
-              style={{ 
-                position: "relative", padding: "8px 20px", fontSize: 13, fontWeight: 600, 
-                color: isActive ? "#000" : (isHovered ? "#fff" : "#a1a1aa"),
-                textDecoration: "none", transition: "color 0.3s ease", zIndex: 1
-              }}
+              className={`relative px-4 py-2 text-xs font-semibold no-underline transition-colors duration-300 z-10 ${
+                isActive ? "text-black" : (isHovered ? "text-white" : "text-zinc-400")
+              }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="active-tab"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  style={{ position: "absolute", inset: 0, background: "#19c37d", borderRadius: 100, zIndex: -1, boxShadow: "0 4px 12px rgba(25, 195, 125, 0.3)" }}
+                  className="absolute inset-0 bg-[#19c37d] rounded-full -z-10 shadow-[0_4px_12px_rgba(25,195,125,0.3)]"
                 />
               )}
               {!isActive && isHovered && (
                 <motion.div
                   layoutId="hover-tab"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.08)", borderRadius: 100, zIndex: -1 }}
+                  className="absolute inset-0 bg-white/10 rounded-full -z-10"
                 />
               )}
-              <span style={{ position: "relative", zIndex: 10 }}>{item.label}</span>
+              <span className="relative z-10">{item.label}</span>
             </Link>
           );
         })}
@@ -84,16 +77,11 @@ export function PublicNavbar() {
       </div>
 
       {/* Action Buttons */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, zIndex: 10, minWidth: 0 }}>
+      <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3 z-10 min-w-0">
+        {/* Mobile menu trigger */}
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          style={{ 
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", 
-            borderRadius: 100, padding: "8px 16px", color: "#ececec", fontSize: 13, fontWeight: 600, 
-            display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", transition: "background 0.2s"
-          }}
-          onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.1)"}
-          onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"}
+          className="lg:hidden bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3.5 py-2 text-xs sm:text-sm font-semibold text-zinc-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-all shadow-sm"
         >
           Explore
           <motion.div animate={{ rotate: mobileMenuOpen ? 180 : 0 }}>
@@ -102,48 +90,59 @@ export function PublicNavbar() {
             </svg>
           </motion.div>
         </button>
-        <Link href="/login" className="hidden sm-flex" style={{ background: "#ffffff", color: "#000", border: "none", borderRadius: 100, padding: "8px 20px", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "transform 0.2s, opacity 0.2s", boxShadow: "0 4px 14px rgba(255,255,255,0.2)", flexShrink: 0, whiteSpace: "nowrap" }} onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}>
+
+        {/* Desktop Sign In button */}
+        <Link 
+          href="/login" 
+          className="hidden sm:inline-flex items-center gap-1.5 bg-white hover:bg-zinc-100 text-black border-none rounded-full px-5 py-2 text-xs sm:text-sm font-bold no-underline transition-all transform hover:scale-105 shadow-[0_4px_14px_rgba(255,255,255,0.2)] whitespace-nowrap"
+        >
           Sign In <ArrowRight size={14} />
         </Link>
       </div>
 
-      {/* Dropdown Menu */}
+      {/* Mobile Glassmorphic Dropdown Menu */}
       {mobileMenuOpen && (
         <motion.div 
           initial={{ opacity: 0, y: -10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          style={{
-            position: "absolute", top: 80, right: 24, width: 240,
-            background: "rgba(20, 20, 22, 0.65)", backdropFilter: "blur(48px) saturate(200%)",
-            border: "1px solid rgba(255,255,255,0.15)", borderRadius: 20,
-            padding: 10, display: "flex", flexDirection: "column", gap: 6,
-            boxShadow: "0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15)", zIndex: 90
-          }}
+          className="absolute top-16 sm:top-20 right-4 sm:right-8 w-[calc(100vw-32px)] max-w-xs bg-zinc-950/80 backdrop-blur-3xl border border-white/15 rounded-2xl p-3 flex flex-col gap-1 shadow-2xl z-[90]"
         >
-          <div className="lg-hidden" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="lg:hidden flex flex-col gap-1">
             {tabs.map(item => (
-              <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} style={{ padding: "12px 16px", color: "#ececec", textDecoration: "none", fontSize: 14, fontWeight: 500, borderRadius: 8, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+              <Link 
+                key={item.href} 
+                href={item.href} 
+                onClick={() => setMobileMenuOpen(false)} 
+                className="px-4 py-2.5 text-zinc-200 hover:text-white no-underline text-sm font-medium rounded-xl hover:bg-white/10 transition-colors"
+              >
                 {item.label}
               </Link>
             ))}
-            <div style={{ height: 1, background: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+            <div className="h-px bg-white/10 my-1" />
           </div>
-          <InstallButton style={{ padding: "12px 16px", color: "#10b981", fontSize: 14, fontWeight: 600, borderRadius: 8, transition: "background 0.2s" }} />
-          <Link href="/register-institution" onClick={() => setMobileMenuOpen(false)} style={{ padding: "12px 16px", color: "#19c37d", textDecoration: "none", fontSize: 14, fontWeight: 600, borderRadius: 8, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background="rgba(25,195,125,0.1)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+          
+          <InstallButton className="px-4 py-2.5 text-emerald-400 hover:bg-emerald-500/10 text-sm font-semibold rounded-xl text-left transition-colors" />
+          
+          <Link 
+            href="/register-institution" 
+            onClick={() => setMobileMenuOpen(false)} 
+            className="px-4 py-2.5 text-[#19c37d] hover:bg-[#19c37d]/10 no-underline text-sm font-semibold rounded-xl transition-colors"
+          >
             Register Institution
           </Link>
-          <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ background: "#ffffff", color: "#000", padding: "12px 16px", textDecoration: "none", fontSize: 14, fontWeight: 700, borderRadius: 8, display: "flex", justifyContent: "center", gap: 8, marginTop: 8 }}>
+
+          <Link 
+            href="/login" 
+            onClick={() => setMobileMenuOpen(false)} 
+            className="mt-1 bg-white text-black hover:bg-zinc-100 px-4 py-3 no-underline text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
+          >
             Sign In <ArrowRight size={16} />
           </Link>
         </motion.div>
       )}
 
-      <style>{`
-        @media (min-width: 1024px) { .lg-flex { display: flex !important; } .lg-hidden { display: none !important; } }
-        @media (min-width: 640px) { .sm-flex { display: flex !important; } .sm-block { display: block !important; } }
-        .hidden { display: none; }
-      `}</style>
     </header>
   );
 }

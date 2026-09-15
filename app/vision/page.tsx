@@ -5,66 +5,64 @@ import Link from "next/link";
 
 export default function VisionPage() {
   return (
-    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", position: "relative" }}>
-      <div style={{ position: "absolute", top: "-10%", left: "30%", width: "100vw", height: "100vw", background: "radial-gradient(circle, rgba(25,195,125,0.06) 0%, rgba(0,0,0,0) 60%)", zIndex: 0, pointerEvents: "none" }} />
+    <main className="bg-aurora min-h-screen text-white relative overflow-x-hidden">
+      <div className="absolute -top-[10%] left-[30%] w-[100vw] h-[100vw] bg-[radial-gradient(circle,rgba(25,195,125,0.06)_0%,rgba(0,0,0,0)_60%)] z-0 pointer-events-none" />
       
-      <div style={{ position: "relative", zIndex: 10, maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8">
         <PublicNavbar />
         
-        <div style={{ maxWidth: 800, margin: "100px auto 60px", textAlign: "center" }}>
-          <h1 style={{ fontSize: "clamp(40px, 5vw, 64px)", fontWeight: 800, letterSpacing: "-0.04em", marginBottom: 24 }}>
-            Empowering the <span style={{ color: "#19c37d" }}>DeKUT Experience.</span>
+        <div className="max-w-3xl mx-auto my-12 sm:my-20 text-center px-2">
+          <h1 className="text-[clamp(30px,5vw,64px)] font-extrabold tracking-tight mb-4 leading-tight">
+            Empowering the <span className="text-[#19c37d]">DeKUT Experience.</span>
           </h1>
-          <p style={{ fontSize: 18, color: "#a1a1aa", lineHeight: 1.6 }}>
+          <p className="text-base sm:text-lg text-zinc-400 leading-relaxed max-w-xl mx-auto">
             KiliGuide was built to solve a simple problem: navigating university life is too complex. 
             We believe that every student deserves instant, accurate, and private access to the information they need to succeed.
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 32, marginBottom: 100 }}>
-          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", borderRadius: 32, padding: 40 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 16, background: "rgba(25, 195, 125, 0.1)", display: "grid", placeItems: "center", marginBottom: 24 }}>
-              <Target size={24} style={{ color: "#19c37d" }} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-16 sm:mb-24">
+          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.3),inset_0_0_20px_rgba(255,255,255,0.02)] rounded-3xl p-6 sm:p-8">
+            <div className="w-12 h-12 rounded-2xl bg-[#19c37d]/10 grid place-items-center mb-6">
+              <Target size={24} className="text-[#19c37d]" />
             </div>
-            <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Our Mission</h3>
-            <p style={{ color: "#a1a1aa", lineHeight: 1.6 }}>
+            <h3 className="text-xl font-bold mb-3 text-white">Our Mission</h3>
+            <p className="text-zinc-400 leading-relaxed text-sm sm:text-base m-0">
               To democratize access to campus knowledge by building the most intelligent, reliable, and user-centric university assistant in Africa.
             </p>
           </div>
 
-          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", borderRadius: 32, padding: 40 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 16, background: "rgba(56, 189, 248, 0.1)", display: "grid", placeItems: "center", marginBottom: 24 }}>
-              <Users size={24} style={{ color: "#38bdf8" }} />
+          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.3),inset_0_0_20px_rgba(255,255,255,0.02)] rounded-3xl p-6 sm:p-8">
+            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 grid place-items-center mb-6">
+              <Users size={24} className="text-sky-400" />
             </div>
-            <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Student First</h3>
-            <p style={{ color: "#a1a1aa", lineHeight: 1.6 }}>
+            <h3 className="text-xl font-bold mb-3 text-white">Student First</h3>
+            <p className="text-zinc-400 leading-relaxed text-sm sm:text-base m-0">
               Every feature we build starts with the student. No more hunting through PDFs, no more standing in lines for basic inquiries. Just answers.
             </p>
           </div>
 
-          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.02)", borderRadius: 32, padding: 40 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 16, background: "rgba(244, 63, 94, 0.1)", display: "grid", placeItems: "center", marginBottom: 24 }}>
-              <Lightbulb size={24} style={{ color: "#f43f5e" }} />
+          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.3),inset_0_0_20px_rgba(255,255,255,0.02)] rounded-3xl p-6 sm:p-8">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 grid place-items-center mb-6">
+              <Lightbulb size={24} className="text-rose-400" />
             </div>
-            <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Innovation</h3>
-            <p style={{ color: "#a1a1aa", lineHeight: 1.6 }}>
+            <h3 className="text-xl font-bold mb-3 text-white">Innovation</h3>
+            <p className="text-zinc-400 leading-relaxed text-sm sm:text-base m-0">
               We leverage cutting-edge Retrieval-Augmented Generation (RAG) and edge computing to ensure responses are not just fast, but verifiably accurate.
             </p>
           </div>
         </div>
 
-        <div style={{ background: "linear-gradient(135deg, rgba(25, 195, 125, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)", border: "1px solid rgba(25, 195, 125, 0.2)", borderRadius: 32, padding: "60px 40px", textAlign: "center", marginBottom: 60 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 700, marginBottom: 16 }}>Ready to experience the future of campus?</h2>
-          <p style={{ color: "#a1a1aa", fontSize: 16, marginBottom: 32 }}>Join thousands of DeKUT students already using KiliGuide.</p>
-          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#19c37d", color: "#000", padding: "12px 24px", borderRadius: 24, fontWeight: 700, textDecoration: "none" }}>
+        <div className="bg-gradient-to-br from-[#19c37d]/10 to-emerald-900/10 border border-[#19c37d]/20 rounded-3xl p-8 sm:p-14 text-center mb-12 sm:mb-16">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-white">Ready to experience the future of campus?</h2>
+          <p className="text-zinc-400 text-sm sm:text-base mb-6 max-w-md mx-auto">Join thousands of DeKUT students already using KiliGuide.</p>
+          <Link href="/login" className="inline-flex items-center gap-2 bg-[#19c37d] hover:bg-[#15aa6d] text-black px-6 py-3.5 rounded-full font-bold no-underline transition-all transform hover:scale-105 shadow-lg">
             Get Started Now <ArrowRight size={18} />
           </Link>
         </div>
 
         <PublicFooter />
       </div>
-
-      <style>{`body { background: #000000 !important; }`}</style>
     </main>
   );
 }

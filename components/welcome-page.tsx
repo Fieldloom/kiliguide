@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Sparkles, Plus, Mic } from "lucide-react";
+import { ArrowRight, Sparkles, Mic } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { PublicNavbar } from "./public-navbar";
@@ -52,40 +52,30 @@ export function TypewriterSearch() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.2 }}
-      style={{ 
-        marginTop: 60,
-        width: "100%", maxWidth: 680, 
-        background: "rgba(255,255,255,0.03)", 
-        backdropFilter: "blur(40px)",
-        border: "1px solid rgba(255,255,255,0.1)", 
-        borderRadius: 100, 
-        padding: "16px 24px", 
-        display: "flex", alignItems: "center", gap: 16,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(255,255,255,0.02), 0 0 0 1px rgba(25, 195, 125, 0.2)",
-        position: "relative",
-        overflow: "hidden"
-      }}
+      className="mt-8 sm:mt-14 w-full max-w-[680px] bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-full px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3 sm:gap-4 shadow-[0_20px_60px_rgba(0,0,0,0.5),inset_0_0_40px_rgba(255,255,255,0.02),0_0_0_1px_rgba(25,195,125,0.2)] relative overflow-hidden"
     >
       {/* Subtle sweeping glow inside the search bar */}
       <motion.div 
         animate={{ x: ["-100%", "200%"] }}
         transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-        style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "50%", background: "linear-gradient(90deg, transparent, rgba(25,195,125,0.1), transparent)", pointerEvents: "none" }}
+        className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-[#19c37d]/10 to-transparent pointer-events-none"
       />
 
-      <Sparkles size={24} style={{ color: "#19c37d", flexShrink: 0 }} />
-      <div style={{ flex: 1, display: "flex", alignItems: "center", height: 28 }}>
-        <span style={{ fontSize: 18, color: "#ececec", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden" }}>
+      <Sparkles size={20} className="text-[#19c37d] flex-shrink-0" />
+      
+      <div className="flex-1 flex items-center h-7 min-w-0 overflow-hidden">
+        <span className="text-sm sm:text-base text-zinc-200 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
           {currentText}
           <motion.span 
             animate={{ opacity: [1, 0] }}
             transition={{ repeat: Infinity, duration: 0.8 }}
-            style={{ display: "inline-block", width: 2, height: 20, background: "#19c37d", marginLeft: 4, verticalAlign: "middle" }}
+            className="inline-block w-0.5 h-4 sm:h-5 bg-[#19c37d] ml-1 align-middle"
           />
         </span>
       </div>
-      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.05)", display: "grid", placeItems: "center", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}>
-        <Mic size={18} style={{ color: "#a1a1aa" }} />
+
+      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/10 grid place-items-center cursor-pointer transition-colors flex-shrink-0">
+        <Mic size={16} className="text-zinc-400" />
       </div>
     </motion.div>
   );
@@ -97,12 +87,12 @@ export function TrustedBy() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, delay: 0.6 }}
-      style={{ marginTop: 80, paddingBottom: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}
+      className="mt-12 sm:mt-20 pb-12 sm:pb-16 flex flex-col items-center gap-4 sm:gap-6 text-center"
     >
-      <span style={{ fontSize: 12, color: "#8e8ea0", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>Supporters</span>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <img src="/dekut_logo.png" alt="DeKUT" style={{ width: 48, height: 48, objectFit: "contain", background: "#fff", borderRadius: "50%", padding: 4 }} />
-        <b style={{ fontSize: 18, color: "#ececec", letterSpacing: "-0.02em" }}>Dedan Kimathi University of Technology</b>
+      <span className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-widest font-semibold">Supporters</span>
+      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 px-4">
+        <img src="/dekut_logo.png" alt="DeKUT" className="w-10 h-10 sm:w-12 sm:h-12 object-contain bg-white rounded-full p-1 shadow-md" />
+        <b className="text-base sm:text-lg text-zinc-200 tracking-tight leading-tight">Dedan Kimathi University of Technology</b>
       </div>
     </motion.section>
   );
@@ -110,36 +100,36 @@ export function TrustedBy() {
 
 export function WelcomePage() {
   return (
-    <main className="bg-aurora" style={{ minHeight: "100vh", color: "#ffffff", overflow: "hidden", position: "relative" }}>
+    <main className="bg-aurora min-h-screen text-white relative overflow-x-hidden">
       
       {/* Massive Central Glow for Apple Intelligence feel */}
-      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: "120vw", height: "120vw", maxWidth: 1200, maxHeight: 1200, background: "radial-gradient(circle, rgba(25,195,125,0.15) 0%, rgba(138,43,226,0.05) 30%, rgba(0,0,0,0) 70%)", zIndex: 0, pointerEvents: "none" }} />
+      <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[140vw] sm:w-[120vw] h-[140vw] sm:h-[120vw] max-w-[1200px] max-h-[1200px] bg-[radial-gradient(circle,rgba(25,195,125,0.15)_0%,rgba(138,43,226,0.05)_30%,rgba(0,0,0,0)_70%)] z-0 pointer-events-none" />
       
       <PublicNavbar />
 
-      <div style={{ position: "relative", zIndex: 10, maxWidth: 1400, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 flex flex-col items-center">
         
         {/* Centered Hero Section */}
-        <section style={{ minHeight: "calc(100vh - 200px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", paddingTop: 40 }}>
+        <section className="min-h-[calc(100vh-160px)] flex flex-col items-center justify-center text-center pt-6 sm:pt-10 pb-12 w-full max-w-4xl mx-auto">
           
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(25, 195, 125, 0.1)", border: "1px solid rgba(25, 195, 125, 0.2)", borderRadius: 100, padding: "8px 20px", marginBottom: 32 }}
+            className="inline-flex items-center gap-2 bg-[#19c37d]/10 border border-[#19c37d]/20 rounded-full px-4 py-2 mb-6 sm:mb-8"
           >
-            <Sparkles size={14} color="#19c37d" />
-            <span style={{ color: "#19c37d", fontSize: 13, fontWeight: 600 }}>Powered by KiliMind AI</span>
+            <Sparkles size={14} className="text-[#19c37d]" />
+            <span className="text-[#19c37d] text-xs sm:text-sm font-semibold">Powered by KiliMind AI</span>
           </motion.div>
 
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            style={{ fontSize: "clamp(48px, 6vw, 84px)", fontWeight: 800, lineHeight: 1.05, letterSpacing: "-0.04em", margin: 0, maxWidth: 900 }}
+            className="text-[clamp(30px,6.5vw,76px)] font-extrabold leading-[1.1] tracking-tight m-0 max-w-4xl px-2"
           >
-            The smartest way to <br/>
-            <span style={{ background: "linear-gradient(90deg, #ffffff 0%, #19c37d 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            The smartest way to <br className="hidden sm:inline" />
+            <span className="bg-gradient-to-r from-white via-zinc-100 to-[#19c37d] bg-clip-text text-transparent">
               navigate campus.
             </span>
           </motion.h1>
@@ -148,7 +138,7 @@ export function WelcomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            style={{ fontSize: "clamp(18px, 2vw, 24px)", color: "#a1a1aa", marginTop: 24, maxWidth: 600, lineHeight: 1.5 }}
+            className="text-[clamp(15px,3.5vw,22px)] text-zinc-400 mt-5 sm:mt-6 max-w-2xl leading-relaxed px-4"
           >
             Your omniscient campus guide. Ask literally anything—from complex university policies to your next lecture venue—and get instant, perfectly accurate answers.
           </motion.p>
@@ -159,9 +149,12 @@ export function WelcomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            style={{ display: "flex", gap: 16, marginTop: 48 }}
+            className="flex gap-4 mt-8 sm:mt-12"
           >
-            <Link href="/login" style={{ background: "#ffffff", color: "#000", borderRadius: 100, padding: "16px 32px", fontSize: 16, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 8, transition: "transform 0.2s, box-shadow 0.2s", boxShadow: "0 8px 30px rgba(255,255,255,0.2)" }} onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(255,255,255,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(255,255,255,0.2)"; }}>
+            <Link 
+              href="/login" 
+              className="bg-white hover:bg-zinc-100 text-black rounded-full px-6 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold no-underline flex items-center gap-2 transition-all transform hover:scale-105 shadow-[0_8px_30px_rgba(255,255,255,0.2)]"
+            >
               Sign In to Ask <ArrowRight size={18} />
             </Link>
           </motion.div>

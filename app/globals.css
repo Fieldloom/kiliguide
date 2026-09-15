@@ -2,7 +2,7 @@
 
 @tailwind base; @tailwind components; @tailwind utilities;
 *{box-sizing:border-box} 
-html,body{margin:0;background:#050505;color:#ececec;font-family:"SF Pro Text", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;-webkit-font-smoothing:antialiased} 
+html,body{margin:0;background:#050505;color:#ececec;font-family:"SF Pro Text", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100vw} 
 button,input,textarea,select{font:inherit} 
 
 /* Custom Scrollbar */
