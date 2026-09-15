@@ -499,8 +499,8 @@ export function LecturerWorkspace() {
               <div style={{ position: "absolute", top: 40, right: 0, width: "70%", height: 180, opacity: 0.1, backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Dedan_Kimathi_University_of_Technology_Library.jpg/1200px-Dedan_Kimathi_University_of_Technology_Library.jpg')", backgroundSize: "cover", backgroundPosition: "right center", maskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", zIndex: 0 }} />
 
               <div style={{ position: "relative", zIndex: 10 }}>
-                <h1 style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1, color: "#fff", marginBottom: 12, letterSpacing: "-0.03em" }}>
-                  Find Official DeKUT <br/>
+                <h1 style={{ fontSize: "clamp(22px, 5.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, color: "#fff", marginBottom: 10, letterSpacing: "-0.03em" }}>
+                  Find Official DeKUT <br className="hidden sm:inline" />
                   <span style={{ color: "#8b5cf6" }}>Information Instantly</span>
                 </h1>
                 <p style={{ color: "#a1a1aa", fontSize: 15, marginBottom: 32 }}>Accurate answers. Verified sources. Trusted by all.</p>

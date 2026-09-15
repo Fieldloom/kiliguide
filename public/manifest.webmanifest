@@ -1,9 +1,12 @@
 {
-  "name": "KiliGuide",
+  "name": "KiliGuide - Smart Campus Guide",
   "short_name": "KiliGuide",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
+  "orientation": "portrait",
+  "background_color": "#050505",
   "theme_color": "#19c37d",
   "description": "The smartest way to navigate campus",
   "icons": [

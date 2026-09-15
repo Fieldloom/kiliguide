@@ -267,7 +267,7 @@ function Overview({ done, setDone, onTab, stats }: { done: number[]; setDone: (x
     <>
       <div style={{ marginBottom: 40 }}>
         <p style={{ fontSize: 13, color: D.muted }}>Welcome back, <b style={{ color: D.text }}>Admin</b> 👋</p>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginTop: 8, color: D.text, letterSpacing: "-0.02em" }}>A healthier, more informed campus.</h1>
+        <h1 style={{ fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 800, marginTop: 8, color: D.text, letterSpacing: "-0.02em" }}>A healthier, more informed campus.</h1>
         <p style={{ marginTop: 8, color: D.muted, fontSize: 15 }}>Manage people, knowledge and service delivery across the university.</p>
       </div>
 
@@ -292,7 +292,7 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 40 }}>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: D.accent }}>ADMINISTRATION</p>
-          <h1 style={{ fontSize: 32, fontWeight: 800, marginTop: 8, color: D.text, letterSpacing: "-0.02em" }}>{tab}</h1>
+          <h1 style={{ fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 800, marginTop: 8, color: D.text, letterSpacing: "-0.02em" }}>{tab}</h1>
           <p style={{ marginTop: 8, color: D.muted, fontSize: 15 }}>Manage your university {tab.toLowerCase()} from this workspace.</p>
         </div>
         {["Notices", "Documents"].includes(tab) && (

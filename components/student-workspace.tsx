@@ -555,7 +555,8 @@ export function StudentWorkspace() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <InstallButton collapsed style={{ padding: 10, borderRadius: 12, background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#10b981", width: 40, height: 40, justifyContent: "center" }} />
             <button onClick={()=>switchTab("Notices")} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec", position: "relative" }}>
               <Bell size={20} />
               <div style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, background: "#10b981", borderRadius: "50%", border: "2px solid #06080a" }} />
@@ -724,8 +725,8 @@ export function StudentWorkspace() {
               <div style={{ position: "absolute", top: 40, right: 0, width: "70%", height: 180, opacity: 0.1, backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Dedan_Kimathi_University_of_Technology_Library.jpg/1200px-Dedan_Kimathi_University_of_Technology_Library.jpg')", backgroundSize: "cover", backgroundPosition: "right center", maskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", zIndex: 0 }} />
 
               <div style={{ position: "relative", zIndex: 10 }}>
-                <h1 style={{ fontSize: 36, fontWeight: 800, lineHeight: 1.1, color: "#fff", marginBottom: 12, letterSpacing: "-0.03em" }}>
-                  Find Official DeKUT <br/>
+                <h1 style={{ fontSize: "clamp(22px, 5.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, color: "#fff", marginBottom: 10, letterSpacing: "-0.03em" }}>
+                  Find Official DeKUT <br className="hidden sm:inline" />
                   <span style={{ color: "#10b981" }}>Information Instantly</span>
                 </h1>
                 <p style={{ color: "#a1a1aa", fontSize: 15, marginBottom: 32 }}>Accurate answers. Verified sources. Trusted by all.</p>
