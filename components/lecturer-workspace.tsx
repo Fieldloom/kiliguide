@@ -320,30 +320,19 @@ export function LecturerWorkspace() {
           <motion.button onClick={()=>switchTab("Settings")} className="glass-button" style={{ padding: 10 }}><Settings size={18} /></motion.button>
         </header>
 
-        <header className="mobile-only" style={{ height: 70, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", flexShrink: 0, zIndex: 20 }}>
-          <button onClick={() => setMobileSidebar(true)} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec" }}>
-            <Menu size={22} />
+        <header className="mobile-only" style={{ height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", flexShrink: 0, zIndex: 20, borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(11, 15, 20, 0.85)", backdropFilter: "blur(12px)" }}>
+          <button onClick={() => setMobileSidebar(true)} style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#ececec", display: "grid", placeItems: "center" }}>
+            <Menu size={20} />
           </button>
           
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 40, height: 40, borderRadius: 50, background: "#0B0F14", display: "grid", placeItems: "center" }}>
-              <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
-            </span>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontSize: 20, fontWeight: 700, color: "#8b5cf6", letterSpacing: "-0.02em", lineHeight: 1 }}>KiliGuide</span>
-              <span style={{ fontSize: 10, color: "#a1a1aa", marginTop: 2 }}>Official DeKUT Information</span>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "5px 12px", cursor: "pointer" }} onClick={() => setTab("Home")}>
+            <Sparkles size={14} style={{ color: "#8b5cf6" }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}>KiliGuide AI</span>
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={()=>switchTab("Notices")} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec", position: "relative" }}>
-              <Bell size={20} />
-              <div style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, background: "#8b5cf6", borderRadius: "50%", border: "2px solid #06080a" }} />
-            </button>
-            <button onClick={()=>switchTab("Settings")} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec" }}>
-              <Settings size={20} />
-            </button>
-          </div>
+          <button onClick={() => { setActiveConvId(null); setTab("Chats"); }} style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#ececec", display: "grid", placeItems: "center" }} title="New Chat">
+            <Plus size={20} />
+          </button>
         </header>
 
         {/* Dynamic Content */}

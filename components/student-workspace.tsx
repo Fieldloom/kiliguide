@@ -540,29 +540,19 @@ export function StudentWorkspace() {
           <motion.button onClick={()=>switchTab("Settings")} className="glazed-button" style={{ padding: 12 }}><Settings size={18} /></motion.button>
         </header>
 
-        <header className="mobile-only" style={{ height: 70, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", flexShrink: 0, zIndex: 20 }}>
-          <button onClick={() => setMobileSidebar(true)} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec" }}>
-            <Menu size={22} />
+        <header className="mobile-only h-14 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl flex items-center justify-between px-4 flex-shrink-0 z-20">
+          <button onClick={() => setMobileSidebar(true)} className="p-2 rounded-xl text-zinc-300 hover:text-white hover:bg-white/10 transition-colors bg-transparent border-none cursor-pointer">
+            <Menu size={20} />
           </button>
           
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 40, height: 40, borderRadius: 50, background: "#0B0F14", display: "grid", placeItems: "center" }}>
-              <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
-            </span>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontSize: 20, fontWeight: 700, color: "#10b981", letterSpacing: "-0.02em", lineHeight: 1 }}>KiliGuide</span>
-              <span style={{ fontSize: 10, color: "#a1a1aa", marginTop: 2 }}>Official DeKUT Information</span>
-            </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-zinc-200">
+            <Sparkles size={13} className="text-[#10b981]" />
+            <span>KiliGuide AI</span>
           </div>
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <InstallButton collapsed style={{ padding: 10, borderRadius: 12, background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#10b981", width: 40, height: 40, justifyContent: "center" }} />
-            <button onClick={()=>switchTab("Notices")} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec", position: "relative" }}>
-              <Bell size={20} />
-              <div style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, background: "#10b981", borderRadius: "50%", border: "2px solid #06080a" }} />
-            </button>
-            <button onClick={()=>switchTab("Settings")} style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec" }}>
-              <Settings size={20} />
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => { setActiveConvId(null); setTab("Chats"); }} className="p-2 rounded-xl bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 hover:bg-[#10b981]/25 transition-colors cursor-pointer" title="New Chat">
+              <Plus size={18} />
             </button>
           </div>
         </header>
@@ -719,105 +709,84 @@ export function StudentWorkspace() {
             </motion.div>
 
 
-            {/* --- MOBILE HOME REPLICA --- */}
-            <div className="mobile-only mobile-gradient-bg" style={{ padding: "32px 20px 100px", minHeight: "100%" }}>
+            {/* --- CLEAN CHATGPT-STYLE MOBILE HOME --- */}
+            <div className="mobile-only p-4 pb-28 min-h-full flex flex-col gap-6">
               
-              <div style={{ position: "absolute", top: 40, right: 0, width: "70%", height: 180, opacity: 0.1, backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Dedan_Kimathi_University_of_Technology_Library.jpg/1200px-Dedan_Kimathi_University_of_Technology_Library.jpg')", backgroundSize: "cover", backgroundPosition: "right center", maskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1), transparent)", zIndex: 0 }} />
-
-              <div style={{ position: "relative", zIndex: 10 }}>
-                <h1 style={{ fontSize: "clamp(22px, 5.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, color: "#fff", marginBottom: 10, letterSpacing: "-0.03em" }}>
-                  Find Official DeKUT <br className="hidden sm:inline" />
-                  <span style={{ color: "#10b981" }}>Information Instantly</span>
+              {/* Greeting & Search */}
+              <div className="pt-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-1">
+                  How can I help you today? 👋
                 </h1>
-                <p style={{ color: "#a1a1aa", fontSize: 15, marginBottom: 32 }}>Accurate answers. Verified sources. Trusted by all.</p>
+                <p className="text-xs sm:text-sm text-zinc-400 mb-4">Official DeKUT campus guide powered by AI.</p>
 
-                {/* Search Bar */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: 100, padding: "8px 8px 8px 24px", border: "1px solid #10b981", background: "rgba(0,0,0,0.4)", marginBottom: 24, boxShadow: "0 8px 32px rgba(16, 185, 129, 0.1)" }}>
-                  <Search size={22} style={{ color: "#10b981" }} />
-                  <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Ask any university question..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 15, color: "#fff" }} />
-                  <motion.button onClick={() => ask()} style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: "#10b981", color: "#fff" }}>
-                    <Send size={18} style={{ marginLeft: -2, transform: "rotate(45deg)" }} />
-                  </motion.button>
+                {/* ChatGPT-style Search Bar */}
+                <div className="flex items-center gap-3 rounded-full px-4 py-2.5 border border-[#10b981]/50 bg-black/40 shadow-lg backdrop-blur-md">
+                  <Search size={18} className="text-[#10b981] flex-shrink-0" />
+                  <input 
+                    value={query} 
+                    onChange={e => setQuery(e.target.value)} 
+                    onKeyDown={e => { if (e.key === "Enter") ask(); }} 
+                    placeholder="Ask fees, units, timetables, hostels..." 
+                    className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder:text-zinc-500" 
+                  />
+                  <button onClick={() => ask()} disabled={!query.trim()} className="w-8 h-8 rounded-full grid place-items-center bg-[#10b981] text-black disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 border-none cursor-pointer">
+                    <Send size={14} className="ml-0.5 -rotate-45" />
+                  </button>
                 </div>
-
-                {/* Trust Badges */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)", marginBottom: 40 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><ShieldCheck size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>Official Sources</span></div>
-                  <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>Accurate Answers</span></div>
-                  <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Zap size={16} style={{ color: "#10b981" }} /><span style={{ fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>Instant Responses</span></div>
-                </div>
-
-                {/* Popular Questions */}
-                <div style={{ marginBottom: 40 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Popular Questions</h3>
-                    <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>View All</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 20, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
-                    {["How do I register for units?", "How do I clear my fee balance?", "Are internal hostels available?", "When are CAT results released?"].map((q, i, arr) => (
-                      <div key={i} onClick={() => ask(q)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: i !== arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", cursor: "pointer" }}>
-                        <MessageSquare size={18} style={{ color: "#10b981" }} />
-                        <span style={{ flex: 1, fontSize: 14, color: "#ececec" }}>{q}</span>
-                        <ChevronRight size={18} style={{ color: "#52525b" }} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quick Access */}
-                <div style={{ marginBottom: 40 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Quick Access</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, overflowX: "auto" }} className="hide-scroll">
-                    {[
-                      { l: "Academics", i: GraduationCap },
-                      { l: "Fees", i: Wallet },
-                      { l: "Accommodation", i: Home },
-                      { l: "Admissions", i: FileText },
-                      { l: "Library", i: BookOpen },
-                      { l: "Support", i: HeadphonesIcon }
-                    ].map((btn, i) => (
-                      <div key={i} style={{ width: 80, height: 80, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                        <btn.i size={24} style={{ color: "#10b981" }} />
-                        <span style={{ fontSize: 10, color: "#ececec", fontWeight: 500 }}>{btn.l}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Continue */}
-                <div style={{ marginBottom: 40 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Continue</h3>
-                    <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>View All</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 20, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
-                    {conversations.slice(0, 3).map((c, i, arr) => (
-                      <div key={c.id} onClick={() => loadConv(c.id)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: i !== arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                        <Clock size={16} style={{ color: "#10b981" }} />
-                        <span style={{ flex: 1, fontSize: 14, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
-                        <span style={{ fontSize: 12, color: "#52525b" }}>{formatRelTime(c.createdAt)}</span>
-                        <ChevronRight size={18} style={{ color: "#52525b" }} />
-                      </div>
-                    ))}
-                    {conversations.length === 0 && <div style={{ padding: "20px", textAlign: "center", color: "#52525b", fontSize: 13 }}>No recent chats.</div>}
-                  </div>
-                </div>
-
-                {/* Powered By Banner */}
-                <div style={{ padding: "20px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(16, 185, 129, 0.05)", display: "flex", alignItems: "flex-start", gap: 16, position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", bottom: -20, right: -20, opacity: 0.1, zIndex: 0 }}>
-                    <Building2 size={120} />
-                  </div>
-                  <FileText size={24} style={{ color: "#10b981", flexShrink: 0, position: "relative", zIndex: 10 }} />
-                  <div style={{ position: "relative", zIndex: 10 }}>
-                    <b style={{ display: "block", fontSize: 13, color: "#fff", marginBottom: 4 }}>Powered by Official University Documents</b>
-                    <span style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.4 }}>Answers generated from verified DeKUT regulations, policies, notices and official resources.</span>
-                  </div>
-                </div>
-
               </div>
+
+              {/* Quick Access (2x2 Grid) */}
+              <div>
+                <h3 className="text-xs font-bold text-zinc-400 mb-3 uppercase tracking-wider">Quick Access</h3>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div onClick={() => ask("How do I register for units?")} className="glass-panel p-3.5 rounded-2xl cursor-pointer flex items-center gap-3 hover:bg-white/10 transition-colors">
+                    <div className="w-9 h-9 rounded-xl bg-[#10b981]/15 grid place-items-center flex-shrink-0">
+                      <GraduationCap size={18} className="text-[#10b981]" />
+                    </div>
+                    <span className="text-xs font-bold text-white leading-tight">Academics</span>
+                  </div>
+
+                  <div onClick={() => ask("How do I clear my fee balance?")} className="glass-panel p-3.5 rounded-2xl cursor-pointer flex items-center gap-3 hover:bg-white/10 transition-colors">
+                    <div className="w-9 h-9 rounded-xl bg-sky-500/15 grid place-items-center flex-shrink-0">
+                      <Wallet size={18} className="text-sky-400" />
+                    </div>
+                    <span className="text-xs font-bold text-white leading-tight">Fees</span>
+                  </div>
+
+                  <div onClick={() => switchTab("My timetable")} className="glass-panel p-3.5 rounded-2xl cursor-pointer flex items-center gap-3 hover:bg-white/10 transition-colors">
+                    <div className="w-9 h-9 rounded-xl bg-purple-500/15 grid place-items-center flex-shrink-0">
+                      <CalendarDays size={18} className="text-purple-400" />
+                    </div>
+                    <span className="text-xs font-bold text-white leading-tight">Timetable</span>
+                  </div>
+
+                  <div onClick={() => switchTab("Support")} className="glass-panel p-3.5 rounded-2xl cursor-pointer flex items-center gap-3 hover:bg-white/10 transition-colors">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/15 grid place-items-center flex-shrink-0">
+                      <HeadphonesIcon size={18} className="text-amber-400" />
+                    </div>
+                    <span className="text-xs font-bold text-white leading-tight">Support</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              {conversations.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-2.5">
+                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Recent Activity</h3>
+                    <button onClick={() => setTab("Chats")} className="text-xs font-semibold text-[#10b981] bg-transparent border-none cursor-pointer">View All</button>
+                  </div>
+                  <div className="glass-panel rounded-2xl overflow-hidden divide-y divide-white/5">
+                    {conversations.slice(0, 3).map((c) => (
+                      <div key={c.id} onClick={() => loadConv(c.id)} className="flex items-center gap-3 p-3 cursor-pointer hover:bg-white/5 transition-colors">
+                        <Clock size={15} className="text-[#10b981] flex-shrink-0" />
+                        <span className="flex-1 text-xs text-zinc-200 truncate">{c.title}</span>
+                        <ChevronRight size={14} className="text-zinc-600 flex-shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
