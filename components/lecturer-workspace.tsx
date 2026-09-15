@@ -388,15 +388,36 @@ export function LecturerWorkspace() {
 
       <section style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", position: "relative", zIndex: 10 }}>
         
-        <header className="desktop-only" style={{ height: 70, display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 24px", gap: 16, flexShrink: 0 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ marginRight: "auto", padding: 8, borderRadius: 8, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" }}>
-            {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
-          </button>
-          <motion.button onClick={()=>ask()} className="glass-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600 }}>
-            <Sparkles size={14} style={{ color: "#8b5cf6" }} /> Ask KiliGuide
-          </motion.button>
-          <motion.button onClick={()=>switchTab("Notices")} className="glass-button" style={{ padding: 10 }}><Bell size={18} /></motion.button>
-          <motion.button onClick={()=>switchTab("Settings")} className="glass-button" style={{ padding: 10 }}><Settings size={18} /></motion.button>
+        <header className="desktop-only" style={{ margin: "20px 28px 0", padding: "12px 24px", height: 68, display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(11, 15, 20, 0.75)", backdropFilter: "blur(24px)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", flexShrink: 0, zIndex: 30 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"} style={{ padding: 10, borderRadius: 12, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", transition: "all 0.2s" }}>
+              {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
+            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", fontSize: 13, fontWeight: 600, color: "#d4d4d8" }}>
+              <Sparkles size={14} style={{ color: "#8b5cf6" }} />
+              <span>Faculty Portal ({tab})</span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 99, background: "rgba(139, 92, 246, 0.1)", border: "1px solid rgba(139, 92, 246, 0.25)", fontSize: 11, fontWeight: 600, color: "#8b5cf6" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#8b5cf6", boxShadow: "0 0 8px #8b5cf6" }} />
+              Lecturer AI Assistant Online
+            </div>
+
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={()=>ask()} className="glass-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 12, background: "linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.1) 100%)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.3)", cursor: "pointer" }}>
+              <Sparkles size={14} /> <span>Ask KiliGuide</span>
+            </motion.button>
+
+            <button onClick={()=>switchTab("Notices")} title="Notices" style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#a1a1aa", cursor: "pointer", position: "relative" }}>
+              <Bell size={18} />
+              {notices.length > 0 && <span style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: "50%", background: "#8b5cf6" }} />}
+            </button>
+
+            <button onClick={()=>switchTab("Settings")} title="Settings" style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#a1a1aa", cursor: "pointer" }}>
+              <Settings size={18} />
+            </button>
+          </div>
         </header>
 
         <header className="mobile-only" style={{ height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", flexShrink: 0, zIndex: 20, borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(11, 15, 20, 0.85)", backdropFilter: "blur(12px)" }}>
@@ -418,116 +439,183 @@ export function LecturerWorkspace() {
         {tab === "Home" ? (
           <div style={{ flex: 1, overflowY: "auto", position: "relative" }} className="hide-scroll">
             
-            {/* --- DESKTOP HOME (DASHBOARD) --- */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="desktop-only" style={{ padding: "40px 32px 100px", maxWidth: 1200, margin: "0 auto" }}>
+            {/* --- DESKTOP HOME (ASYMMETRIC BENTO GRID DASHBOARD) --- */}
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="desktop-only" style={{ padding: "28px 28px 100px", maxWidth: 1360, margin: "0 auto" }}>
               
-              {/* Hero Section */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24, marginBottom: 32 }}>
-                
-                {/* Search Hero */}
-                <div className="glass-panel" style={{ padding: 40, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", top: -50, right: -50, width: 250, height: 250, background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)" }} />
-                  <h1 style={{ fontSize: 48, fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", marginBottom: 12 }}>
-                    Welcome back, <br/>
-                    <span style={{ color: "#8b5cf6" }}>{name.split(" ")[0]}</span> 👋
+              {/* Top Welcome Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28 }}>
+                <div>
+                  <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
+                    Welcome back, <span style={{ color: "#8b5cf6" }}>Dr. {name.split(" ")[0]}</span> 🎓
                   </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 16, marginBottom: 32 }}>Find official DeKUT regulations, policies, and notices instantly.</p>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Academic Faculty Portal • Teaching & Research Workspace</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#8b5cf6", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Building2 size={16} /> DeKUT School of Computing
+                  </div>
+                </div>
+              </div>
+
+              {/* 3-Column Bento Grid Layout */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start" }}>
+                
+                {/* LEFT & CENTER COLUMN */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                   
-                  <div style={{ width: "100%", maxWidth: 600 }}>
-                    <div className="glass-input" style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: 30, padding: "8px 8px 8px 24px", border: "1px solid rgba(139, 92, 246, 0.4)", background: "rgba(0,0,0,0.5)", boxShadow: "0 8px 32px rgba(139,92,246,0.1)" }}>
-                      <Search size={22} style={{ color: "#8b5cf6" }} />
-                      <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Ask KiliGuide anything..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "#fff" }} />
-                      <motion.button onClick={() => ask()} disabled={!query.trim()} style={{ width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() ? "#8b5cf6" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() ? "pointer" : "not-allowed", position: "relative", zIndex: 10 }}>
-                        <Send size={18} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
+                  {/* Ask KiliGuide Hero AI Bar */}
+                  <div className="glass-panel" style={{ padding: 32, border: "none", position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", top: -40, right: -40, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
+                    
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Sparkles size={20} style={{ color: "#8b5cf6" }} />
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Faculty AI Assistant & Policy Hub</h2>
+                      </div>
+                      <span style={{ fontSize: 11, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: 6 }}>Academic Statutes & Regulations</span>
+                    </div>
+                    
+                    <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>Instant search across exam regulations, CAT submission guidelines, grade submission policies, and research grants.</p>
+                    
+                    <div className="glass-input" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px 10px 20px" }}>
+                      <Search size={18} style={{ color: "#8b5cf6" }} />
+                      <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} placeholder="Ask about exam deadlines, Senate policies, missing marks resolution..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff" }} />
+                      <motion.button onClick={() => ask()} disabled={!query.trim()} style={{ width: 38, height: 38, borderRadius: 12, display: "grid", placeItems: "center", border: "none", background: query.trim() ? "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)" : "rgba(255,255,255,0.08)", color: "#fff", cursor: query.trim() ? "pointer" : "not-allowed" }}>
+                        <Send size={15} style={{ transform: "rotate(45deg)", marginLeft: -1 }} />
                       </motion.button>
                     </div>
-                  </div>
-                </div>
 
-                {/* Latest Notice */}
-                <div className="glass-panel" style={{ padding: 24, display: "flex", flexDirection: "column" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(245, 158, 11, 0.1)", display: "grid", placeItems: "center" }}>
-                      <AlertCircle size={18} color="#f59e0b" />
+                    {/* Quick Suggestions for Lecturers */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+                      {[
+                        "Grading & CAT guidelines?",
+                        "How to process missing marks?",
+                        "Teaching timetable upload rules",
+                        "Departmental meeting schedules"
+                      ].map((promptText, pIdx) => (
+                        <button
+                          key={pIdx}
+                          onClick={() => ask(promptText)}
+                          style={{ fontSize: 12, color: "#d4d4d8", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "5px 12px", cursor: "pointer", transition: "all 0.15s" }}
+                          className="hover:border-[#8b5cf6]/40 hover:text-white"
+                        >
+                          🎓 {promptText}
+                        </button>
+                      ))}
                     </div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>Latest Notice</h3>
                   </div>
-                  {notices.length > 0 ? (
-                    <>
-                      <h4 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{notices[0].title}</h4>
-                      <p style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", flex: 1 }}>{notices[0].summary || notices[0].body}</p>
-                      <button onClick={() => switchTab("Notices")} style={{ alignSelf: "flex-start", marginTop: 16, background: "transparent", border: "none", color: "#8b5cf6", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                        Read More <ChevronRight size={14} />
-                      </button>
-                    </>
-                  ) : (
-                    <p style={{ color: "#a1a1aa", fontSize: 14, marginTop: 20 }}>No active notices.</p>
-                  )}
-                </div>
-              </div>
 
-              {/* Quick Access Grid */}
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Quick Access</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16, marginBottom: 32 }}>
-                {[
-                  { l: "Academics", i: GraduationCap, t: "Registration & Units", d: "What are the rules for new Lecturers?" },
-                  { l: "Fees", i: Wallet, t: "Clearance & Deadlines", d: "How do I clear my fee balance?" },
-                  { l: "Accommodation", i: Home, t: "Hostel Availability", d: "Are there internal hostels available?" },
-                  { l: "Admissions", i: FileText, t: "Deferment Process", d: "How do I defer my studies?" },
-                  { l: "Exams", i: BookOpenCheck, t: "CATs & Missing Marks", d: "What do I do about missing marks?" },
-                  { l: "Support", i: HeadphonesIcon, t: "IT & Helpdesk", d: "How do I connect to Lecturer WiFi?" }
-                ].map((btn, i) => (
-                  <motion.div whileHover={{ y: -4, boxShadow: "0 10px 40px rgba(139,92,246,0.1)" }} key={i} onClick={() => ask(btn.d)} className="glass-panel" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12, cursor: "pointer", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(139, 92, 246, 0.1)", display: "grid", placeItems: "center" }}>
-                      <btn.i size={20} style={{ color: "#8b5cf6" }} />
+                  {/* Quick Access Grid */}
+                  <div>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: "#71717a", marginBottom: 14, letterSpacing: "0.06em", textTransform: "uppercase" }}>Faculty Workspaces</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+                      
+                      <motion.div whileHover={{ y: -3 }} onClick={() => ask("What are the rules for new Lecturers and unit registration?")} className="glass-panel" style={{ padding: 20, cursor: "pointer", border: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(139, 92, 246, 0.15)", display: "grid", placeItems: "center" }}>
+                          <GraduationCap size={20} style={{ color: "#8b5cf6" }} />
+                        </div>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Academics & Regulations</span>
+                        <span style={{ fontSize: 12, color: "#a1a1aa" }}>Unit registration rules & policies</span>
+                      </motion.div>
+
+                      <motion.div whileHover={{ y: -3 }} onClick={() => ask("What do I do about missing marks?")} className="glass-panel" style={{ padding: 20, cursor: "pointer", border: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(244, 63, 94, 0.15)", display: "grid", placeItems: "center" }}>
+                          <BookOpenCheck size={20} style={{ color: "#f43f5e" }} />
+                        </div>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Exam & CAT Portal</span>
+                        <span style={{ fontSize: 12, color: "#a1a1aa" }}>Missing marks & grade sheets</span>
+                      </motion.div>
+
+                      <motion.div whileHover={{ y: -3 }} onClick={() => switchTab("Class Schedules")} className="glass-panel" style={{ padding: 20, cursor: "pointer", border: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(56, 189, 248, 0.15)", display: "grid", placeItems: "center" }}>
+                          <CalendarDays size={20} style={{ color: "#38bdf8" }} />
+                        </div>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Teaching Schedules</span>
+                        <span style={{ fontSize: 12, color: "#a1a1aa" }}>Lecture timetable & room allocations</span>
+                      </motion.div>
+
                     </div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>{btn.l}</span>
-                  </motion.div>
-                ))}
-              </div>
+                  </div>
 
-              {/* Bottom Split */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                {/* Recent Chats */}
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Recent Conversations</h3>
-                    <button onClick={() => switchTab("Chats")} style={{ background: "transparent", border: "none", color: "#8b5cf6", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>View All</button>
+                  {/* Recent Conversations */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <h3 style={{ fontSize: 13, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase" }}>Recent AI Discussions</h3>
+                      <button onClick={() => switchTab("Chats")} style={{ background: "transparent", border: "none", color: "#8b5cf6", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>View All ({conversations.length}) →</button>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: "8px 0", border: "none" }}>
+                      {conversations.slice(0, 4).map((c, idx) => (
+                        <div key={c.id} onClick={() => loadConv(c.id)} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 20px", cursor: "pointer", borderBottom: idx < Math.min(conversations.length - 1, 3) ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                          <MessageSquare size={16} style={{ color: "#8b5cf6", flexShrink: 0 }} />
+                          <span style={{ flex: 1, fontSize: 14, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
+                          <span style={{ fontSize: 12, color: "#71717a" }}>{formatRelTime(c.createdAt)}</span>
+                          <ChevronRight size={14} style={{ color: "#52525b" }} />
+                        </div>
+                      ))}
+                      {conversations.length === 0 && <p style={{ color: "#71717a", fontSize: 13, padding: "16px 20px" }}>No recent conversations.</p>}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {conversations.slice(0, 3).map(c => (
-                      <div key={c.id} onClick={() => loadConv(c.id)} className="glass-panel" style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", cursor: "pointer" }}>
-                        <MessageSquare size={18} style={{ color: "#8b5cf6" }} />
-                        <span style={{ flex: 1, fontSize: 14, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
-                        <span style={{ fontSize: 12, color: "#52525b" }}>{formatRelTime(c.createdAt)}</span>
-                        <ChevronRight size={18} style={{ color: "#52525b" }} />
-                      </div>
-                    ))}
-                    {conversations.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14 }}>No recent conversations.</p>}
-                  </div>
+
                 </div>
 
-                {/* Timetable Status & Trust */}
-                <div>
-                   <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 16 }}>Status</h3>
-                   <div className="glass-panel" style={{ padding: 20, marginBottom: 16, display: "flex", alignItems: "center", gap: 16 }}>
-                      <CalendarDays size={24} color="#8b5cf6" />
-                      <div style={{ flex: 1 }}>
-                        <b style={{ display: "block", color: "#fff", fontSize: 14 }}>Class Schedule Integration</b>
-                        <span style={{ fontSize: 13, color: "#a1a1aa" }}>{timetables.length > 0 ? "Active and monitored." : "No timetable uploaded yet."}</span>
+                {/* RIGHT COLUMN */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  
+                  {/* Latest Notice */}
+                  <div className="glass-panel" style={{ padding: 22, border: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Bell size={18} style={{ color: "#8b5cf6" }} />
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Official Circulars</h3>
                       </div>
-                      <button onClick={() => switchTab("Class Schedules")} style={{ padding: "6px 12px", borderRadius: 12, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{timetables.length > 0 ? "View" : "Upload"}</button>
-                   </div>
-                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(139, 92, 246, 0.05)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}><ShieldCheck size={16} style={{ color: "#8b5cf6" }} /><span style={{ fontSize: 12, color: "#d4d4d8", fontWeight: 500 }}>Official Sources</span></div>
-                    <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}><CheckCircle2 size={16} style={{ color: "#8b5cf6" }} /><span style={{ fontSize: 12, color: "#d4d4d8", fontWeight: 500 }}>Verified</span></div>
-                    <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Zap size={16} style={{ color: "#8b5cf6" }} /><span style={{ fontSize: 12, color: "#d4d4d8", fontWeight: 500 }}>Instant</span></div>
-                  </div>
-                </div>
-              </div>
+                      <span style={{ fontSize: 10, background: "rgba(139, 92, 246, 0.15)", color: "#8b5cf6", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>FACULTY</span>
+                    </div>
 
+                    {notices.length > 0 ? (
+                      <div>
+                        <h4 style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 6 }}>{notices[0].title}</h4>
+                        <p style={{ color: "#a1a1aa", fontSize: 12, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", marginBottom: 12 }}>{notices[0].summary || notices[0].body}</p>
+                        <button onClick={() => switchTab("Notices")} style={{ background: "transparent", border: "none", color: "#8b5cf6", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Read Circular →</button>
+                      </div>
+                    ) : (
+                      <p style={{ color: "#71717a", fontSize: 12 }}>No published circulars.</p>
+                    )}
+                  </div>
+
+                  {/* Teaching Timetable Widget */}
+                  <div className="glass-panel" style={{ padding: 22, border: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                      <CalendarDays size={18} style={{ color: "#8b5cf6" }} />
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Lecture Schedule</h3>
+                    </div>
+                    
+                    <div style={{ padding: "12px", borderRadius: 12, background: "rgba(139, 92, 246, 0.08)", border: "1px solid rgba(139, 92, 246, 0.2)", marginBottom: 14 }}>
+                      <span style={{ fontSize: 11, color: "#8b5cf6", fontWeight: 700, textTransform: "uppercase" }}>Schedule Status</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#fff", display: "block", marginTop: 2 }}>
+                        {timetables.length > 0 ? "Timetable Verified Active" : "No teaching schedule uploaded"}
+                      </span>
+                    </div>
+
+                    <button onClick={() => switchTab("Class Schedules")} style={{ width: "100%", padding: "10px", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      View Schedules <ChevronRight size={15} />
+                    </button>
+                  </div>
+
+                  {/* Verifiable Documents Banner */}
+                  <div className="glass-panel" style={{ padding: 20, background: "rgba(139, 92, 246, 0.05)", border: "1px solid rgba(139, 92, 246, 0.15)" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <FileText size={20} style={{ color: "#8b5cf6", flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <b style={{ display: "block", fontSize: 13, color: "#fff", marginBottom: 4 }}>Powered by Verified DeKUT Statutes</b>
+                        <span style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.4 }}>Answers generated from official Senate policies, exam guidelines, and university statutes.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
             </motion.div>
 
 

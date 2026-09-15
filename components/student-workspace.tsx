@@ -629,15 +629,36 @@ export function StudentWorkspace() {
 
       <section style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", position: "relative", zIndex: 10 }}>
         
-        <header className="desktop-only" style={{ height: 90, display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 40px", gap: 16, flexShrink: 0 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="glazed-widget" style={{ marginRight: "auto", padding: 12, borderRadius: 16, color: "#ececec", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
-            {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
-          </button>
-          <motion.button onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600 }}>
-            <Sparkles size={14} style={{ color: "#10b981" }} /> Ask KiliGuide
-          </motion.button>
-          <motion.button onClick={()=>switchTab("Notices")} className="glazed-button" style={{ padding: 12 }}><Bell size={18} /></motion.button>
-          <motion.button onClick={()=>switchTab("Settings")} className="glazed-button" style={{ padding: 12 }}><Settings size={18} /></motion.button>
+        <header className="desktop-only" style={{ margin: "20px 28px 0", padding: "12px 24px", height: 68, display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(11, 15, 20, 0.75)", backdropFilter: "blur(24px)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", flexShrink: 0, zIndex: 30 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"} style={{ padding: 10, borderRadius: 12, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", transition: "all 0.2s" }}>
+              {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
+            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", fontSize: 13, fontWeight: 600, color: "#d4d4d8" }}>
+              <Sparkles size={14} style={{ color: "#10b981" }} />
+              <span>{tab} Workspace</span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 99, background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.25)", fontSize: 11, fontWeight: 600, color: "#10b981" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
+              DeKUT AI Online
+            </div>
+
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 12, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", cursor: "pointer" }}>
+              <Sparkles size={14} /> <span>Ask KiliGuide</span>
+            </motion.button>
+
+            <button onClick={()=>switchTab("Notices")} title="Notices" style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#a1a1aa", cursor: "pointer", position: "relative" }}>
+              <Bell size={18} />
+              {notices.length > 0 && <span style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: "50%", background: "#fbbf24" }} />}
+            </button>
+
+            <button onClick={()=>switchTab("Settings")} title="Settings" style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#a1a1aa", cursor: "pointer" }}>
+              <Settings size={18} />
+            </button>
+          </div>
         </header>
 
         <header className="mobile-only h-14 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl flex items-center justify-between px-4 flex-shrink-0 z-20">
@@ -661,148 +682,234 @@ export function StudentWorkspace() {
         {tab === "Home" ? (
           <div style={{ flex: 1, overflowY: "auto", position: "relative" }} className="hide-scroll">
             
-            {/* --- DESKTOP HOME (BENTO BOX DASHBOARD) --- */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="desktop-only" style={{ padding: "40px 32px 100px", maxWidth: 1000, margin: "0 auto" }}>
+            {/* --- DESKTOP HOME (ASYMMETRIC BENTO GRID DASHBOARD) --- */}
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="desktop-only" style={{ padding: "28px 28px 100px", maxWidth: 1360, margin: "0 auto" }}>
               
-              <div style={{ marginBottom: 32 }}>
-                <h1 style={{ fontSize: 32, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
-                  Good morning, {name.split(" ")[0]} 👋
-                </h1>
-                <p style={{ color: "#a1a1aa", fontSize: 16 }}>Your campus, simplified.</p>
+              {/* Top Welcome Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28 }}>
+                <div>
+                  <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
+                    Welcome back, {name.split(" ")[0]} 👋
+                  </h1>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Intelligent Campus Companion • Academic Year 2025/2026</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#10b981", display: "flex", alignItems: "center", gap: 8 }}>
+                    <ShieldCheck size={16} /> Portal Status: Verified Active
+                  </div>
+                </div>
               </div>
 
-              <div style={{ display: "grid", gap: 24 }}>
+              {/* 3-Column Bento Grid Container */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start" }}>
                 
-                {/* Ask KiliGuide Hero (Full Width) */}
-                <div className="glazed-widget" style={{ padding: 40, border: "none" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                    <Sparkles size={20} style={{ color: "#10b981" }} />
-                    <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Ask KiliGuide</h2>
-                  </div>
-                  <p style={{ color: "#ececec", fontSize: 16, marginBottom: 24 }}>"What do you need help with?"</p>
+                {/* LEFT & CENTER COLUMN (Main Bento Workspace) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                   
-                  <motion.div 
-                    className="glazed-input" 
-                    animate={asking ? { boxShadow: ["0 0 0px rgba(16, 185, 129, 0)", "0 0 20px rgba(16, 185, 129, 0.4)", "0 0 0px rgba(16, 185, 129, 0)"] } : {}}
-                    transition={asking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : {}}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 12px 12px 24px", maxWidth: 600 }}
-                  >
-                    <Search size={20} style={{ color: "#10b981" }} />
-                    <input disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !asking) ask(); }} placeholder={asking ? "Processing..." : "Search university knowledge..."} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 16, color: "#fff", opacity: asking ? 0.7 : 1 }} />
-                    <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: "50%", display: "grid", placeItems: "center", border: "none", background: query.trim() || asking ? "linear-gradient(135deg, rgba(25, 195, 125, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%)" : "rgba(255,255,255,0.1)", color: "#fff", cursor: query.trim() && !asking ? "pointer" : "not-allowed", transition: "0.2s", boxShadow: query.trim() || asking ? "0 4px 20px rgba(25, 195, 125, 0.3)" : "none" }}>
-                      {asking ? (
-                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "grid", placeItems: "center" }}>
-                          <Loader2 size={16} />
-                        </motion.div>
-                      ) : (
-                        <Send size={16} style={{ transform: "rotate(45deg)", marginLeft: -2 }} />
-                      )}
-                    </motion.button>
-                  </motion.div>
-                </div>
-
-                {/* Split Widgets: Upcoming & Campus */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                  {/* Upcoming Widget */}
-                  <div className="glazed-widget" style={{ padding: 32, border: "none", display: "flex", flexDirection: "column" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                      <CalendarDays size={20} style={{ color: "#8b5cf6" }} />
-                      <h3 style={{ fontSize: 16, fontWeight: 700, color: "#a1a1aa", letterSpacing: "0.05em", textTransform: "uppercase" }}>Upcoming</h3>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      {timetables.length > 0 ? (
-                        <>
-                          <h4 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Next Class/Exam</h4>
-                          <p style={{ color: "#d4d4d8", fontSize: 15 }}>Active and monitored.</p>
-                        </>
-                      ) : (
-                        <>
-                          <h4 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Timetable Integration</h4>
-                          <p style={{ color: "#d4d4d8", fontSize: 15 }}>No timetable uploaded yet.</p>
-                        </>
-                      )}
-                    </div>
-                    <button onClick={() => switchTab("My timetable")} style={{ alignSelf: "flex-start", marginTop: 24, background: "transparent", border: "none", color: "#8b5cf6", fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                      View calendar <ChevronRight size={16} />
-                    </button>
-                  </div>
-
-                  {/* Campus Widget */}
-                  <div className="glazed-widget" style={{ padding: 32, border: "none", display: "flex", flexDirection: "column" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                      <Bell size={20} style={{ color: "#fbbf24" }} />
-                      <h3 style={{ fontSize: 16, fontWeight: 700, color: "#a1a1aa", letterSpacing: "0.05em", textTransform: "uppercase" }}>Campus</h3>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Latest Notice</h4>
-                      {notices.length > 0 ? (
-                        <p style={{ color: "#d4d4d8", fontSize: 15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{notices[0].title}</p>
-                      ) : (
-                        <p style={{ color: "#a1a1aa", fontSize: 15 }}>No new notices.</p>
-                      )}
-                    </div>
-                    <button onClick={() => switchTab("Notices")} style={{ alignSelf: "flex-start", marginTop: 24, background: "transparent", border: "none", color: "#fbbf24", fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                      View all <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quick Access Bento Grid */}
-                <div>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#a1a1aa", marginBottom: 16, letterSpacing: "0.05em", textTransform: "uppercase" }}>Quick Access</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16 }}>
-                    {/* Row 1: Large Cards (Span 3) */}
-                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("What are the academic rules and unit registration processes?")} className="glazed-widget" style={{ gridColumn: "span 3", padding: 24, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 16 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(16, 185, 129, 0.15)", display: "grid", placeItems: "center" }}>
-                        <GraduationCap size={22} style={{ color: "#10b981" }} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", display: "block", marginBottom: 4 }}>Academics</span>
-                        <span style={{ fontSize: 14, color: "#a1a1aa" }}>Registration & Units →</span>
-                      </div>
-                    </motion.div>
+                  {/* Ask KiliGuide Hero AI Bar */}
+                  <div className="glazed-widget" style={{ padding: 32, border: "none", position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", top: -40, right: -40, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
                     
-                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("How do I clear my fee balance?")} className="glazed-widget" style={{ gridColumn: "span 3", padding: 24, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 16 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(56, 189, 248, 0.15)", display: "grid", placeItems: "center" }}>
-                        <Wallet size={22} style={{ color: "#38bdf8" }} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Sparkles size={20} style={{ color: "#10b981" }} />
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Ask KiliGuide AI Assistant</h2>
                       </div>
-                      <div>
-                        <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", display: "block", marginBottom: 4 }}>Fees</span>
-                        <span style={{ fontSize: 14, color: "#a1a1aa" }}>Fee statement →</span>
-                      </div>
+                      <span style={{ fontSize: 11, color: "#71717a", background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: 6 }}>RAG-indexed DeKUT Docs</span>
+                    </div>
+                    
+                    <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>Ask anything about unit registration, fee payment, exam timetables, or hostel booking.</p>
+                    
+                    <motion.div 
+                      className="glazed-input" 
+                      animate={asking ? { boxShadow: ["0 0 0px rgba(16, 185, 129, 0)", "0 0 20px rgba(16, 185, 129, 0.4)", "0 0 0px rgba(16, 185, 129, 0)"] } : {}}
+                      transition={asking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : {}}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px 10px 20px" }}
+                    >
+                      <Search size={18} style={{ color: "#10b981" }} />
+                      <input disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !asking) ask(); }} placeholder={asking ? "Searching DeKUT knowledge base..." : "Search university guidelines, fee statements, course units..."} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", opacity: asking ? 0.7 : 1 }} />
+                      <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 38, height: 38, borderRadius: 12, display: "grid", placeItems: "center", border: "none", background: query.trim() || asking ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "rgba(255,255,255,0.08)", color: "#fff", cursor: query.trim() && !asking ? "pointer" : "not-allowed", transition: "0.2s" }}>
+                        {asking ? (
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "grid", placeItems: "center" }}>
+                            <Loader2 size={16} />
+                          </motion.div>
+                        ) : (
+                          <Send size={15} style={{ transform: "rotate(45deg)", marginLeft: -1 }} />
+                        )}
+                      </motion.button>
                     </motion.div>
 
-                    {/* Row 2: Smaller Cards (Span 2) */}
-                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("Are there internal hostels available?")} className="glazed-widget" style={{ gridColumn: "span 2", padding: 20, cursor: "pointer", border: "none", display: "flex", alignItems: "center", gap: 12 }}>
-                      <Home size={18} style={{ color: "#f43f5e" }} />
-                      <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>Accommodation</span>
-                    </motion.div>
-
-                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("What do I do about missing marks?")} className="glazed-widget" style={{ gridColumn: "span 2", padding: 20, cursor: "pointer", border: "none", display: "flex", alignItems: "center", gap: 12 }}>
-                      <BookOpenCheck size={18} style={{ color: "#a855f7" }} />
-                      <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>Exams</span>
-                    </motion.div>
-
-                    <motion.div whileHover={{ y: -4 }} onClick={() => ask("How do I connect to student WiFi?")} className="glazed-widget" style={{ gridColumn: "span 2", padding: 20, cursor: "pointer", border: "none", display: "flex", alignItems: "center", gap: 12 }}>
-                      <HeadphonesIcon size={18} style={{ color: "#fb923c" }} />
-                      <span style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>Support</span>
-                    </motion.div>
+                    {/* Quick Prompt Suggestion Pills */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+                      {[
+                        "Unit registration deadline?",
+                        "Fee statement clearance steps",
+                        "Hostel booking instructions",
+                        "Missing exam marks escalation"
+                      ].map((promptText, pIdx) => (
+                        <button
+                          key={pIdx}
+                          onClick={() => ask(promptText)}
+                          style={{ fontSize: 12, color: "#d4d4d8", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "5px 12px", cursor: "pointer", transition: "all 0.15s" }}
+                          className="hover:border-[#10b981]/40 hover:text-white"
+                        >
+                          ✨ {promptText}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* 4 Interactive Bento Quick Access Cards */}
+                  <div>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: "#71717a", marginBottom: 14, letterSpacing: "0.06em", textTransform: "uppercase" }}>Core Campus Portals</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+                      
+                      <motion.div whileHover={{ y: -3 }} onClick={() => ask("What are the academic rules and unit registration processes?")} className="glazed-widget" style={{ padding: 22, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", display: "grid", placeItems: "center" }}>
+                            <GraduationCap size={20} style={{ color: "#10b981" }} />
+                          </div>
+                          <ChevronRight size={16} style={{ color: "#71717a" }} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", display: "block", marginBottom: 2 }}>Academics & Registration</span>
+                          <span style={{ fontSize: 13, color: "#a1a1aa" }}>Unit registration guides & course outlines</span>
+                        </div>
+                      </motion.div>
+                      
+                      <motion.div whileHover={{ y: -3 }} onClick={() => ask("How do I clear my fee balance?")} className="glazed-widget" style={{ padding: 22, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(56, 189, 248, 0.15)", border: "1px solid rgba(56, 189, 248, 0.3)", display: "grid", placeItems: "center" }}>
+                            <Wallet size={20} style={{ color: "#38bdf8" }} />
+                          </div>
+                          <ChevronRight size={16} style={{ color: "#71717a" }} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", display: "block", marginBottom: 2 }}>Fees & Statements</span>
+                          <span style={{ fontSize: 13, color: "#a1a1aa" }}>Fee breakdown, receipt verification & deadlines</span>
+                        </div>
+                      </motion.div>
+
+                      <motion.div whileHover={{ y: -3 }} onClick={() => ask("Are there internal hostels available?")} className="glazed-widget" style={{ padding: 22, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(244, 63, 94, 0.15)", border: "1px solid rgba(244, 63, 94, 0.3)", display: "grid", placeItems: "center" }}>
+                            <Home size={20} style={{ color: "#f43f5e" }} />
+                          </div>
+                          <ChevronRight size={16} style={{ color: "#71717a" }} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", display: "block", marginBottom: 2 }}>Hostels & Housing</span>
+                          <span style={{ fontSize: 13, color: "#a1a1aa" }}>Internal rooms, private rentals & guidelines</span>
+                        </div>
+                      </motion.div>
+
+                      <motion.div whileHover={{ y: -3 }} onClick={() => ask("How do I report missing marks?")} className="glazed-widget" style={{ padding: 22, cursor: "pointer", border: "none", display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(168, 85, 247, 0.15)", border: "1px solid rgba(168, 85, 247, 0.3)", display: "grid", placeItems: "center" }}>
+                            <BookOpenCheck size={20} style={{ color: "#a855f7" }} />
+                          </div>
+                          <ChevronRight size={16} style={{ color: "#71717a" }} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", display: "block", marginBottom: 2 }}>Exam Results & Audit</span>
+                          <span style={{ fontSize: 13, color: "#a1a1aa" }}>Transcript status & missing marks resolution</span>
+                        </div>
+                      </motion.div>
+
+                    </div>
+                  </div>
+
+                  {/* Recent Conversations List */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <h3 style={{ fontSize: 13, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase" }}>Recent AI Discussions</h3>
+                      <button onClick={() => switchTab("Chats")} style={{ background: "transparent", border: "none", color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>View All ({conversations.length}) →</button>
+                    </div>
+
+                    <div className="glazed-widget" style={{ padding: "8px 0", border: "none" }}>
+                      {conversations.slice(0, 4).map((c, idx) => (
+                        <div key={c.id} onClick={() => loadConv(c.id)} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 20px", cursor: "pointer", borderBottom: idx < Math.min(conversations.length - 1, 3) ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                          <MessageSquare size={16} style={{ color: "#10b981", flexShrink: 0 }} />
+                          <span style={{ flex: 1, fontSize: 14, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
+                          <span style={{ fontSize: 12, color: "#71717a" }}>{formatRelTime(c.createdAt)}</span>
+                          <ChevronRight size={14} style={{ color: "#52525b" }} />
+                        </div>
+                      ))}
+                      {conversations.length === 0 && <p style={{ color: "#71717a", fontSize: 13, padding: "16px 20px" }}>No recent conversations yet. Ask your first question above!</p>}
+                    </div>
+                  </div>
+
                 </div>
 
-                {/* Recently Used */}
-                <div>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#a1a1aa", marginBottom: 16, letterSpacing: "0.05em", textTransform: "uppercase" }}>Recently Used</h3>
-                  <div className="glazed-widget" style={{ padding: "8px 0", border: "none" }}>
-                    {conversations.slice(0, 3).map((c, idx) => (
-                      <div key={c.id} onClick={() => loadConv(c.id)} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 24px", cursor: "pointer", borderBottom: idx < Math.min(conversations.length - 1, 2) ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                        <FileText size={18} style={{ color: "#10b981" }} />
-                        <span style={{ flex: 1, fontSize: 15, color: "#ececec", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
-                        <span style={{ fontSize: 13, color: "#a1a1aa" }}>{formatRelTime(c.createdAt)}</span>
+                {/* RIGHT COLUMN (Campus Intelligence Side Panel) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  
+                  {/* Live Campus Notices Board Widget */}
+                  <div className="glazed-widget" style={{ padding: 22, border: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Bell size={18} style={{ color: "#fbbf24" }} />
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Official Campus Notices</h3>
                       </div>
-                    ))}
-                    {conversations.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14, padding: "16px 24px" }}>No recent activity.</p>}
+                      <span style={{ fontSize: 10, background: "rgba(251, 191, 36, 0.15)", color: "#fbbf24", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>LIVE</span>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {notices.slice(0, 3).map((notice, nIdx) => (
+                        <div key={nIdx} onClick={() => switchTab("Notices")} style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
+                          <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4, lineHeight: 1.3 }}>{notice.title}</span>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                            <span style={{ fontSize: 10, color: "#a1a1aa" }}>DeKUT Administration</span>
+                            <span style={{ fontSize: 10, color: "#10b981", marginLeft: "auto" }}>Read notice →</span>
+                          </div>
+                        </div>
+                      ))}
+                      {notices.length === 0 && <p style={{ color: "#71717a", fontSize: 12 }}>No campus notices published.</p>}
+                    </div>
                   </div>
+
+                  {/* Upcoming Timetable & Lecture Schedule */}
+                  <div className="glazed-widget" style={{ padding: 22, border: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                      <CalendarDays size={18} style={{ color: "#8b5cf6" }} />
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Schedule & Timetable</h3>
+                    </div>
+
+                    <div style={{ padding: "14px", borderRadius: 14, background: "rgba(139, 92, 246, 0.08)", border: "1px solid rgba(139, 92, 246, 0.2)", marginBottom: 14 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 4 }}>Next Lecture</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", display: "block" }}>
+                        {timetables.length > 0 ? "Active Monitored Session" : "No active timetable uploaded"}
+                      </span>
+                      <p style={{ fontSize: 12, color: "#a1a1aa", marginTop: 4 }}>
+                        {timetables.length > 0 ? "Check your personalized timetable tab for room allocations." : "Upload your semester PDF/ICS timetable to get smart alerts."}
+                      </p>
+                    </div>
+
+                    <button onClick={() => switchTab("My timetable")} style={{ width: "100%", padding: "10px", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      Open Timetable Hub <ChevronRight size={15} />
+                    </button>
+                  </div>
+
+                  {/* IT Support Ticket Status Card */}
+                  <div className="glazed-widget" style={{ padding: 22, border: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      <HeadphonesIcon size={18} style={{ color: "#10b981" }} />
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>DeKUT IT Helpdesk</h3>
+                    </div>
+
+                    <div style={{ padding: "12px", borderRadius: 12, background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#10b981" }}>SLA Response Guarantee</span>
+                        <span style={{ fontSize: 10, color: "#fff", background: "rgba(16, 185, 129, 0.2)", padding: "2px 6px", borderRadius: 4 }}>24–48 hrs</span>
+                      </div>
+                      <p style={{ fontSize: 11, color: "#a1a1aa" }}>Portal issues, Wi-Fi passwords, unit reg locks & fee clearance tickets.</p>
+                    </div>
+
+                    <button onClick={() => switchTab("Support")} style={{ width: "100%", padding: "10px", borderRadius: 12, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#10b981", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      Submit / Track Ticket <ChevronRight size={15} />
+                    </button>
+                  </div>
+
                 </div>
 
               </div>
