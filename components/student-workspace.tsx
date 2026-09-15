@@ -452,7 +452,7 @@ export function StudentWorkspace() {
   };
 
   const SidebarContent = () => (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "rgba(11, 15, 20, 0.95)", backdropFilter: "blur(20px)" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.18) 0%, rgba(11, 15, 20, 0.96) 75%)", backdropFilter: "blur(24px)", borderRadius: 24, overflow: "hidden" }}>
       {/* 1. Header & Brand */}
       <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -612,16 +612,16 @@ export function StudentWorkspace() {
         }
       `}</style>
 
-      <aside className="desktop-only glazed-sidebar" style={{ width: sidebarOpen ? 280 : 0, transition: "width 0.4s", flexShrink: 0, flexDirection: "column", overflow: "hidden", margin: sidebarOpen ? "24px 0 24px 24px" : "24px 0", height: "calc(100vh - 48px)" }}>
-        <div style={{ width: 280, flexShrink: 0, height: "100%", display: "flex", flexDirection: "column" }}>
+      <aside className="desktop-only glazed-sidebar" style={{ width: sidebarOpen ? 280 : 0, transition: "width 0.4s", flexShrink: 0, flexDirection: "column", overflow: "hidden", margin: sidebarOpen ? "24px 0 24px 24px" : "24px 0", height: "calc(100vh - 48px)", borderRadius: 24 }}>
+        <div style={{ width: 280, flexShrink: 0, height: "100%", display: "flex", flexDirection: "column", borderRadius: 24, overflow: "hidden" }}>
           <SidebarContent />
         </div>
       </aside>
 
       {mobileSidebar && (
         <AnimatePresence>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileSidebar(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
-          <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="glass-panel" style={{ position: "fixed", inset: "0 auto 0 0", width: 280, zIndex: 50, display: "flex", flexDirection: "column", height: "100%", borderRadius: 0 }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileSidebar(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} />
+          <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} style={{ position: "fixed", inset: "12px auto 12px 12px", width: 280, zIndex: 50, display: "flex", flexDirection: "column", height: "calc(100vh - 24px)", borderRadius: 24, overflow: "hidden", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "0 25px 60px rgba(0,0,0,0.8)" }}>
             <SidebarContent />
           </motion.aside>
         </AnimatePresence>
@@ -1106,45 +1106,142 @@ export function StudentWorkspace() {
             </div>
           </div>
         ) : tab === "Support" ? (
-          <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
-            <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 32 }}>
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 relative">
+            <div className="max-w-4xl mx-auto pb-28">
               
-              <div>
-                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 24 }}>IT Support</h2>
-                <div className="glass-panel" style={{ padding: 24 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 16 }}>Create New Ticket</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <select value={ticketDeptId} onChange={e => setTicketDeptId(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 14, appearance: "none" }}>
-                      <option value="">Select Department (Optional)</option>
-                      {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                    <input value={ticketSubject} onChange={e => setTicketSubject(e.target.value)} placeholder="Subject (e.g. WiFi Issue)" style={{ width: "100%", padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 14 }} />
-                    <textarea value={ticketDesc} onChange={e => setTicketDesc(e.target.value)} placeholder="Describe your issue..." rows={4} style={{ width: "100%", padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 14, resize: "none" }} />
-                    <button onClick={handleCreateTicket} disabled={creatingTicket || !ticketSubject || !ticketDesc} style={{ background: "#10b981", color: "#fff", border: "none", padding: "12px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: 8, opacity: (creatingTicket || !ticketSubject || !ticketDesc) ? 0.5 : 1 }}>
-                      {creatingTicket ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                      Submit Ticket
-                    </button>
+              {/* Purpose Banner */}
+              <div className="glass-panel p-5 sm:p-8 rounded-3xl mb-8 border border-white/10 bg-gradient-to-r from-emerald-950/40 via-zinc-900/60 to-purple-950/30">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-2xl bg-[#10b981]/15 border border-[#10b981]/30 grid place-items-center text-[#10b981]">
+                    <HeadphonesIcon size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-white m-0">DeKUT Official IT & Campus Helpdesk</h2>
+                    <span className="text-xs text-[#10b981] font-semibold">Priority SLA: 24 – 48 Hours Response Guarantee</span>
                   </div>
                 </div>
+                <p className="text-xs sm:text-sm text-zinc-300 m-0 mt-3 leading-relaxed">
+                  Submit official support tickets directly to DeKUT Directorate of ICT, Academic Registrar, and Student Affairs. Track ticket progress, receive real-time resolution alerts, or escalate unresolved issues.
+                </p>
               </div>
 
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 600, color: "#fff", marginBottom: 24, marginTop: 10 }}>Your Tickets</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {tickets.map(ticket => (
-                    <div key={ticket.id} className="glass-panel" style={{ padding: 16 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#fff", fontSize: 14 }}>{ticket.subject}</span>
-                        <span style={{ fontSize: 11, padding: "4px 8px", borderRadius: 12, fontWeight: 600, textTransform: "uppercase",
-                          background: ticket.status === 'open' ? "rgba(245, 158, 11, 0.1)" : ticket.status === 'resolved' ? "rgba(16, 185, 129, 0.1)" : "rgba(59, 130, 246, 0.1)",
-                          color: ticket.status === 'open' ? "#f59e0b" : ticket.status === 'resolved' ? "#10b981" : "#3b82f6"
-                        }}>{ticket.status}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                {/* Create Ticket Form */}
+                <div className="lg:col-span-7">
+                  <div className="glass-panel p-5 sm:p-7 rounded-3xl border border-white/10">
+                    <h3 className="text-base sm:text-lg font-bold text-white m-0 mb-4 flex items-center gap-2">
+                      <Ticket size={18} className="text-[#10b981]" />
+                      <span>Submit Support Ticket</span>
+                    </h3>
+
+                    {/* Purpose / Issue Category Shortcuts */}
+                    <div className="mb-4">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Quick Issue Category</span>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { label: "🔑 Portal & Passwords", subject: "Portal Login & Password Reset Request" },
+                          { label: "📶 Wi-Fi & E-Learning", subject: "Campus Wi-Fi & Portal Connection Issue" },
+                          { label: "📚 Unit Reg & Exams", subject: "Unit Registration / Exam Missing Mark Issue" },
+                          { label: "💳 Fee Clearance", subject: "Fee Balance Statement & Slip Clearance" },
+                          { label: "🛠️ General Support", subject: "General ICT & Campus Support Query" }
+                        ].map((cat) => (
+                          <button
+                            key={cat.label}
+                            type="button"
+                            onClick={() => setTicketSubject(cat.subject)}
+                            className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-[#10b981]/20 border border-white/10 hover:border-[#10b981]/40 text-xs text-zinc-200 cursor-pointer transition-colors"
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
                       </div>
-                      <p style={{ fontSize: 13, color: "#a1a1aa", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ticket.description}</p>
                     </div>
-                  ))}
-                  {tickets.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14 }}>No tickets submitted.</p>}
+
+                    <div className="flex flex-col gap-3.5">
+                      <div>
+                        <label className="text-xs text-zinc-400 font-semibold mb-1 block">Target Department</label>
+                        <select 
+                          value={ticketDeptId} 
+                          onChange={e => setTicketDeptId(e.target.value)} 
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs sm:text-sm outline-none cursor-pointer"
+                        >
+                          <option value="">Select Department (Default: Directorate of ICT)</option>
+                          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-zinc-400 font-semibold mb-1 block">Issue Subject</label>
+                        <input 
+                          value={ticketSubject} 
+                          onChange={e => setTicketSubject(e.target.value)} 
+                          placeholder="e.g. WiFi Access / Missing Exam Mark" 
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs sm:text-sm outline-none" 
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-zinc-400 font-semibold mb-1 block">Detailed Description & Reg Number</label>
+                        <textarea 
+                          value={ticketDesc} 
+                          onChange={e => setTicketDesc(e.target.value)} 
+                          placeholder="Provide full details, your Student Registration Number, and course unit..." 
+                          rows={4} 
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs sm:text-sm outline-none resize-none" 
+                        />
+                      </div>
+
+                      <button 
+                        onClick={handleCreateTicket} 
+                        disabled={creatingTicket || !ticketSubject.trim() || !ticketDesc.trim()} 
+                        className="w-full bg-[#10b981] hover:bg-[#059669] text-black font-bold py-3 rounded-xl text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg mt-1 border-none"
+                      >
+                        {creatingTicket ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                        <span>Submit Ticket to DeKUT Helpdesk</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Ticket Tracking List */}
+                <div className="lg:col-span-5">
+                  <h3 className="text-base sm:text-lg font-bold text-white m-0 mb-4 flex items-center gap-2">
+                    <ClockIcon size={18} className="text-purple-400" />
+                    <span>Your Submitted Tickets</span>
+                  </h3>
+                  
+                  <div className="flex flex-col gap-3">
+                    {tickets.map(ticket => (
+                      <div key={ticket.id} className="glass-panel p-4 rounded-2xl border border-white/10 bg-white/5">
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <span className="font-semibold text-xs sm:text-sm text-white flex-1">{ticket.subject}</span>
+                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                            ticket.status === 'open' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                            ticket.status === 'resolved' ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30" :
+                            "bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                          }`}>
+                            {ticket.status || "open"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 m-0 line-clamp-2 leading-relaxed">{ticket.description}</p>
+                        <div className="mt-3 pt-2.5 border-t border-white/5 flex justify-between items-center text-[10px] text-zinc-500">
+                          <span>Ref ID: #{ticket.id.slice(0, 8)}</span>
+                          <span>Priority: Standard SLA</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {tickets.length === 0 && (
+                      <div className="glass-panel p-6 text-center rounded-2xl border border-white/5">
+                        <CheckCircle2 size={32} className="text-[#10b981] mx-auto mb-2 opacity-50" />
+                        <h4 className="text-xs sm:text-sm font-semibold text-white m-0">No Active Tickets</h4>
+                        <p className="text-xs text-zinc-400 m-0 mt-1">Submit a ticket if you encounter any system, academic, or facility issues.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
 
             </div>

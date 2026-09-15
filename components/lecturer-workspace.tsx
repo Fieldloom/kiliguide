@@ -234,7 +234,7 @@ export function LecturerWorkspace() {
   };
 
   const SidebarContent = () => (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "rgba(11, 15, 20, 0.95)", backdropFilter: "blur(20px)" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.18) 0%, rgba(11, 15, 20, 0.96) 75%)", backdropFilter: "blur(24px)", borderRadius: 24, overflow: "hidden" }}>
       {/* 1. Header & Brand */}
       <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -379,8 +379,8 @@ export function LecturerWorkspace() {
 
       {mobileSidebar && (
         <AnimatePresence>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileSidebar(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
-          <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="glass-panel" style={{ position: "fixed", inset: "0 auto 0 0", width: 280, zIndex: 50, display: "flex", flexDirection: "column", height: "100%", borderRadius: 0 }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileSidebar(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} />
+          <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} style={{ position: "fixed", inset: "12px auto 12px 12px", width: 280, zIndex: 50, display: "flex", flexDirection: "column", height: "calc(100vh - 24px)", borderRadius: 24, overflow: "hidden", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "0 25px 60px rgba(0,0,0,0.8)" }}>
             <SidebarContent />
           </motion.aside>
         </AnimatePresence>

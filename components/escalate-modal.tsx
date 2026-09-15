@@ -37,9 +37,8 @@ export function EscalateModal({
       .replace(/\n{3,}/g, '\n\n')                // collapse excess newlines
       .trim();
 
-  const handleDraft = (email: string, deptName: string) => {
+  const handleDraft = (email: string, deptName: string, forceWeb = false) => {
     const cleanResponse = stripMarkdown(payload.body);
-    // Take a meaningful excerpt (up to 300 chars, break at sentence)
     let excerpt = cleanResponse.substring(0, 300);
     const lastPeriod = excerpt.lastIndexOf('.');
     if (lastPeriod > 100) excerpt = excerpt.substring(0, lastPeriod + 1);
@@ -48,24 +47,29 @@ export function EscalateModal({
     const enhancedBody = [
       `Dear ${deptName},`,
       '',
-      `I am writing to seek clarification on a matter I was unable to fully resolve through KiliGuide (the university AI assistant).`,
+      `I am writing to seek official university guidance on a topic I inquired about via KiliGuide AI.`,
       '',
       `Topic: ${payload.subject.replace('Question about: ', '')}`,
       '',
-      `What KiliGuide provided:`,
+      `KiliGuide AI Response Excerpt:`,
       `"${excerpt}"`,
       '',
-      `I would appreciate your guidance or clarification on this matter.`,
+      `Kindly provide official assistance or clarification regarding this matter.`,
       '',
-      `Thank you for your time.`,
+      `Thank you for your assistance.`,
       '',
       `Kind regards,`,
       `[Your Name]`,
-      `[Your Registration/Staff Number]`,
+      `[Your Registration / Staff Number]`,
     ].join('\n');
 
-    const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(enhancedBody)}`;
-    window.open(url, '_blank');
+    if (forceWeb) {
+      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(enhancedBody)}`;
+      window.open(url, '_blank');
+    } else {
+      const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(enhancedBody)}`;
+      window.location.href = mailtoUrl;
+    }
     onClose();
   };
 
@@ -81,17 +85,27 @@ export function EscalateModal({
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Escalate to Human</h2>
         </div>
-        <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>Select the relevant department. This will draft an email using your default email client with the AI's conversation context already attached.</p>
+        <p style={{ color: "#a1a1aa", fontSize: 13, marginBottom: 20 }}>
+          Select the department to contact. On mobile phones, this opens your native <strong>Gmail / Mail App</strong> with pre-crafted conversation context ready to send.
+        </p>
         
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "50vh", overflowY: "auto", paddingRight: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "50vh", overflowY: "auto", paddingRight: 4 }} className="hide-scroll">
           {departments.map(dept => (
-            <button key={dept.email} onClick={() => handleDraft(dept.email, dept.name)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, color: "#fff", cursor: "pointer", transition: "0.2s", textAlign: "left" }} onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.08)"} onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{dept.name}</span>
-                <span style={{ fontSize: 12, color: "#a1a1aa" }}>{dept.email}</span>
+            <div key={dept.email} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#fff", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{dept.name}</span>
+                <span style={{ fontSize: 11, color: "#a1a1aa" }}>{dept.email}</span>
               </div>
-              <Mail size={16} color="#a1a1aa" />
-            </button>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <button 
+                  onClick={() => handleDraft(dept.email, dept.name, false)} 
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 10, color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                  title="Open in Mail/Gmail App"
+                >
+                  <Mail size={14} /> Mail App
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </motion.div>

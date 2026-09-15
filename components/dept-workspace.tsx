@@ -246,7 +246,7 @@ export function DeptWorkspace() {
   };
 
   const SidebarContent = () => (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "rgba(11, 15, 20, 0.95)", backdropFilter: "blur(20px)" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.18) 0%, rgba(11, 15, 20, 0.96) 75%)", backdropFilter: "blur(20px)", borderRadius: 24, overflow: "hidden" }}>
       {/* 1. Header & Brand */}
       <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -383,7 +383,7 @@ export function DeptWorkspace() {
         }
       `}</style>
 
-      <aside className="desktop-only glass-panel" style={{ width: sidebarOpen ? 280 : 0, transition: "width 0.4s", flexShrink: 0, flexDirection: "column", overflow: "hidden", borderRadius: 0, borderTop: "none", borderBottom: "none", borderLeft: "none" }}>
+      <aside className="desktop-only glass-panel" style={{ width: sidebarOpen ? 280 : 0, transition: "width 0.4s", flexShrink: 0, flexDirection: "column", overflow: "hidden", borderRadius: 24, borderTop: "none", borderBottom: "none", borderLeft: "none", margin: "12px 0 12px 12px", height: "calc(100vh - 24px)" }}>
         <div style={{ width: 280, flexShrink: 0, height: "100%", display: "flex", flexDirection: "column" }}>
           <SidebarContent />
         </div>
@@ -392,7 +392,7 @@ export function DeptWorkspace() {
       {mobileSidebar && (
         <AnimatePresence>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileSidebar(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
-          <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="glass-panel" style={{ position: "fixed", inset: "0 auto 0 0", width: 280, zIndex: 50, display: "flex", flexDirection: "column", height: "100%", borderRadius: 0 }}>
+          <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="glass-panel" style={{ position: "fixed", inset: "12px auto 12px 12px", width: 280, zIndex: 50, display: "flex", flexDirection: "column", height: "calc(100vh - 24px)", borderRadius: 24, overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.12)" }}>
             <SidebarContent />
           </motion.aside>
         </AnimatePresence>
