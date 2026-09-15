@@ -1425,28 +1425,28 @@ export function StudentWorkspace() {
             </div>
           </div>
         ) : tab === "Settings" ? (
-          <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
-            <div style={{ maxWidth: 600, margin: "0 auto", paddingBottom: 100 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-                <button onClick={() => setTab("Home")} style={{ padding: "8px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#ececec", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
+            <div className="max-w-xl mx-auto pb-24">
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                <button onClick={() => setTab("Home")} className="p-2 rounded-full bg-white/5 border border-white/10 text-zinc-200 cursor-pointer flex items-center justify-center hover:bg-white/10">
                   <ArrowLeft size={18} />
                 </button>
-                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0 }}>Settings</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-white m-0">Settings</h2>
               </div>
               
-              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>Push Notifications</h3>
-                  <button onClick={handleTogglePush} style={{ width: 44, height: 24, borderRadius: 12, background: pushEnabled ? "#10b981" : "rgba(255,255,255,0.2)", position: "relative", cursor: "pointer", border: "none", transition: "0.2s" }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: pushEnabled ? 22 : 2, transition: "0.2s" }} />
+              <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm sm:text-base font-bold text-white m-0">Push Notifications</h3>
+                  <button onClick={handleTogglePush} className={`w-11 h-6 rounded-full relative cursor-pointer border-none transition-colors ${pushEnabled ? "bg-[#10b981]" : "bg-white/20"}`}>
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${pushEnabled ? "left-5.5" : "left-0.5"}`} />
                   </button>
                 </div>
-                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Get real-time alerts for classes, resolved tickets, and notices.</p>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Get real-time alerts for classes, resolved tickets, and notices.</p>
                 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16 }}>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-white/5 pt-4 gap-2 sm:gap-4">
                   <div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff", display: "block" }}>Class Reminder Alarm</span>
-                    <span style={{ fontSize: 13, color: "#a1a1aa" }}>How many minutes before a class should we alert you?</span>
+                    <span className="text-xs sm:text-sm font-semibold text-white block">Class Reminder Alarm</span>
+                    <span className="text-xs text-zinc-400">How many minutes before a class should we alert you?</span>
                   </div>
                   <select 
                     value={reminderMinutes} 
@@ -1455,97 +1455,97 @@ export function StudentWorkspace() {
                       setReminderMinutes(val);
                       localStorage.setItem("reminderMinutes", String(val));
                     }} 
-                    style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, outline: "none", cursor: "pointer" }}
+                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs sm:text-sm outline-none cursor-pointer"
                   >
-                    <option value={10}>10 minutes</option>
-                    <option value={15}>15 minutes</option>
-                    <option value={30}>30 minutes</option>
-                    <option value={60}>1 hour</option>
+                    <option value={10} className="bg-zinc-900">10 minutes</option>
+                    <option value={15} className="bg-zinc-900">15 minutes</option>
+                    <option value={30} className="bg-zinc-900">30 minutes</option>
+                    <option value={60} className="bg-zinc-900">1 hour</option>
                   </select>
                 </div>
               </div>
               
-              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>University Account Link</h3>
+              <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm sm:text-base font-bold text-white m-0">University Account Link</h3>
                   {isLinked ? (
-                    <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", padding: "4px 12px", borderRadius: 12, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                      <CheckCircle2 size={14} /> Linked
+                    <span className="bg-[#10b981]/15 text-[#10b981] px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 size={13} /> Linked
                     </span>
                   ) : null}
                 </div>
-                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Link your official @students.dkut.ac.ke email to securely access your live university grades and fee balances via KiliGuide AI.</p>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Link your official @students.dkut.ac.ke email to securely access your live university grades and fee balances via KiliGuide AI.</p>
                 {!isLinked && (
-                  <button onClick={handleLinkUniversity} style={{ background: "#fff", color: "#000", border: "none", padding: "10px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={handleLinkUniversity} className="bg-white text-black border-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center gap-2 hover:bg-zinc-100 transition-colors">
                     Link @students.dkut.ac.ke Email
                   </button>
                 )}
               </div>
 
-              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>AI Personalization</h3>
-                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 16 }}>Tell KiliGuide about your preferences. This helps the AI tailor its answers directly to you.</p>
+              <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6">
+                <h3 className="text-sm sm:text-base font-bold text-white mb-2">AI Personalization</h3>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-3">Tell KiliGuide about your preferences. This helps the AI tailor its answers directly to you.</p>
                 <textarea
                   value={customInstructions}
                   onChange={e => setCustomInstructions(e.target.value)}
                   placeholder="e.g. I am a 3rd-year IT student. Always explain technical concepts simply without using complex jargon."
-                  rows={4}
-                  style={{ width: "100%", padding: "12px", borderRadius: 12, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, resize: "vertical", outline: "none", marginBottom: 12, fontFamily: "inherit" }}
+                  rows={3}
+                  className="w-full p-3 rounded-xl bg-black/40 border border-white/10 text-white text-xs sm:text-sm resize-y outline-none mb-3 font-sans"
                 />
-                <button onClick={handleSaveCustomInstructions} style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={handleSaveCustomInstructions} className="bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer hover:bg-[#10b981]/25 transition-colors">
                   Save Personalization
                 </button>
               </div>
 
-              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Appearance & Accessibility</h3>
+              <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6">
+                <h3 className="text-sm sm:text-base font-bold text-white mb-2">Appearance & Accessibility</h3>
                 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <div className="flex justify-between items-center py-3 border-b border-white/5">
                   <div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff", display: "block" }}>Reduce Motion</span>
-                    <span style={{ fontSize: 13, color: "#a1a1aa" }}>Disable background animations and heavy blurs.</span>
+                    <span className="text-xs sm:text-sm font-semibold text-white block">Reduce Motion</span>
+                    <span className="text-xs text-zinc-400">Disable background animations and heavy blurs.</span>
                   </div>
-                  <button onClick={handleToggleReduceMotion} style={{ width: 44, height: 24, borderRadius: 12, background: reduceMotion ? "#10b981" : "rgba(255,255,255,0.2)", position: "relative", cursor: "pointer", border: "none", transition: "0.2s" }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: reduceMotion ? 22 : 2, transition: "0.2s" }} />
+                  <button onClick={handleToggleReduceMotion} className={`w-11 h-6 rounded-full relative cursor-pointer border-none transition-colors ${reduceMotion ? "bg-[#10b981]" : "bg-white/20"}`}>
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${reduceMotion ? "left-5.5" : "left-0.5"}`} />
                   </button>
                 </div>
                 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+                <div className="flex justify-between items-center py-3">
                   <div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#fff", display: "block" }}>Auto-Read AI Answers</span>
-                    <span style={{ fontSize: 13, color: "#a1a1aa" }}>Automatically speak out KiliGuide's responses.</span>
+                    <span className="text-xs sm:text-sm font-semibold text-white block">Auto-Read AI Answers</span>
+                    <span className="text-xs text-zinc-400">Automatically speak out KiliGuide's responses.</span>
                   </div>
-                  <button onClick={handleToggleAutoRead} style={{ width: 44, height: 24, borderRadius: 12, background: autoRead ? "#10b981" : "rgba(255,255,255,0.2)", position: "relative", cursor: "pointer", border: "none", transition: "0.2s" }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: autoRead ? 22 : 2, transition: "0.2s" }} />
+                  <button onClick={handleToggleAutoRead} className={`w-11 h-6 rounded-full relative cursor-pointer border-none transition-colors ${autoRead ? "bg-[#10b981]" : "bg-white/20"}`}>
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${autoRead ? "left-5.5" : "left-0.5"}`} />
                   </button>
                 </div>
               </div>
               
-              <div className="glass-panel" style={{ padding: 24, marginBottom: 24 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Language & Localization</h3>
-                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>Choose the preferred language for KiliGuide AI to communicate with you.</p>
+              <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6">
+                <h3 className="text-sm sm:text-base font-bold text-white mb-2">Language & Localization</h3>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Choose the preferred language for KiliGuide AI to communicate with you.</p>
                 
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <button onClick={() => handleUpdateLanguage("en")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.2)", border: language === "en" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.1)", padding: "16px 20px", borderRadius: 12, cursor: "pointer", transition: "0.2s" }}>
-                    <span style={{ fontSize: 15, color: "#fff", fontWeight: 600 }}>English</span>
-                    {language === "en" && <CheckCircle2 size={18} color="#10b981" />}
+                <div className="flex flex-col gap-2.5">
+                  <button onClick={() => handleUpdateLanguage("en")} className={`flex items-center justify-between bg-black/20 p-3.5 sm:p-4 rounded-xl cursor-pointer transition-colors ${language === "en" ? "border border-[#10b981]" : "border border-white/10"}`}>
+                    <span className="text-xs sm:text-sm text-white font-semibold">English</span>
+                    {language === "en" && <CheckCircle2 size={16} className="text-[#10b981]" />}
                   </button>
-                  <button onClick={() => handleUpdateLanguage("sw")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.2)", border: language === "sw" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.1)", padding: "16px 20px", borderRadius: 12, cursor: "pointer", transition: "0.2s" }}>
-                    <span style={{ fontSize: 15, color: "#fff", fontWeight: 600 }}>Kiswahili</span>
-                    {language === "sw" && <CheckCircle2 size={18} color="#10b981" />}
+                  <button onClick={() => handleUpdateLanguage("sw")} className={`flex items-center justify-between bg-black/20 p-3.5 sm:p-4 rounded-xl cursor-pointer transition-colors ${language === "sw" ? "border border-[#10b981]" : "border border-white/10"}`}>
+                    <span className="text-xs sm:text-sm text-white font-semibold">Kiswahili</span>
+                    {language === "sw" && <CheckCircle2 size={16} className="text-[#10b981]" />}
                   </button>
                 </div>
               </div>
               
-              <div className="glass-panel" style={{ padding: 24, marginBottom: 24, border: "1px solid rgba(239, 68, 68, 0.2)" }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#ef4444", marginBottom: 8 }}>Data & Privacy Controls</h3>
-                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>Permanently delete your data. This action cannot be undone.</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <button onClick={handleClearChatHistory} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "flex-start" }}>
-                    <Trash2 size={18} /> Clear Chat History
+              <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6 border border-rose-500/20">
+                <h3 className="text-sm sm:text-base font-bold text-rose-400 mb-2">Data & Privacy Controls</h3>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Permanently delete your data. This action cannot be undone.</p>
+                <div className="flex flex-col gap-2.5">
+                  <button onClick={handleClearChatHistory} className="flex items-center gap-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer w-full justify-start hover:bg-rose-500/20 transition-colors">
+                    <Trash2 size={16} /> Clear Chat History
                   </button>
-                  <button onClick={handleDeleteTimetables} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "flex-start" }}>
-                    <CalendarDays size={18} /> Delete Uploaded Timetables
+                  <button onClick={handleDeleteTimetables} className="flex items-center gap-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer w-full justify-start hover:bg-rose-500/20 transition-colors">
+                    <CalendarDays size={16} /> Delete Uploaded Timetables
                   </button>
                 </div>
               </div>
