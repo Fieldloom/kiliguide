@@ -60,6 +60,7 @@ export function StudentWorkspace() {
   const [timetables, setTimetables] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [scheduleWeekOffset, setScheduleWeekOffset] = useState(0);
+  const [mobileDayIdx, setMobileDayIdx] = useState<number | null>(null);
   const [myCourses, setMyCourses] = useState<Record<string, string>>({});
   const [hiddenCourses, setHiddenCourses] = useState<Set<string>>(new Set());
   const [timetableMetadata, setTimetableMetadata] = useState<Record<string, { groups: string[], courses: string[], mapped?: Record<string, string[]> }>>({});
@@ -1149,113 +1150,120 @@ export function StudentWorkspace() {
             </div>
           </div>
         ) : tab === "My timetable" ? (
-          <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
-            <div className="glazed-widget" style={{ maxWidth: 800, margin: "0 auto", padding: "40px 48px", border: "none" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 relative">
+            <div className="glass-panel p-4 sm:p-8 max-w-4xl mx-auto pb-28">
+              
+              {/* Header: Title, Semester Dates & Upload */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 pb-6 border-b border-white/5">
                 <div>
-                  <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>My Timetable</h2>
-                  <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-                    <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, color: "#a1a1aa" }}>
-                      Semester Start
-                      <input type="date" value={semesterStart} onChange={e => setSemesterStart(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 13 }} />
+                  <h2 className="text-xl sm:text-2xl font-bold text-white m-0">My Timetable</h2>
+                  <p className="text-xs sm:text-sm text-zinc-400 mt-1 m-0">Upload & AI-schedule your DeKUT classes.</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                    <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                      <span>Semester Start</span>
+                      <input type="date" value={semesterStart} onChange={e => setSemesterStart(e.target.value)} className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none" />
                     </label>
-                    <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, color: "#a1a1aa" }}>
-                      Semester End
-                      <input type="date" value={semesterEnd} onChange={e => setSemesterEnd(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", outline: "none", fontSize: 13 }} />
+                    <label className="flex flex-col gap-1 text-xs text-zinc-400">
+                      <span>Semester End</span>
+                      <input type="date" value={semesterEnd} onChange={e => setSemesterEnd(e.target.value)} className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none" />
                     </label>
                   </div>
                 </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, background: "#10b981", color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.7 : 1 }}>
+
+                <label className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-black font-semibold px-4 py-3 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors shadow-lg flex-shrink-0">
                   {uploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
-                  Upload Image/PDF
-                  <input type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={handleUploadTimetable} disabled={uploading} />
+                  <span>Upload Image / PDF</span>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleUploadTimetable} disabled={uploading} />
                 </label>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16 }}>
+              {/* Uploaded Timetables Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 {timetables.map(t => (
-                  <div key={t.id} className="glass-panel" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <CalendarDays color="#8b5cf6" size={24} />
-                      <span style={{ fontWeight: 600, fontSize: 15, flex: 1, color: "#fff" }}>{t.title}</span>
+                  <div key={t.id} className="glass-panel p-4 rounded-2xl flex flex-col gap-3 border border-white/10 bg-white/5">
+                    <div className="flex items-center gap-3">
+                      <CalendarDays className="text-[#10b981] flex-shrink-0" size={20} />
+                      <span className="font-semibold text-sm text-white flex-1 truncate">{t.title}</span>
                     </div>
-                    <span style={{ fontSize: 12, color: "#8b5cf6", background: "rgba(139, 92, 246, 0.1)", padding: "4px 8px", borderRadius: 12, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span className="text-xs text-[#10b981] bg-[#10b981]/15 px-2.5 py-1 rounded-full self-start flex items-center gap-1.5 font-medium">
                       <ClockIcon size={12} /> {t.processing_status}
                     </span>
-                  {t.processing_status !== "ready" && (
-                      <>
+
+                    {t.processing_status !== "ready" && (
+                      <div className="mt-2 pt-3 border-t border-white/5 flex flex-col gap-3">
                         {!timetableMetadata[t.id] ? (
                           <>
-                            <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4 }}>First, extract the available classes and courses from the timetable.</p>
-                            <button onClick={() => handleExtractMetadata(t.id)} disabled={extractingMetadataId === t.id} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: extractingMetadataId === t.id ? "not-allowed" : "pointer", opacity: extractingMetadataId === t.id ? 0.5 : 1, width: "100%", marginTop: 12 }}>
-                              {extractingMetadataId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                              {extractingMetadataId === t.id ? "Scanning Timetable..." : "Scan Timetable"}
+                            <p className="text-xs text-zinc-400 m-0">First, scan the available classes and courses from the timetable image.</p>
+                            <button onClick={() => handleExtractMetadata(t.id)} disabled={extractingMetadataId === t.id} className="w-full flex items-center justify-center gap-2 bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 py-2.5 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors">
+                              {extractingMetadataId === t.id ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+                              <span>{extractingMetadataId === t.id ? "Scanning Timetable..." : "Scan Timetable"}</span>
                             </button>
                           </>
                         ) : (
                           <>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+                            <div className="flex flex-col gap-3">
                               <div>
-                                <label style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 600, marginBottom: 4, display: "block" }}>1. Select Class/Semester</label>
-                                <select value={selectedGroup[t.id] || ""} onChange={e => setSelectedGroup(prev => ({ ...prev, [t.id]: e.target.value }))} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13, outline: "none", width: "100%" }}>
+                                <label className="text-xs text-zinc-400 font-semibold mb-1 block">1. Select Class/Group</label>
+                                <select value={selectedGroup[t.id] || ""} onChange={e => setSelectedGroup(prev => ({ ...prev, [t.id]: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none">
                                   <option value="">Select a group...</option>
                                   {timetableMetadata[t.id].groups.map(g => <option key={g} value={g}>{g}</option>)}
                                 </select>
                               </div>
-                              
-                                <div>
-                                  <label style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 600, marginBottom: 4, display: "block" }}>2. Select Your Courses</label>
-                                  <input type="text" placeholder="Filter courses by name..." value={courseSearchFilters[t.id] || ""} onChange={e => setCourseSearchFilters(prev => ({...prev, [t.id]: e.target.value}))} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13, outline: "none", width: "100%", marginBottom: 8 }} />
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 150, overflowY: "auto", background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }} className="hide-scroll">
-                                    {timetableMetadata[t.id].courses
-                                      .filter(c => {
-                                        const group = selectedGroup[t.id];
-                                        const mappedGroup = group ? timetableMetadata[t.id].mapped?.[group] : undefined;
-                                        if (mappedGroup && !mappedGroup.includes(c)) return false;
-                                        const query = courseSearchFilters[t.id]?.toLowerCase();
-                                        if (query && !c.toLowerCase().includes(query)) return false;
-                                        return true;
-                                      })
-                                      .map(c => (
-                                      <label key={c} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#ececec", cursor: "pointer" }}>
-                                        <input type="checkbox" checked={selectedCourses[t.id]?.includes(c) || false} onChange={(e) => {
-                                          const checked = e.target.checked;
-                                          setSelectedCourses(prev => {
-                                            const curr = prev[t.id] || [];
-                                            return { ...prev, [t.id]: checked ? [...curr, c] : curr.filter(x => x !== c) };
-                                          });
-                                        }} style={{ accentColor: "#8b5cf6", width: 16, height: 16 }} />
-                                        {c}
-                                      </label>
-                                    ))}
-                                    {timetableMetadata[t.id].courses.length === 0 && <span style={{fontSize:12, color:"#a1a1aa"}}>No courses extracted.</span>}
-                                  </div>
+
+                              <div>
+                                <label className="text-xs text-zinc-400 font-semibold mb-1 block">2. Select Your Courses</label>
+                                <input type="text" placeholder="Filter courses..." value={courseSearchFilters[t.id] || ""} onChange={e => setCourseSearchFilters(prev => ({...prev, [t.id]: e.target.value}))} className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none mb-2" />
+                                <div className="max-h-36 overflow-y-auto bg-black/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 hide-scroll">
+                                  {timetableMetadata[t.id].courses
+                                    .filter(c => {
+                                      const group = selectedGroup[t.id];
+                                      const mappedGroup = group ? timetableMetadata[t.id].mapped?.[group] : undefined;
+                                      if (mappedGroup && !mappedGroup.includes(c)) return false;
+                                      const query = courseSearchFilters[t.id]?.toLowerCase();
+                                      if (query && !c.toLowerCase().includes(query)) return false;
+                                      return true;
+                                    })
+                                    .map(c => (
+                                    <label key={c} className="flex items-center gap-2 text-xs text-zinc-200 cursor-pointer">
+                                      <input type="checkbox" checked={selectedCourses[t.id]?.includes(c) || false} onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setSelectedCourses(prev => {
+                                          const curr = prev[t.id] || [];
+                                          return { ...prev, [t.id]: checked ? [...curr, c] : curr.filter(x => x !== c) };
+                                        });
+                                      }} className="accent-[#10b981] w-4 h-4" />
+                                      <span className="truncate">{c}</span>
+                                    </label>
+                                  ))}
+                                  {timetableMetadata[t.id].courses.length === 0 && <span className="text-xs text-zinc-500">No courses extracted.</span>}
                                 </div>
+                              </div>
                             </div>
 
-                            <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)", padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: (analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0) ? "not-allowed" : "pointer", opacity: (analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0) ? 0.5 : 1, width: "100%", marginTop: 16 }}>
-                              {analyzingId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                              {analyzingId === t.id ? "Generating Schedule..." : "Generate Schedule"}
+                            <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0} className="w-full flex items-center justify-center gap-2 bg-[#10b981] text-black font-semibold py-2.5 rounded-xl text-xs cursor-pointer disabled:opacity-50 transition-colors">
+                              {analyzingId === t.id ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                              <span>{analyzingId === t.id ? "Generating Schedule..." : "Generate Schedule"}</span>
                             </button>
                           </>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
                 ))}
+
                 {timetables.length === 0 && (
-                  <div className="glass-panel" style={{ padding: 40, gridColumn: "1 / -1", textAlign: "center" }}>
-                    <CalendarDays size={48} color="#52525b" style={{ margin: "0 auto 16px" }} />
-                    <h3 style={{ fontSize: 16, color: "#fff", marginBottom: 8 }}>No Timetable Yet</h3>
-                    <p style={{ color: "#a1a1aa", fontSize: 14 }}>Upload a picture of your class timetable, and our AI will automatically parse it and notify you before classes!</p>
+                  <div className="col-span-full glass-panel p-6 sm:p-10 text-center rounded-2xl border border-white/5">
+                    <CalendarDays size={40} className="text-zinc-500 mx-auto mb-3" />
+                    <h3 className="text-sm sm:text-base font-bold text-white mb-1">No Timetable Uploaded Yet</h3>
+                    <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto m-0">Upload an image or PDF of your class timetable, and KiliGuide AI will automatically build your weekly schedule!</p>
                   </div>
                 )}
               </div>
 
-              {/* ── WEEK SCHEDULE VIEW ── */}
+              {/* Weekly Schedule Section */}
               {calendarEvents.length > 0 && (() => {
                 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                // Unique courses for filter panel
                 const allCourses = Array.from(new Set(calendarEvents.map(ev => ev.title)));
                 const visibleEvents = calendarEvents.filter(ev => !hiddenCourses.has(ev.title));
                 const now = new Date();
@@ -1278,7 +1286,7 @@ export function StudentWorkspace() {
                 const eventsByDay: Record<number, any[]> = {};
                 eventsThisWeek.forEach(ev => {
                   const d = new Date(ev.starts_at).getDay();
-                  const idx = d === 0 ? 6 : d - 1; // 0=Mon…5=Sat
+                  const idx = d === 0 ? 6 : d - 1;
                   if (!eventsByDay[idx]) eventsByDay[idx] = [];
                   eventsByDay[idx].push(ev);
                 });
@@ -1287,15 +1295,16 @@ export function StudentWorkspace() {
                 const fmt = (d: Date) => d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
                 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit", hour12: true });
                 const todayIdx = (() => { const d = now.getDay(); return d === 0 ? 6 : d - 1; })();
+                const activeDayIndex = mobileDayIdx ?? (todayIdx < 6 ? todayIdx : 0);
                 const isCurrentWeek = scheduleWeekOffset === 0;
 
                 const COLORS = [
-                  { bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", text: "#10b981" },
-                  { bg: "rgba(139,92,246,0.1)", border: "rgba(139,92,246,0.3)", text: "#8b5cf6" },
-                  { bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.3)", text: "#3b82f6" },
-                  { bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.3)", text: "#f59e0b" },
-                  { bg: "rgba(236,72,153,0.1)", border: "rgba(236,72,153,0.3)", text: "#ec4899" },
-                  { bg: "rgba(6,182,212,0.1)", border: "rgba(6,182,212,0.3)", text: "#06b6d4" },
+                  { bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)", text: "#10b981" },
+                  { bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#8b5cf6" },
+                  { bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)", text: "#3b82f6" },
+                  { bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)", text: "#f59e0b" },
+                  { bg: "rgba(236,72,153,0.12)", border: "rgba(236,72,153,0.3)", text: "#ec4899" },
+                  { bg: "rgba(6,182,212,0.12)", border: "rgba(6,182,212,0.3)", text: "#06b6d4" },
                 ];
                 const courseColorMap: Record<string, number> = {};
                 let colorIdx = 0;
@@ -1305,27 +1314,27 @@ export function StudentWorkspace() {
                 });
 
                 return (
-                  <div style={{ marginTop: 40 }}>
-                    {/* Header */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <div className="mt-8 pt-6 border-t border-white/5">
+                    {/* Weekly Schedule Header & Pagination */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                       <div>
-                        <h3 style={{ fontSize: 20, fontWeight: 700, color: "#fff", margin: 0 }}>Weekly Schedule</h3>
-                        <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4 }}>
-                          {fmt(weekStart)} – {fmt(weekEnd)} &nbsp;·&nbsp; {eventsThisWeek.length} class{eventsThisWeek.length !== 1 ? "es" : ""} this week
+                        <h3 className="text-lg sm:text-xl font-bold text-white m-0">Weekly Schedule</h3>
+                        <p className="text-xs sm:text-sm text-zinc-400 mt-1 m-0">
+                          {fmt(weekStart)} – {fmt(weekEnd)} &nbsp;·&nbsp; {eventsThisWeek.length} class{eventsThisWeek.length !== 1 ? "es" : ""}
                         </p>
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={() => setScheduleWeekOffset(o => o - 1)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>← Prev</button>
-                        {scheduleWeekOffset !== 0 && <button onClick={() => setScheduleWeekOffset(0)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Today</button>}
-                        <button onClick={() => setScheduleWeekOffset(o => o + 1)} style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Next →</button>
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <button onClick={() => setScheduleWeekOffset(o => o - 1)} className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold cursor-pointer hover:bg-white/10">← Prev</button>
+                        {scheduleWeekOffset !== 0 && <button onClick={() => setScheduleWeekOffset(0)} className="px-3 py-1.5 rounded-xl bg-[#10b981]/15 border border-[#10b981]/30 text-[#10b981] text-xs font-semibold cursor-pointer">Today</button>}
+                        <button onClick={() => setScheduleWeekOffset(o => o + 1)} className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold cursor-pointer hover:bg-white/10">Next →</button>
                       </div>
                     </div>
 
-                    {/* Course filter pills */}
+                    {/* Filter Unit Pills */}
                     {allCourses.length > 1 && (
-                      <div style={{ marginBottom: 20 }}>
-                        <p style={{ fontSize: 12, color: "#71717a", marginBottom: 10, fontWeight: 600 }}>FILTER UNITS — click to show/hide</p>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      <div className="mb-6">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-2">Filter Units</span>
+                        <div className="flex flex-wrap gap-1.5">
                           {allCourses.map(course => {
                             const key = course.split(" ").slice(0, 3).join(" ");
                             const c = COLORS[courseColorMap[key] ?? 0];
@@ -1339,7 +1348,7 @@ export function StudentWorkspace() {
                                   return next;
                                 })}
                                 style={{
-                                  padding: "5px 12px",
+                                  padding: "4px 10px",
                                   borderRadius: 100,
                                   fontSize: 11,
                                   fontWeight: 600,
@@ -1347,120 +1356,138 @@ export function StudentWorkspace() {
                                   border: `1px solid ${hidden ? "rgba(255,255,255,0.1)" : c.border}`,
                                   background: hidden ? "rgba(255,255,255,0.03)" : c.bg,
                                   color: hidden ? "#52525b" : c.text,
-                                  textDecoration: hidden ? "line-through" : "none",
-                                  transition: "all 0.15s"
+                                  textDecoration: hidden ? "line-through" : "none"
                                 }}
                               >
                                 {course}
                               </button>
                             );
                           })}
-                          {hiddenCourses.size > 0 && (
-                            <button onClick={() => setHiddenCourses(new Set())} style={{ padding: "5px 12px", borderRadius: 100, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
-                              Show all
-                            </button>
-                          )}
                         </div>
                       </div>
                     )}
 
-                    {/* Responsive Timetable Grid CSS */}
-                    <style>{`
-                      .timetable-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-                      @media (max-width: 1024px) {
-                        .timetable-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 16px; margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; -webkit-overflow-scrolling: touch; }
-                        .timetable-grid::-webkit-scrollbar { display: none; }
-                        .timetable-grid > div { flex: 0 0 280px; scroll-snap-align: center; }
-                      }
-                    `}</style>
+                    {/* MOBILE DAY SELECTOR TABS (< lg screens) */}
+                    <div className="block lg:hidden mb-6">
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 hide-scroll">
+                        {DAYS.map((day, i) => {
+                          const isToday = isCurrentWeek && i === todayIdx;
+                          const isSelected = activeDayIndex === i;
+                          const count = (eventsByDay[i] ?? []).length;
+                          return (
+                            <button
+                              key={day}
+                              onClick={() => setMobileDayIdx(i)}
+                              className={`flex-1 min-w-[56px] py-2 px-2.5 rounded-xl border text-center cursor-pointer transition-all flex-shrink-0 ${
+                                isSelected 
+                                  ? "bg-[#10b981] border-[#10b981] text-black font-bold shadow-md" 
+                                  : isToday 
+                                    ? "bg-[#10b981]/15 border-[#10b981]/40 text-[#10b981]" 
+                                    : "bg-white/5 border-white/10 text-zinc-400 hover:text-white"
+                              }`}
+                            >
+                              <div className="text-[10px] uppercase font-bold tracking-wider">{day}</div>
+                              <div className="text-sm font-extrabold mt-0.5">{weekDays[i].getDate()}</div>
+                              {count > 0 && (
+                                <div className={`text-[9px] font-bold mt-1 px-1 rounded-full ${isSelected ? "bg-black/20 text-black" : "bg-white/10 text-zinc-300"}`}>
+                                  {count} class{count !== 1 ? "es" : ""}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                    {/* Day columns */}
-                    <div className="timetable-grid">
+                      {/* Mobile Selected Day Agenda Cards */}
+                      <div className="mt-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-center px-1">
+                          <span className="text-xs font-bold text-white uppercase tracking-wider">
+                            {DAYS[activeDayIndex]} ({fmt(weekDays[activeDayIndex])}) Classes
+                          </span>
+                          <span className="text-xs text-zinc-400">
+                            {(eventsByDay[activeDayIndex] ?? []).length} Scheduled
+                          </span>
+                        </div>
+
+                        {(eventsByDay[activeDayIndex] ?? []).length === 0 ? (
+                          <div className="glass-panel p-6 text-center rounded-2xl border border-white/5">
+                            <CheckCircle2 size={24} className="text-[#10b981] mx-auto mb-2 opacity-60" />
+                            <p className="text-xs text-zinc-400 m-0">No classes scheduled for {DAYS[activeDayIndex]}. Enjoy your free day!</p>
+                          </div>
+                        ) : (
+                          (eventsByDay[activeDayIndex] ?? []).map((ev, ei) => {
+                            const key = ev.title.split(" ").slice(0, 3).join(" ");
+                            const c = COLORS[courseColorMap[key] ?? 0];
+                            const startStr = fmtTime(ev.starts_at);
+                            const endStr = ev.ends_at ? fmtTime(ev.ends_at) : null;
+                            return (
+                              <div key={ev.id ?? ei} className="glass-panel p-4 rounded-2xl flex items-center justify-between gap-3 border" style={{ background: c.bg, borderColor: c.border }}>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-black/40" style={{ color: c.text }}>
+                                      {startStr} {endStr ? `- ${endStr}` : ""}
+                                    </span>
+                                  </div>
+                                  <h4 className="text-sm font-bold text-white truncate m-0">{ev.title}</h4>
+                                  {ev.location && <span className="text-xs text-zinc-400 mt-1 block">📍 {ev.location}</span>}
+                                </div>
+                                <button
+                                  onClick={() => alert(`Alarm set successfully! You will be notified before ${ev.title} begins at ${startStr}.`)}
+                                  className="p-2.5 rounded-full border bg-black/30 cursor-pointer flex-shrink-0"
+                                  style={{ borderColor: c.border, color: c.text }}
+                                  title="Set Alarm"
+                                >
+                                  <Bell size={16} />
+                                </button>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    {/* DESKTOP 6-COLUMN GRID (≥ lg screens) */}
+                    <div className="hidden lg:grid grid-cols-6 gap-3">
                       {DAYS.map((day, i) => {
                         const isToday = isCurrentWeek && i === todayIdx;
                         const dayEvents = eventsByDay[i] ?? [];
                         return (
                           <div key={day}>
-                            {/* Day header */}
-                            <div style={{
-                              textAlign: "center", padding: "10px 4px", borderRadius: 10, marginBottom: 8,
-                              background: isToday ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.03)",
-                              border: isToday ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.05)"
-                            }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: isToday ? "#10b981" : "#71717a", textTransform: "uppercase", letterSpacing: "0.08em" }}>{day}</div>
-                              <div style={{ fontSize: 18, fontWeight: 700, color: isToday ? "#10b981" : "#fff", marginTop: 2 }}>{weekDays[i].getDate()}</div>
+                            <div className={`text-center p-2.5 rounded-xl mb-2 border ${isToday ? "bg-[#10b981]/15 border-[#10b981]/30 text-[#10b981]" : "bg-white/5 border-white/5 text-zinc-400"}`}>
+                              <div className="text-[10px] font-bold uppercase tracking-wider">{day}</div>
+                              <div className="text-base font-extrabold mt-0.5 text-white">{weekDays[i].getDate()}</div>
                             </div>
 
-                            {/* Events */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            <div className="flex flex-col gap-2">
                               {dayEvents.length === 0 ? (
-                                <div style={{ padding: "10px 6px", borderRadius: 8, textAlign: "center" }}>
-                                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", fontStyle: "italic" }}>Free</span>
-                                </div>
-                              ) : dayEvents.map((ev, ei) => {
-                                const key = ev.title.split(" ").slice(0, 3).join(" ");
-                                const c = COLORS[courseColorMap[key] ?? 0];
-                                const startStr = fmtTime(ev.starts_at);
-                                const endStr = ev.ends_at ? fmtTime(ev.ends_at) : null;
-                                return (
-                                  <div key={ev.id ?? ei} style={{
-                                    padding: "12px 10px",
-                                    borderRadius: 12,
-                                    background: c.bg,
-                                    border: `1px solid ${c.border}`,
-                                    cursor: "default",
-                                    transition: "transform 0.15s, box-shadow 0.15s",
-                                    position: "relative",
-                                    paddingRight: 32
-                                  }}
-                                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${c.border}`; }}
-                                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = ""; }}
-                                  >
-                                    <button 
-                                      onClick={() => alert(`Alarm set successfully! You will be notified before ${ev.title} begins at ${startStr}.`)}
-                                      style={{ position: "absolute", top: 8, right: 8, background: "rgba(255,255,255,0.05)", border: `1px solid ${c.border}`, borderRadius: "50%", width: 24, height: 24, display: "grid", placeItems: "center", cursor: "pointer", color: c.text, opacity: 0.7, transition: "all 0.2s" }}
-                                      onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = c.border; }}
-                                      onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                                      title="Set Alarm"
-                                    >
-                                      <Settings size={12} />
-                                    </button>
-                                    {/* Accent bar */}
-                                    <div style={{ width: 3, height: "100%", background: c.text, borderRadius: 2, float: "left", marginRight: 8, minHeight: 40 }} />
-                                    <div style={{ overflow: "hidden" }}>
-                                      {/* Course name */}
-                                      <div style={{ fontSize: 12, fontWeight: 700, color: c.text, lineHeight: 1.35, marginBottom: 5 }}>
-                                        {ev.title}
-                                      </div>
-                                      {/* Time range */}
-                                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", display: "flex", alignItems: "center", gap: 3, marginBottom: ev.location ? 3 : 0 }}>
-                                        <span>🕐</span>
-                                        <span>{startStr}{endStr ? ` – ${endStr}` : ""}</span>
-                                      </div>
-                                      {/* Location */}
-                                      {ev.location && (
-                                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", gap: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                          <span>📍</span>
-                                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.location}</span>
-                                        </div>
-                                      )}
+                                <div className="p-3 text-center text-xs text-zinc-600 italic">Free</div>
+                              ) : (
+                                dayEvents.map((ev, ei) => {
+                                  const key = ev.title.split(" ").slice(0, 3).join(" ");
+                                  const c = COLORS[courseColorMap[key] ?? 0];
+                                  const startStr = fmtTime(ev.starts_at);
+                                  return (
+                                    <div key={ev.id ?? ei} className="p-3 rounded-xl border relative pr-8 transition-transform hover:-translate-y-0.5" style={{ background: c.bg, borderColor: c.border }}>
+                                      <span className="text-[10px] font-bold block mb-1" style={{ color: c.text }}>{startStr}</span>
+                                      <h5 className="text-xs font-bold text-white leading-tight m-0 line-clamp-2">{ev.title}</h5>
+                                      <button 
+                                        onClick={() => alert(`Alarm set! Notifying before ${ev.title} at ${startStr}.`)}
+                                        className="absolute top-2 right-2 w-5 h-5 rounded-full border bg-black/20 grid place-items-center cursor-pointer"
+                                        style={{ borderColor: c.border, color: c.text }}
+                                        title="Set Alarm"
+                                      >
+                                        <Bell size={11} />
+                                      </button>
                                     </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })
+                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* No events this week */}
-                    {eventsThisWeek.length === 0 && (
-                      <div style={{ textAlign: "center", padding: "48px 0", color: "#52525b" }}>
-                        <CalendarDays size={40} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
-                        <p style={{ fontSize: 14 }}>No classes scheduled for this week.</p>
-                      </div>
-                    )}
                   </div>
                 );
               })()}
