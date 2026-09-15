@@ -824,42 +824,46 @@ export function StudentWorkspace() {
         ) : tab === "Chats" ? (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, position: "relative", paddingBottom: 80 }}>
             <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
-              <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 20px 120px", width: "100%" }}>
+              <div className="max-w-3xl mx-auto px-3.5 sm:px-5 pt-4 sm:pt-6 pb-28 w-full">
                 {messages.map((m) => (
-                  <div key={m.id} style={{ marginBottom: 40 }}>
+                  <div key={m.id} className="mb-5 sm:mb-6">
                     {m.role === "user" ? (
-                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                        <div className="glass-panel" style={{ maxWidth: "80%", borderRadius: 24, borderBottomRightRadius: 8, padding: "14px 20px", fontSize: 15, background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#fff" }}>{m.content}</div>
+                      <div className="flex justify-end">
+                        <div className="glass-panel max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tr-xs px-4 py-2.5 sm:px-5 sm:py-3 text-sm text-white bg-[#10b981]/15 border border-[#10b981]/30">
+                          {m.content}
+                        </div>
                       </div>
                     ) : (
-                      <div style={{ display: "flex", gap: 16 }}>
-                        <span style={{ width: 36, height: 36, borderRadius: 12, overflow: "hidden", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 2, background: "rgba(255,255,255,0.05)" }}>
-                          <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.3) translateY(2px)" }} />
+                      <div className="flex gap-2.5 sm:gap-3.5 items-start">
+                        <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden grid place-items-center flex-shrink-0 mt-0.5 bg-white/5 border border-white/10 shadow-sm">
+                          <img src="/logo.png" alt="KiliGuide" className="w-full h-full object-cover transform scale-125 translateY-0.5" />
                         </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, color: "#ececec", lineHeight: 1.7 }}><MarkdownMessage content={m.content} /></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs sm:text-sm text-zinc-100 leading-normal">
+                            <MarkdownMessage content={m.content} />
+                          </div>
                           
                           {m.sources && m.sources.length > 0 && (
-                            <details style={{ marginTop: 12 }}>
-                              <summary style={{ fontSize: 12, color: "#a1a1aa", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", padding: "6px 12px", borderRadius: 100, outline: "none", userSelect: "none", border: "1px solid rgba(255,255,255,0.05)" }}>
-                                <ShieldCheck size={14} style={{ color: "#10b981" }} /> Sources
+                            <details className="mt-2.5">
+                              <summary className="text-xs text-zinc-400 cursor-pointer inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full outline-none user-select-none border border-white/5 transition-colors">
+                                <ShieldCheck size={13} className="text-[#10b981]" /> Sources
                               </summary>
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, paddingLeft: 8 }}>
+                              <div className="flex flex-wrap gap-1.5 mt-2 pl-2">
                                 {Array.from(new Map(m.sources.map((s: any) => [`${s.title}-${s.page}`, s])).values()).map((s: any, idx) => (
-                                  <span key={idx} style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 6, padding: "6px 10px", fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
-                                    <FileText size={12} /> {s.title} {s.page ? `(Pg. ${s.page})` : ""}
+                                  <span key={idx} className="bg-[#10b981]/10 border border-[#10b981]/20 rounded-md px-2.5 py-1 text-[11px] text-[#10b981] flex items-center gap-1.5">
+                                    <FileText size={11} /> {s.title} {s.page ? `(Pg. ${s.page})` : ""}
                                   </span>
                                 ))}
                               </div>
                             </details>
                           )}
 
-                          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-                            <button onClick={() => toggleReadAloud(m.id, m.content)} title={readingMsgId === m.id ? "Stop reading" : "Read aloud"} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "50%", color: readingMsgId === m.id ? "#ef4444" : "#a1a1aa", cursor: "pointer", transition: "0.2s" }}>
-                              {readingMsgId === m.id ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                          <div className="flex items-center gap-2.5 mt-2.5">
+                            <button onClick={() => toggleReadAloud(m.id, m.content)} title={readingMsgId === m.id ? "Stop reading" : "Read aloud"} className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-white/10 cursor-pointer transition-colors ${readingMsgId === m.id ? "bg-rose-500/20 text-rose-400 border-rose-500/30" : "bg-white/5 text-zinc-400 hover:text-white"}`}>
+                              {readingMsgId === m.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
                             </button>
-                            <button onClick={() => escalateToHuman(m.content)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 100, padding: "6px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer", transition: "0.2s" }}>
-                              <HeadphonesIcon size={14} /> Escalate to Human
+                            <button onClick={() => escalateToHuman(m.content)} className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 rounded-full px-3 py-1 text-rose-400 text-xs cursor-pointer hover:bg-rose-500/20 transition-colors">
+                              <HeadphonesIcon size={13} /> Escalate to Human
                             </button>
                           </div>
                         </div>

@@ -21,24 +21,24 @@ const MermaidBlock = ({ chart }: { chart: string }) => {
     }
   }, [chart, id]);
 
-  return <div style={{ background: "rgba(255,255,255,0.03)", padding: 20, borderRadius: 12, margin: "16px 0", border: "1px solid rgba(255,255,255,0.1)" }} dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <div style={{ background: "rgba(255,255,255,0.03)", padding: 14, borderRadius: 12, margin: "10px 0", border: "1px solid rgba(255,255,255,0.1)", overflowX: "auto" }} dangerouslySetInnerHTML={{ __html: svg }} />;
 };
 
 export function MarkdownRender({ content }: { content: string }) {
   return (
-    <div className="md-body">
+    <div className="md-body text-xs sm:text-sm md:text-base">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          p: ({ children }) => <p style={{ margin: "0 0 12px", lineHeight: 1.75 }}>{children}</p>,
-          strong: ({ children }) => <strong style={{ fontWeight: 700, color: "#ffffff" }}>{children}</strong>,
-          em: ({ children }) => <em style={{ fontStyle: "italic", color: "#c0c0c0" }}>{children}</em>,
-          h1: ({ children }) => <h1 style={{ fontSize: 20, fontWeight: 800, margin: "18px 0 10px", color: "#ffffff", letterSpacing: "-0.02em" }}>{children}</h1>,
-          h2: ({ children }) => <h2 style={{ fontSize: 17, fontWeight: 700, margin: "16px 0 8px", color: "#ffffff" }}>{children}</h2>,
-          h3: ({ children }) => <h3 style={{ fontSize: 15, fontWeight: 700, margin: "14px 0 6px", color: "#ffffff" }}>{children}</h3>,
-          ul: ({ children }) => <ul style={{ margin: "8px 0 12px", paddingLeft: 26, listStyleType: "disc" }}>{children}</ul>,
-          ol: ({ children }) => <ol style={{ margin: "8px 0 12px", paddingLeft: 26, listStyleType: "decimal" }}>{children}</ol>,
-          li: ({ children }) => <li style={{ lineHeight: 1.75, color: "#ececec", marginBottom: 5, display: "list-item", paddingLeft: 4 }}>{children}</li>,
+          p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-zinc-200 m-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+          em: ({ children }) => <em className="italic text-zinc-300">{children}</em>,
+          h1: ({ children }) => <h1 className="text-base sm:text-lg font-extrabold mt-3 mb-1.5 text-white tracking-tight">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-sm sm:text-base font-bold mt-2.5 mb-1 text-white">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-xs sm:text-sm font-bold mt-2 mb-1 text-white">{children}</h3>,
+          ul: ({ children }) => <ul className="my-1.5 pl-4 sm:pl-5 list-disc space-y-1 text-zinc-200">{children}</ul>,
+          ol: ({ children }) => <ol className="my-1.5 pl-4 sm:pl-5 list-decimal space-y-1 text-zinc-200">{children}</ol>,
+          li: ({ children }) => <li className="leading-relaxed text-zinc-200 pl-0.5">{children}</li>,
           code: ({ children, className }: any) => {
             const isBlock = className?.includes("language-");
             const isMermaid = className?.includes("language-mermaid");
@@ -47,13 +47,13 @@ export function MarkdownRender({ content }: { content: string }) {
             if (isMermaid) {
               return <MermaidBlock chart={codeString} />;
             }
-            if (isBlock) return <pre style={{ background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "12px 16px", overflowX: "auto", margin: "10px 0", border: "1px solid rgba(255,255,255,0.05)" }}><code style={{ fontSize: 13, fontFamily: "monospace", color: "#a8ff78" }}>{children}</code></pre>;
-            return <code style={{ background: "rgba(0,0,0,0.3)", borderRadius: 4, padding: "2px 6px", fontSize: 13, fontFamily: "monospace", color: "#a8ff78" }}>{children}</code>;
+            if (isBlock) return <pre className="bg-black/40 rounded-xl p-3 my-2 overflow-x-auto border border-white/10 text-xs font-mono text-emerald-400">{children}</pre>;
+            return <code className="bg-white/10 rounded px-1.5 py-0.5 text-xs font-mono text-emerald-400">{children}</code>;
           },
-          blockquote: ({ children }) => <blockquote style={{ borderLeft: "3px solid rgba(255,255,255,0.2)", paddingLeft: 14, margin: "10px 0", color: "#a1a1aa", fontStyle: "italic" }}>{children}</blockquote>,
-          hr: () => <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", margin: "16px 0" }} />,
-          a: ({ href, children }) => <a href={href!} target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "underline" }}>{children}</a>,
-          img: ({ src, alt }) => <img src={src} alt={alt} style={{ maxWidth: '100%', borderRadius: 12, marginTop: 16, border: '1px solid rgba(255,255,255,0.1)' }} />
+          blockquote: ({ children }) => <blockquote className="border-l-2 border-emerald-500/50 pl-3 my-2 text-zinc-400 italic">{children}</blockquote>,
+          hr: () => <hr className="border-none border-t border-white/10 my-2.5" />,
+          a: ({ href, children }) => <a href={href!} target="_blank" rel="noopener noreferrer" className="text-[#19c37d] underline hover:text-emerald-300 font-medium">{children}</a>,
+          img: ({ src, alt }) => <img src={src} alt={alt} className="max-w-full rounded-xl mt-2.5 border border-white/10" />
         }}
       >
         {content}
