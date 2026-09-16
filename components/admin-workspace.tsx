@@ -5,7 +5,7 @@ import {
   Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight, ChevronUp,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
   ShieldCheck, Ticket, Upload, UploadCloud, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap,
-  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, FileCode, Folder
+  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, FileCode, Folder, Pencil
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
@@ -499,21 +499,26 @@ function TicketsWorkspace() {
 function NoticesWorkspace() {
   const [notices, setNotices] = useState<any[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingNotice, setEditingNotice] = useState<any | null>(null);
 
   useEffect(() => {
     supabase?.from("notices").select("*").order("published_at", { ascending: false }).then(({ data }) => setNotices(data || []));
   }, []);
 
   const remove = async (id: string) => {
-    if(!supabase) return;
+    if(!supabase || !confirm("Are you sure you want to delete this notice?")) return;
     setDeletingId(id);
     await supabase.from("notices").delete().eq("id", id);
     setNotices(ns => ns.filter(n => n.id !== id));
     setDeletingId(null);
   };
 
+  const handleUpdated = (updated: any) => {
+    setNotices(ns => ns.map(n => n.id === updated.id ? updated : n));
+  };
+
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <section style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", minWidth: 0, overflow: "hidden" }}>
       {notices.map(n => (
         <article 
           key={n.id} 
@@ -526,7 +531,9 @@ function NoticesWorkspace() {
             boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
             display: "flex",
             flexDirection: "column",
-            gap: 12
+            gap: 12,
+            width: "100%",
+            minWidth: 0
           }}
         >
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
@@ -540,29 +547,51 @@ function NoticesWorkspace() {
               </span>
             </div>
 
-            <button 
-              onClick={() => remove(n.id)} 
-              disabled={deletingId === n.id}
-              style={{ 
-                background: "rgba(239,68,68,0.1)", 
-                border: "1px solid rgba(239,68,68,0.3)", 
-                color: "#ef4444", 
-                padding: "6px 14px", 
-                borderRadius: 12, 
-                cursor: deletingId === n.id ? "not-allowed" : "pointer", 
-                fontSize: 12, 
-                fontWeight: 700,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6
-              }}
-            >
-              <Trash2 size={14} />
-              {deletingId === n.id ? "Deleting..." : "Delete Notice"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+              <button 
+                onClick={() => setEditingNotice(n)} 
+                style={{ 
+                  background: "rgba(59,130,246,0.12)", 
+                  border: "1px solid rgba(59,130,246,0.3)", 
+                  color: "#3b82f6", 
+                  padding: "6px 14px", 
+                  borderRadius: 12, 
+                  cursor: "pointer", 
+                  fontSize: 12, 
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6
+                }}
+              >
+                <Pencil size={14} />
+                Edit
+              </button>
+
+              <button 
+                onClick={() => remove(n.id)} 
+                disabled={deletingId === n.id}
+                style={{ 
+                  background: "rgba(239,68,68,0.1)", 
+                  border: "1px solid rgba(239,68,68,0.3)", 
+                  color: "#ef4444", 
+                  padding: "6px 14px", 
+                  borderRadius: 12, 
+                  cursor: deletingId === n.id ? "not-allowed" : "pointer", 
+                  fontSize: 12, 
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6
+                }}
+              >
+                <Trash2 size={14} />
+                {deletingId === n.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
           </div>
 
-          <div>
+          <div style={{ width: "100%", minWidth: 0 }}>
             <h3 style={{ fontSize: "clamp(16px, 4vw, 18px)", fontWeight: 800, color: D.text, marginBottom: 8, lineHeight: 1.4, wordBreak: "break-word" }}>
               {n.title}
             </h3>
@@ -579,6 +608,14 @@ function NoticesWorkspace() {
           <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text }}>No Notices Published</h3>
           <p style={{ marginTop: 6, fontSize: 13, color: D.muted }}>Click "Create Notice" above to publish a campus announcement.</p>
         </div>
+      )}
+
+      {editingNotice && (
+        <EditNoticeModal 
+          notice={editingNotice} 
+          onClose={() => setEditingNotice(null)} 
+          onUpdated={handleUpdated} 
+        />
       )}
     </section>
   );
@@ -1268,6 +1305,85 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
           {busy ? "Processing..." : activeMode === "file" ? (file ? `Confirm & Upload ${file.name.slice(0, 18)}...` : "Select File to Upload") : "Scrape & Index Webpage"}
         </button>
       </motion.section>
+    </div>
+  );
+}
+
+// ── Edit Notice Modal ─────────────────────────────────────────────────────────
+function EditNoticeModal({ notice, onClose, onUpdated }: { notice: any; onClose: () => void; onUpdated: (updated: any) => void }) {
+  const [title, setTitle] = useState(notice.title || "");
+  const [category, setCategory] = useState(notice.category || "General");
+  const [body, setBody] = useState(notice.body || notice.summary || "");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+
+  const save = async () => {
+    if (!supabase || !title.trim() || !body.trim()) return;
+    setBusy(true);
+    setStatus("Saving changes...");
+    
+    const { data, error } = await supabase.from("notices").update({
+      title,
+      category,
+      body,
+      summary: body.substring(0, 100),
+    }).eq("id", notice.id).select("*").single();
+
+    setBusy(false);
+    if (error) {
+      setStatus(`Failed: ${error.message}`);
+    } else {
+      setStatus("✓ Notice updated successfully!");
+      onUpdated(data);
+      setTimeout(() => onClose(), 800);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", padding: 16 }}>
+      <section style={{ width: "100%", maxWidth: 500, borderRadius: 24, background: "rgba(10, 16, 24, 0.95)", padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", display: "grid", placeItems: "center", color: D.accent }}>
+              <Pencil size={18} />
+            </div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Edit Campus Notice</h2>
+          </div>
+          <button onClick={onClose} disabled={busy} style={{ color: D.muted, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, borderRadius: 10, cursor: "pointer", padding: 6 }}><X size={18} /></button>
+        </div>
+
+        <label style={{ display: "block", marginTop: 20, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          TITLE
+          <input value={title} onChange={e=>setTitle(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.4)", color: D.text, padding: "12px 14px", fontSize: 14, outline: "none" }} placeholder="Notice title" />
+        </label>
+
+        <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          CATEGORY
+          <select value={category} onChange={e=>setCategory(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.4)", color: D.text, padding: "12px 14px", fontSize: 14, outline: "none" }}>
+            <option value="General">General Notice</option>
+            <option value="Academics">Academics</option>
+            <option value="Finance">Finance & Fees</option>
+            <option value="Events">Events & Activities</option>
+            <option value="Administration">Administration</option>
+          </select>
+        </label>
+
+        <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          NOTICE BODY
+          <textarea value={body} onChange={e=>setBody(e.target.value)} disabled={busy} rows={6} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.4)", color: D.text, padding: "12px 14px", fontSize: 14, outline: "none", resize: "vertical", lineHeight: 1.5 }} placeholder="Full notice content..." />
+        </label>
+
+        {status && (
+          <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 12, background: status.startsWith("✓") ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${status.startsWith("✓") ? "rgba(16,185,129,0.3)" : D.border}`, fontSize: 13, color: status.startsWith("✓") ? D.accent : D.text, fontWeight: 600 }}>
+            {status}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+          <button onClick={onClose} disabled={busy} style={{ flex: 1, borderRadius: 14, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, padding: "12px 0", fontSize: 14, fontWeight: 700, color: D.text, cursor: "pointer" }}>Cancel</button>
+          <button onClick={save} disabled={busy || !title.trim() || !body.trim()} style={{ flex: 1, borderRadius: 14, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 800, color: "#000", cursor: busy ? "not-allowed" : "pointer", border: "none" }}>Save Changes</button>
+        </div>
+      </section>
     </div>
   );
 }
