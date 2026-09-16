@@ -48,6 +48,7 @@ export function StudentWorkspace() {
   const [showTools, setShowTools] = useState(false);
   const [attachment, setAttachment] = useState<{name: string, type: string, base64: string} | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
