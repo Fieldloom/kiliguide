@@ -236,8 +236,16 @@ export function StudentWorkspace() {
     setExtractingMetadataId(resourceId);
     const { data, error } = await supabase.functions.invoke("analyze-timetable-metadata", { body: { resourceId } });
     setExtractingMetadataId(null);
-    if (error || data?.error) {
-      alert("Extraction failed: " + (error?.message || data?.error || "Unknown error"));
+    let errorMsg = data?.error;
+    if (!errorMsg && error) {
+      errorMsg = error.message;
+      try {
+        const errJson = await (error as any).context?.json();
+        if (errJson?.error) errorMsg = errJson.error;
+      } catch (_) {}
+    }
+    if (errorMsg) {
+      alert("Extraction failed: " + errorMsg);
       return;
     }
     setTimetableMetadata(prev => ({ ...prev, [resourceId]: data }));
@@ -264,15 +272,23 @@ export function StudentWorkspace() {
       body: { resourceId, semesterStart, semesterEnd, courses: courses.trim(), reminderMinutes }
     });
     setAnalyzingId(null);
-    if (error || data?.error) {
-      alert("AI Analysis failed: " + (error?.message || data?.error || "Unknown error"));
+    let errorMsg = data?.error;
+    if (!errorMsg && error) {
+      errorMsg = error.message;
+      try {
+        const errJson = await (error as any).context?.json();
+        if (errJson?.error) errorMsg = errJson.error;
+      } catch (_) {}
+    }
+    if (errorMsg) {
+      alert("AI Analysis failed: " + errorMsg);
     } else {
       if (supabase) {
         const { data: calData } = await supabase.from("calendar_events").select("*").order("starts_at", { ascending: true });
         setCalendarEvents(calData ?? []);
       }
       setTimetables(ts => ts.map(t => t.id === resourceId ? { ...t, processing_status: "ready" } : t));
-      alert(`AI successfully analyzed your timetable and added ${data.eventsCreated || 0} classes to your schedule! Scroll down to see your weekly schedule.`);
+      alert(`AI successfully analyzed your timetable and added ${data?.eventsCreated || 0} classes to your schedule! Scroll down to see your weekly schedule.`);
     }
   };
 

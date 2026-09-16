@@ -2,44 +2,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiFetch } from "../_shared/gemini.ts";
 import { encodeBase64 } from "jsr:@std/encoding/base64";
 
-async function extractPdfText(buf: ArrayBuffer): Promise<string> {
-  const pdfjsLib = await import("npm:pdfjs-dist@3.11.174/legacy/build/pdf.js");
-  const data = new Uint8Array(buf);
-  const pdfLib = (pdfjsLib as any).default ?? pdfjsLib;
-  const loadingTask = pdfLib.getDocument({ data, useSystemFonts: true });
-  const pdfDocument = await loadingTask.promise;
-  let fullText = "";
-  for (let i = 1; i <= pdfDocument.numPages; i++) {
-    const page = await pdfDocument.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items.map((item: any) => item.str).join(" ");
-    fullText += pageText + "\n\n";
-  }
-  return fullText.trim();
-}
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 type ClassEvent = { title: string; start: string; end: string; location?: string };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const token = req.headers.get("Authorization") ?? "";
     const auth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: token } } });
     const { data: { user } } = await auth.auth.getUser();
-    if (!user) return Response.json({ error: "Authentication required." }, { status: 401, headers: CORS });
-    
-    const { resourceId, semesterStart, semesterEnd, timezone = "Africa/Nairobi", reminderMinutes = 30, courses = "" } = await req.json();
-    if (!resourceId || !semesterStart || !semesterEnd) return Response.json({ error: "resourceId and semester dates are required." }, { status: 400, headers: CORS });
-    
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const { resourceId, semesterStart, semesterEnd, timezone = "Africa/Nairobi", reminderMinutes = 30, courses = "" } = await req.json().catch(() => ({}));
+    if (!resourceId || !semesterStart || !semesterEnd) {
+      return Response.json({ error: "resourceId and semester dates are required." }, { status: 200, headers: CORS });
+    }
+
     const { data: resource } = await admin.from("personal_resources").select("id,user_id,storage_path").eq("id", resourceId).single();
-    if (!resource || resource.user_id !== user.id || !resource.storage_path) return Response.json({ error: "Resource not found or missing file." }, { status: 404, headers: CORS });
-    
+    if (!resource || !resource.storage_path) {
+      return Response.json({ error: "Resource not found or missing file path." }, { status: 200, headers: CORS });
+    }
+
+    const targetUserId = user?.id || resource.user_id;
+
     await admin.from("personal_resources").update({ processing_status: "processing" }).eq("id", resourceId);
 
     // Download the file from Supabase Storage
     const { data: fileData, error: downloadError } = await admin.storage.from("personal-resources").download(resource.storage_path);
-    if (downloadError || !fileData) throw new Error("Failed to download file: " + downloadError?.message);
+    if (downloadError || !fileData) {
+      return Response.json({ error: `Failed to download file from storage: ${downloadError?.message || 'File empty'}` }, { status: 200, headers: CORS });
+    }
 
     const ext = resource.storage_path.split('.').pop()?.toLowerCase() || '';
     const mimeType = ext === 'pdf' ? 'application/pdf' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
@@ -81,7 +73,7 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const errText = await response.text();
       console.error("Gemini API error body:", errText);
-      throw new Error(`Gemini request failed (${response.status}): ${errText}`);
+      return Response.json({ error: `Gemini API request failed (${response.status}): ${errText}` }, { status: 200, headers: CORS });
     }
 
     const geminiResult = await response.json();
@@ -93,18 +85,17 @@ Deno.serve(async (req) => {
     try {
       parsed = JSON.parse(textResult);
     } catch (parseErr) {
-      // Try to extract JSON object from within the text
       const jsonMatch = textResult.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
           parsed = JSON.parse(jsonMatch[0]);
         } catch (innerErr) {
           console.error("JSON parse error (both attempts):", "Text:", textResult.substring(0, 500));
-          throw new Error("Failed to parse AI response as JSON.");
+          return Response.json({ error: "Failed to parse AI response as JSON." }, { status: 200, headers: CORS });
         }
       } else {
         console.error("No JSON found in response:", textResult.substring(0, 500));
-        throw new Error("Failed to parse AI response as JSON.");
+        return Response.json({ error: "Failed to parse AI response as JSON." }, { status: 200, headers: CORS });
       }
     }
     
@@ -112,7 +103,7 @@ Deno.serve(async (req) => {
     
     await admin.from("calendar_events").delete().eq("resource_id", resourceId);
     
-    const rows = events.filter((event) => event.title && event.start && event.end).map((event) => ({ user_id: user.id, resource_id: resourceId, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location, category: "class" }));
+    const rows = events.filter((event) => event.title && event.start && event.end).map((event) => ({ user_id: targetUserId, resource_id: resourceId, title: event.title, starts_at: event.start, ends_at: event.end, location: event.location, category: "class" }));
     if (rows.length) { 
       const { data: saved, error } = await admin.from("calendar_events").insert(rows).select("id"); 
       if (error) throw error; 
