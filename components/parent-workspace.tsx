@@ -201,7 +201,7 @@ export function ParentWorkspace() {
 
     if (data?.escalate) {
        const tempId = Date.now().toString() + "-temp";
-       setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, { id: tempId, role: "assistant", content: "Searching official government and university sources (kuccps.net, helb.co.ke, etc.)..." }] } : c));
+       setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, { id: tempId, role: "assistant", content: "Thinking & searching university knowledge base..." }] } : c));
        
        const fallbackRes = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId, forceWebSearch: true } });
        data = fallbackRes.data;

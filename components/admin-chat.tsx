@@ -121,7 +121,7 @@ export function AdminChat() {
 
       if (data?.escalate) {
          const tempId = crypto.randomUUID();
-         setMessages(prev => [...prev, { id: tempId, role: "assistant", content: "Searching official government and university sources..." }]);
+         setMessages(prev => [...prev, { id: tempId, role: "assistant", content: "Thinking & searching university knowledge base..." }]);
          
          const fallbackRes = await supabase.functions.invoke("chat", {
            body: {
