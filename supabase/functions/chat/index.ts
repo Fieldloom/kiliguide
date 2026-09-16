@@ -80,13 +80,15 @@ Deno.serve(async (req) => {
 
     let customInstructions = "";
     let institutionId = "00000000-0000-0000-0000-000000000001";
+    let institutionName = "Dedan Kimathi University of Technology (DeKUT)";
     let dailyAttachmentCount = 0;
     let attachmentLastReset = new Date();
     
-    const { data: profileData } = await supabase.from("profiles").select("custom_instructions, institution_id, departments(name), daily_attachment_count, attachment_last_reset").eq("id", user.id).single();
+    const { data: profileData } = await supabase.from("profiles").select("custom_instructions, institution_id, departments(name), daily_attachment_count, attachment_last_reset, institutions(name)").eq("id", user.id).single();
     if (profileData) {
       if (profileData.custom_instructions) customInstructions = profileData.custom_instructions;
       if (profileData.institution_id) institutionId = profileData.institution_id;
+      if (profileData.institutions?.name) institutionName = profileData.institutions.name;
       if (profileData.daily_attachment_count) dailyAttachmentCount = profileData.daily_attachment_count;
       if (profileData.attachment_last_reset) attachmentLastReset = new Date(profileData.attachment_last_reset);
       if (!metadataFilter.department && profileData.departments?.name) {
@@ -231,8 +233,8 @@ Deno.serve(async (req) => {
       return Response.json({ answer, sources, confidence, escalate: false, debug: { provider: "DIRECT_BYPASS", similarity: finalChunks[0].similarity } }, { headers: CORS });
     }
 
-    const instruction = `You are KiliGuide, a smart-campus assistant for DeKUT (Dedan Kimathi University of Technology).
-Your capabilities: You can answer questions about the university based on official documents, check timetables, and help with campus notices.
+    const instruction = `You are KiliGuide, the official smart-campus assistant for ${institutionName}.
+Your capabilities: You can answer questions about ${institutionName} based on official documents, check timetables, and help with campus notices.
 Rules for answering:
 1. **Multilingual**: You MUST reply in the EXACT same language that the user asks the question in (e.g., Swahili, French, English).
 2. If the user is just greeting you or asking what you can do, be friendly, concise, and explain your capabilities in their language.

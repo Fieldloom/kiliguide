@@ -1,248 +1,191 @@
 "use client";
-
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Building2, Paintbrush, Mail, Sparkles, CheckCircle2, Loader2, Globe, Clock } from "lucide-react";
-import { PublicNavbar } from "../../components/public-navbar";
 import Link from "next/link";
+import { ArrowLeft, Building2, CheckCircle2, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { PublicNavbar } from "../../components/public-navbar";
+import { PublicFooter } from "../../components/public-footer";
 
-const STEPS = ["Your Details", "Branding", "Admin Account", "Submitted"];
-
-export default function RegisterInstitution() {
-  const [step, setStep] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
+export default function RegisterInstitutionPage() {
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
-  const [themeColor, setThemeColor] = useState("#10b981");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [adminEmail, setAdminEmail] = useState("");
   const [adminName, setAdminName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [notes, setNotes] = useState("");
+  
+  const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  const next = () => { setError(""); setStep(s => s + 1); };
-  const back = () => { setError(""); setStep(s => s - 1); };
-
-  const handleStep0 = () => {
-    if (!name.trim() || !domain.trim()) { setError("Please fill in all fields."); return; }
-    if (!domain.includes(".")) { setError("Please enter a valid domain (e.g. students.myuniversity.ac.ke)."); return; }
-    next();
-  };
-
-  const handleStep2 = async () => {
-    if (!adminEmail.trim() || !adminName.trim()) { setError("Please fill in all fields."); return; }
-    if (!supabase) { setError("Database not connected."); return; }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) {
+      setError("Supabase is not configured.");
+      return;
+    }
 
     setBusy(true);
     setError("");
 
-    try {
-      const { error: reqErr } = await supabase
-        .from("institution_requests")
-        .insert({
-          name: name.trim(),
-          domain: domain.trim().toLowerCase(),
-          theme_color: themeColor,
-          logo_url: logoUrl || null,
-          admin_email: adminEmail.trim(),
-          admin_name: adminName.trim(),
-          status: "pending",
-        });
+    // Clean domain (e.g. https://www.dkut.ac.ke/ -> dkut.ac.ke)
+    let cleanDomain = domain.toLowerCase().trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0];
 
-      if (reqErr) throw reqErr;
-      setStep(3);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
-    } finally {
-      setBusy(false);
+    const { data, error: err } = await supabase.from("institution_requests").insert([{
+      name: name.trim(),
+      domain: cleanDomain,
+      admin_name: adminName.trim(),
+      admin_email: adminEmail.trim().toLowerCase(),
+      notes: notes.trim() || null,
+      status: "pending"
+    }]).select("id").single();
+
+    setBusy(false);
+
+    if (err) {
+      setError(err.message.includes("duplicate") ? "A request for this domain or email already exists." : err.message);
+      return;
     }
-  };
 
-  const stepVariants = {
-    initial: { opacity: 0, x: 40 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -40 }
+    setSubmitted(true);
   };
 
   return (
-    <main className="bg-aurora min-h-screen text-white relative overflow-x-hidden">
-      
-      <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[120vw] h-[120vw] max-w-[1200px] max-h-[1200px] bg-[radial-gradient(circle,rgba(25,195,125,0.12)_0%,rgba(138,43,226,0.04)_30%,rgba(0,0,0,0)_70%)] z-0 pointer-events-none" />
-      
+    <main className="bg-aurora min-h-screen text-white relative overflow-x-hidden flex flex-col justify-between">
       <PublicNavbar />
 
-      <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-8 py-8 sm:py-16">
+      <div className="relative z-10 max-w-xl mx-auto px-4 py-12 sm:py-16 w-full flex-1 flex flex-col justify-center">
+        
+        {/* Back Link */}
+        <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-400 hover:text-white no-underline mb-6 transition-colors">
+          <ArrowLeft size={14} /> Back to KiliGuide Home
+        </Link>
 
-        <div className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 bg-[#19c37d]/10 border border-[#19c37d]/20 rounded-full px-4 py-2 mb-4">
-            <Sparkles size={14} className="text-[#19c37d]" />
-            <span className="text-[#19c37d] text-xs sm:text-sm font-semibold">Institution Registration</span>
+        {submitted ? (
+          <div className="bg-zinc-950/80 backdrop-blur-3xl border border-emerald-500/30 rounded-3xl p-8 sm:p-10 shadow-2xl text-center animate-fadeIn">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 grid place-items-center mx-auto mb-6 text-emerald-400">
+              <CheckCircle2 size={32} />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">Onboarding Request Submitted</h1>
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+              Thank you! Your request to register <strong className="text-emerald-400">{name}</strong> has been received. Our Superadmin team will review your domain (<span className="text-zinc-200">{domain}</span>) and approve your institution administrator access.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/login" className="bg-[#19c37d] text-black font-extrabold px-6 py-3.5 rounded-2xl text-sm no-underline hover:bg-emerald-400 transition-all shadow-lg">
+                Proceed to Sign In
+              </Link>
+              <Link href="/" className="bg-white/5 border border-white/10 text-white font-semibold px-6 py-3.5 rounded-2xl text-sm no-underline hover:bg-white/10 transition-all">
+                Return Home
+              </Link>
+            </div>
           </div>
-          <h1 className="text-[clamp(28px,5vw,52px)] font-extrabold tracking-tight m-0 mb-3 leading-tight">
-            Bring KiliGuide to <span className="bg-gradient-to-r from-white to-[#19c37d] bg-clip-text text-transparent">Your University.</span>
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400 m-0 max-w-md mx-auto">Submit your institution details. Our team reviews every request within 24 hours.</p>
-        </div>
-
-        {/* Step Progress */}
-        {step < 3 && (
-          <div className="flex items-center gap-2 sm:gap-4 mb-8 sm:mb-10 justify-center overflow-x-auto py-2">
-            {STEPS.slice(0, 3).map((label, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full grid place-items-center text-xs font-bold transition-all border-2 ${
-                    i < step ? "bg-[#19c37d] text-black border-[#19c37d]" : i === step ? "bg-[#19c37d]/20 text-[#19c37d] border-[#19c37d]" : "bg-white/5 text-zinc-600 border-white/10"
-                  }`}>
-                    {i < step ? <CheckCircle2 size={16} /> : i + 1}
-                  </div>
-                  <span className={`text-xs sm:text-sm font-semibold whitespace-nowrap ${i === step ? "text-white" : "text-zinc-500"} ${i !== step ? "hidden sm:inline" : ""}`}>
-                    {label}
-                  </span>
-                </div>
-                {i < 2 && <div className={`w-6 sm:w-10 h-0.5 rounded transition-all ${i < step ? "bg-[#19c37d]" : "bg-white/10"}`} />}
+        ) : (
+          <div className="bg-zinc-950/70 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 sm:p-10 shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_0_0_32px_rgba(255,255,255,0.02)]">
+            
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#19c37d]/10 border border-[#19c37d]/20 grid place-items-center text-[#19c37d]">
+                <Building2 size={24} />
               </div>
-            ))}
+              <div>
+                <h1 className="text-xl sm:text-2xl font-extrabold text-white m-0">Register Your Institution</h1>
+                <p className="text-xs sm:text-sm text-zinc-400 m-0 mt-0.5">Onboard your university to KiliGuide multi-tenant AI platform.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5">
+              
+              {/* Institution Name */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Institution / University Name</label>
+                <input
+                  required
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Strathmore University"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d] focus:ring-1 focus:ring-[#19c37d]/30"
+                />
+              </div>
+
+              {/* Official Domain */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Official Domain</label>
+                <input
+                  required
+                  type="text"
+                  value={domain}
+                  onChange={e => setDomain(e.target.value)}
+                  placeholder="e.g. strathmore.edu"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d] focus:ring-1 focus:ring-[#19c37d]/30"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1 pl-1">Used to auto-detect and segregate students registering with `@yourdomain` email addresses.</p>
+              </div>
+
+              {/* Administrator Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Admin Full Name</label>
+                  <input
+                    required
+                    type="text"
+                    value={adminName}
+                    onChange={e => setAdminName(e.target.value)}
+                    placeholder="e.g. Dr. Jane Doe"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Admin Email Address</label>
+                  <input
+                    required
+                    type="email"
+                    value={adminEmail}
+                    onChange={e => setAdminEmail(e.target.value)}
+                    placeholder="jane.doe@strathmore.edu"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]"
+                  />
+                </div>
+              </div>
+
+              {/* Optional Notes */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Additional Verification Notes (Optional)</label>
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Provide any additional contact info or verification details..."
+                  className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d] resize-none"
+                />
+              </div>
+
+              {error && (
+                <div className="p-3.5 rounded-xl border bg-rose-500/10 border-rose-500/20 text-rose-400 text-xs sm:text-sm font-medium">
+                  {error}
+                </div>
+              )}
+
+              <button
+                disabled={busy}
+                className="w-full bg-gradient-to-r from-[#19c37d] to-[#14a367] text-black font-extrabold border-none rounded-xl p-4 text-sm sm:text-base mt-2 cursor-pointer transition-all hover:shadow-[0_8px_24px_rgba(25,195,125,0.3)] disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {busy ? <Loader2 size={18} className="animate-spin" /> : "Submit Institution Onboarding Request"}
+              </button>
+            </form>
+
+            <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-2xl flex gap-3 items-center">
+              <ShieldCheck size={20} className="text-[#19c37d] flex-shrink-0" />
+              <p className="text-xs text-zinc-400 m-0 leading-relaxed">
+                Superadmin approval elevates your account to Institution Administrator, granting access to manage your campus documents & RAG knowledge base.
+              </p>
+            </div>
           </div>
-        )}
-
-        <div className="bg-[#0B0F14] border border-[#131820] rounded-3xl p-6 sm:p-10 shadow-2xl">
-          <AnimatePresence mode="wait">
-
-            {step === 0 && (
-              <motion.div key="step0" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-11 h-11 rounded-xl bg-blue-500/10 grid place-items-center border border-blue-500/20">
-                    <Building2 size={22} className="text-blue-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold m-0 text-white">University Details</h2>
-                    <p className="text-xs sm:text-sm text-zinc-400 m-0">Tell us about your institution.</p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-4 sm:gap-5">
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Full University Name</label>
-                    <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. University of Nairobi" className="w-full bg-[#06080A] border border-[#1A2A20] rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none focus:border-[#19c37d]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Official Student Email Domain</label>
-                    <div className="relative">
-                      <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                      <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="e.g. students.uonbi.ac.ke" className="w-full bg-[#06080A] border border-[#1A2A20] rounded-xl text-white py-3.5 sm:py-4 pl-11 pr-4 text-sm outline-none focus:border-[#19c37d]" />
-                    </div>
-                    <p className="text-xs text-zinc-500 mt-1.5">Students with this domain will be auto-routed to your workspace on login.</p>
-                  </div>
-                </div>
-                {error && <p className="text-rose-400 text-xs sm:text-sm mt-4 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">{error}</p>}
-                <button onClick={handleStep0} className="mt-6 w-full bg-[#19c37d] text-black border-none rounded-xl p-4 text-sm font-bold cursor-pointer flex items-center justify-center gap-2 hover:bg-[#15aa6d] transition-colors">
-                  Continue <ArrowRight size={18} />
-                </button>
-              </motion.div>
-            )}
-
-            {step === 1 && (
-              <motion.div key="step1" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-11 h-11 rounded-xl bg-purple-500/10 grid place-items-center border border-purple-500/20">
-                    <Paintbrush size={22} className="text-purple-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold m-0 text-white">Branding (Optional)</h2>
-                    <p className="text-xs sm:text-sm text-zinc-400 m-0">Customize your workspace appearance.</p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-4 sm:gap-5">
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1.5">University Logo URL (optional)</label>
-                    <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://youruni.ac.ke/logo.png" className="w-full bg-[#06080A] border border-[#1A2A20] rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none focus:border-[#19c37d]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Primary Brand Color</label>
-                    <div className="flex items-center gap-4">
-                      <input type="color" value={themeColor} onChange={e => setThemeColor(e.target.value)} className="w-14 h-12 rounded-xl border border-[#1A2A20] bg-none cursor-pointer p-1" />
-                      <div className="flex-1 h-12 rounded-xl border border-white/10 flex items-center px-4" style={{ backgroundColor: `${themeColor}22` }}>
-                        <span className="font-semibold text-sm" style={{ color: themeColor }}>{themeColor}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-6">
-                  <button onClick={back} className="flex-initial bg-white/5 text-zinc-200 border border-white/10 rounded-xl px-5 py-3.5 text-sm font-semibold cursor-pointer flex items-center gap-2 hover:bg-white/10">
-                    <ArrowLeft size={16} /> Back
-                  </button>
-                  <button onClick={next} className="flex-1 bg-[#19c37d] text-black border-none rounded-xl p-4 text-sm font-bold cursor-pointer flex items-center justify-center gap-2 hover:bg-[#15aa6d]">
-                    Continue <ArrowRight size={18} />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 2 && (
-              <motion.div key="step2" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-500/10 grid place-items-center border border-emerald-500/20">
-                    <Mail size={22} className="text-emerald-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold m-0 text-white">Contact Details</h2>
-                    <p className="text-xs sm:text-sm text-zinc-400 m-0">Who should we contact when approved?</p>
-                  </div>
-                </div>
-                <div className="mb-5 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-3 items-start">
-                  <Clock size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-zinc-300 m-0 leading-relaxed">Your request will be reviewed by our team within <strong className="text-amber-400">24–48 hours</strong>. You will receive an email with your admin credentials once approved.</p>
-                </div>
-                <div className="flex flex-col gap-4 sm:gap-5">
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Your Full Name</label>
-                    <input value={adminName} onChange={e => setAdminName(e.target.value)} placeholder="e.g. Dr. John Kamau" className="w-full bg-[#06080A] border border-[#1A2A20] rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none focus:border-[#19c37d]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Official Email Address</label>
-                    <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="admin@youruni.ac.ke" className="w-full bg-[#06080A] border border-[#1A2A20] rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none focus:border-[#19c37d]" />
-                  </div>
-                </div>
-                {error && <p className="text-rose-400 text-xs sm:text-sm mt-4 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">{error}</p>}
-                <div className="flex gap-3 mt-6">
-                  <button onClick={back} disabled={busy} className="flex-initial bg-white/5 text-zinc-200 border border-white/10 rounded-xl px-5 py-3.5 text-sm font-semibold cursor-pointer flex items-center gap-2 hover:bg-white/10">
-                    <ArrowLeft size={16} /> Back
-                  </button>
-                  <button onClick={handleStep2} disabled={busy} className="flex-1 bg-[#19c37d] text-black border-none rounded-xl p-4 text-sm font-bold cursor-pointer flex items-center justify-center gap-2 hover:bg-[#15aa6d] disabled:opacity-70">
-                    {busy ? <Loader2 size={18} className="animate-spin" /> : <>Submit Request <ArrowRight size={18} /></>}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 3 && (
-              <motion.div key="step3" variants={stepVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }} className="text-center py-6">
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, delay: 0.2 }} className="w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 grid place-items-center mx-auto mb-6">
-                  <CheckCircle2 size={32} className="text-emerald-400" />
-                </motion.div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold m-0 mb-3 text-white">Request Submitted!</h2>
-                <p className="text-sm sm:text-base text-zinc-400 mb-2 leading-relaxed">
-                  Your application for <strong className="text-white">{name}</strong> has been received.
-                </p>
-                <p className="text-xs sm:text-sm text-zinc-500 mb-8 leading-relaxed">
-                  Our team will review your request and send admin credentials to <strong className="text-zinc-300">{adminEmail}</strong> within <strong className="text-amber-400">24–48 hours</strong>.
-                </p>
-                <Link href="/" className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 text-zinc-200 rounded-xl px-6 py-3.5 text-sm font-semibold no-underline border border-white/10 transition-colors">
-                  Back to Home
-                </Link>
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
-
-        {step < 3 && (
-          <p className="text-center text-xs sm:text-sm text-zinc-500 mt-6">
-            Already registered? <Link href="/login" className="text-[#19c37d] no-underline hover:underline">Log in to your workspace.</Link>
-          </p>
         )}
       </div>
 
+      <PublicFooter />
     </main>
   );
 }

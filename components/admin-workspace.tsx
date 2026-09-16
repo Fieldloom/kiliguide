@@ -1123,19 +1123,25 @@ function Compose({ onClose }: { onClose: () => void }) {
 // ── INSTITUTIONS (SUPER ADMIN ONLY) ──────────────────────────────────────────
 function InstitutionsWorkspace() {
   const [requests, setRequests] = useState<any[]>([]);
+  const [approvedList, setApprovedList] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
   const [allowRegistration, setAllowRegistration] = useState(true);
   const [showDocuments, setShowDocuments] = useState(false);
 
   const load = async () => {
     if (!supabase) return;
-    const { data } = await supabase.from("institution_requests").select("*").order("created_at", { ascending: false });
-    setRequests(data || []);
-    const { data: settings } = await supabase.from("system_settings").select("*").in("key", ["allow_institution_registration", "show_documents_to_users"]);
-    if (settings) {
-      const reg = settings.find(s => s.key === "allow_institution_registration");
+    const [reqRes, instRes, settingsRes] = await Promise.all([
+      supabase.from("institution_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("institutions").select("*").order("name", { ascending: true }),
+      supabase.from("system_settings").select("*").in("key", ["allow_institution_registration", "show_documents_to_users"])
+    ]);
+    setRequests(reqRes.data || []);
+    setApprovedList(instRes.data || []);
+
+    if (settingsRes.data) {
+      const reg = settingsRes.data.find(s => s.key === "allow_institution_registration");
       if (reg) setAllowRegistration(reg.value === 'true');
-      const doc = settings.find(s => s.key === "show_documents_to_users");
+      const doc = settingsRes.data.find(s => s.key === "show_documents_to_users");
       if (doc) setShowDocuments(doc.value === 'true');
     }
   };
@@ -1146,7 +1152,7 @@ function InstitutionsWorkspace() {
     if (!supabase) return;
     const newValue = !allowRegistration;
     setAllowRegistration(newValue);
-    await supabase.from("system_settings").update({ value: newValue ? 'true' : 'false' }).eq("key", "allow_institution_registration");
+    await supabase.from("system_settings").upsert({ key: "allow_institution_registration", value: newValue ? 'true' : 'false' });
   };
 
   const toggleDocuments = async () => {
@@ -1157,7 +1163,7 @@ function InstitutionsWorkspace() {
   };
 
   const handleApprove = async (id: string, name: string) => {
-    if (!supabase || !confirm(`Approve institution ${name}?`)) return;
+    if (!supabase || !confirm(`Approve institution "${name}"? This will elevate the requester to Institution Administrator.`)) return;
     setBusy(true);
     const { error } = await supabase.rpc("approve_institution", { req_id: id });
     setBusy(false);
@@ -1166,7 +1172,7 @@ function InstitutionsWorkspace() {
   };
 
   const handleReject = async (id: string, name: string) => {
-    if (!supabase || !confirm(`Reject institution ${name}?`)) return;
+    if (!supabase || !confirm(`Reject institution "${name}"?`)) return;
     const reason = prompt("Reason for rejection:");
     if (reason === null) return;
     setBusy(true);
@@ -1177,78 +1183,117 @@ function InstitutionsWorkspace() {
   };
 
   return (
-    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, paddingBottom: 24, borderBottom: `1px solid ${D.border}` }}>
+    <section style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+      {/* Global Control Toggles */}
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 28, paddingBottom: 24, borderBottom: `1px solid ${D.border}` }}>
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text }}>Global Settings</h2>
-          <p style={{ marginTop: 4, fontSize: 13, color: D.muted }}>Control system-wide features.</p>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
+            <Building2 size={20} style={{ color: D.accent }} />
+            Multi-Tenant Platform Settings
+          </h2>
+          <p style={{ marginTop: 4, fontSize: 13, color: D.muted }}>Control institution onboarding and global feature flags across all tenants.</p>
         </div>
-        <div style={{ display: "flex", gap: 32 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: D.text }}>Show Documents Tab to Users</span>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Show Documents Tab</span>
             <div 
               onClick={toggleDocuments}
-              style={{ width: 44, height: 24, borderRadius: 12, background: showDocuments ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
+              style={{ width: 40, height: 22, borderRadius: 11, background: showDocuments ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
             >
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showDocuments ? 22 : 2, transition: "all 0.2s" }} />
+              <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showDocuments ? 20 : 2, transition: "all 0.2s" }} />
             </div>
           </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: D.text }}>Allow Institution Registration</span>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Allow New Institutions</span>
             <div 
               onClick={toggleRegistration}
-              style={{ width: 44, height: 24, borderRadius: 12, background: allowRegistration ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
+              style={{ width: 40, height: 22, borderRadius: 11, background: allowRegistration ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
             >
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: allowRegistration ? 22 : 2, transition: "all 0.2s" }} />
+              <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: allowRegistration ? 20 : 2, transition: "all 0.2s" }} />
             </div>
           </label>
         </div>
       </div>
 
-      <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text, marginBottom: 24 }}>Institution Requests</h2>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${D.border}` }}>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>INSTITUTION</th>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>ADMIN</th>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>STATUS</th>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map(r => (
-              <tr key={r.id} style={{ borderBottom: `1px solid ${D.border}` }}>
-                <td style={{ padding: "20px 16px 20px 0" }}>
-                  <b style={{ display: "block", color: D.text, marginBottom: 4 }}>{r.name}</b>
-                  <small style={{ color: D.muted, fontSize: 13 }}>{r.domain}</small>
-                </td>
-                <td style={{ padding: "20px 16px 20px 0" }}>
-                  <span style={{ display: "block", color: D.text, fontSize: 14 }}>{r.admin_name}</span>
-                  <small style={{ color: D.muted, fontSize: 13 }}>{r.admin_email}</small>
-                </td>
-                <td style={{ padding: "20px 16px 20px 0" }}>
-                  <span style={{ borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, background: r.status === "approved" ? "#19c37d22" : r.status === "rejected" ? "#ef444422" : "#f59e0b22", color: r.status === "approved" ? D.accent : r.status === "rejected" ? "#ef4444" : "#f59e0b", textTransform: "uppercase" }}>
-                    {r.status}
-                  </span>
-                </td>
-                <td style={{ padding: "20px 0", textAlign: "right" }}>
-                  {r.status === "pending" && (
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                      <button disabled={busy} onClick={() => handleApprove(r.id, r.name)} style={{ background: "#19c37d", color: "#000", padding: "6px 12px", borderRadius: 6, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, border: "none" }}>Approve</button>
-                      <button disabled={busy} onClick={() => handleReject(r.id, r.name)} style={{ background: "transparent", border: `1px solid #ef444444`, color: "#ef4444", padding: "6px 12px", borderRadius: 6, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600 }}>Reject</button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {requests.length === 0 && (
-              <tr>
-                <td colSpan={4} style={{ padding: "32px 0", textAlign: "center", color: D.muted }}>No requests found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      {/* Pending Onboarding Requests */}
+      <h3 style={{ fontSize: 17, fontWeight: 800, color: D.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        Institution Onboarding Requests
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>
+          {requests.filter(r => r.status === "pending").length} pending
+        </span>
+      </h3>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 36 }}>
+        {requests.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center", color: D.muted, fontSize: 13, background: "rgba(0,0,0,0.2)", borderRadius: 20, border: `1px solid ${D.border}` }}>
+            No institution onboarding requests found.
+          </div>
+        ) : requests.map(r => (
+          <div 
+            key={r.id}
+            style={{ 
+              borderRadius: 20, 
+              background: "rgba(255,255,255,0.02)", 
+              border: `1px solid ${D.border}`, 
+              padding: 20,
+              display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <b style={{ fontSize: 16, color: D.text }}>{r.name}</b>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>
+                  {r.domain}
+                </span>
+              </div>
+              <span style={{ fontSize: 13, color: D.muted, display: "block" }}>
+                Admin: <strong style={{ color: D.text }}>{r.admin_name}</strong> ({r.admin_email})
+              </span>
+              {r.notes && (
+                <p style={{ fontSize: 12, color: D.muted, marginTop: 6, background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 10 }}>
+                  Notes: {r.notes}
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ borderRadius: 100, padding: "4px 12px", fontSize: 11, fontWeight: 800, background: r.status === "approved" ? "rgba(16,185,129,0.15)" : r.status === "rejected" ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)", color: r.status === "approved" ? D.accent : r.status === "rejected" ? "#ef4444" : "#f59e0b", textTransform: "uppercase" }}>
+                {r.status}
+              </span>
+
+              {r.status === "pending" && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button disabled={busy} onClick={() => handleApprove(r.id, r.name)} style={{ background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", padding: "8px 16px", borderRadius: 12, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 800, border: "none", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>Approve</button>
+                  <button disabled={busy} onClick={() => handleReject(r.id, r.name)} style={{ background: "rgba(239,68,68,0.1)", border: `1px solid rgba(239,68,68,0.3)`, color: "#ef4444", padding: "8px 16px", borderRadius: 12, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700 }}>Reject</button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Approved Active Institutions List */}
+      <h3 style={{ fontSize: 17, fontWeight: 800, color: D.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        Approved Active Campus Institutions
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "rgba(16,185,129,0.15)", color: D.accent }}>
+          {approvedList.length} active
+        </span>
+      </h3>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+        {approvedList.map(inst => (
+          <div key={inst.id} style={{ borderRadius: 20, background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, padding: 18, display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", display: "grid", placeItems: "center", color: D.accent, fontWeight: 800, flexShrink: 0 }}>
+              <Building2 size={20} />
+            </div>
+            <div style={{ overflow: "hidden" }}>
+              <b style={{ fontSize: 14, color: D.text, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{inst.name}</b>
+              <small style={{ color: "#60a5fa", fontSize: 12, display: "block", marginTop: 2 }}>{inst.domain}</small>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
