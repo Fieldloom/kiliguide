@@ -1,5 +1,5 @@
 const retryableStatuses = new Set([429, 500, 502, 503, 504]);
-const fallbackModels = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash"];
+const modelsToTry = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash-latest", "gemini-1.5-flash"];
 
 function availableKeys() {
   return [
@@ -8,20 +8,17 @@ function availableKeys() {
     Deno.env.get("GEMINI_API_KEY_3"),
     Deno.env.get("GEMINI_API_KEY_4"),
     Deno.env.get("GEMINI_API_KEY_5"),
-    Deno.env.get("GEMINI_API_KEY"), // safe migration fallback
-  ].filter((key): key is string => Boolean(key));
+    Deno.env.get("GEMINI_API_KEY"),
+  ].filter((key): key is string => Boolean(key && key.trim()));
 }
 
-/** Sends a Gemini request with round-robin key selection and automatic model fallback. */
+/** Sends a Gemini request with round-robin key selection, query param key injection, and automatic model/key fallback. */
 export async function geminiFetch(url: string, init: RequestInit): Promise<Response> {
   const keys = availableKeys();
   if (!keys.length) throw new Error("No Gemini API key is configured in Supabase environment.");
   
-  const modelMatch = url.match(/\/models\/([^:]+):/);
-  const requestedModel = modelMatch ? modelMatch[1] : "gemini-2.0-flash";
-  const modelsToTry = Array.from(new Set([requestedModel, ...fallbackModels]));
-
   let lastResponse: Response | undefined;
+  let lastErrorText = "";
 
   for (const model of modelsToTry) {
     const currentUrl = url.replace(/\/models\/[^:]+:/, `/models/${model}:`);
@@ -29,22 +26,33 @@ export async function geminiFetch(url: string, init: RequestInit): Promise<Respo
 
     for (let attempt = 0; attempt < keys.length; attempt++) {
       const index = (start + attempt) % keys.length;
+      const key = keys[index].trim();
+      const urlWithKey = currentUrl.includes("?") 
+        ? `${currentUrl}&key=${encodeURIComponent(key)}`
+        : `${currentUrl}?key=${encodeURIComponent(key)}`;
+
       const headers = new Headers(init.headers);
-      headers.set("x-goog-api-key", keys[index]);
-      lastResponse = await fetch(currentUrl, { ...init, headers });
+      headers.set("x-goog-api-key", key);
+      
+      try {
+        lastResponse = await fetch(urlWithKey, { ...init, headers });
 
-      if (lastResponse.ok || (!retryableStatuses.has(lastResponse.status) && lastResponse.status !== 404)) {
-        return lastResponse;
-      }
-      if (retryableStatuses.has(lastResponse.status)) {
-        console.warn(`Gemini response ${lastResponse.status} for model ${model}; retrying key slot ${index + 1}.`);
-      }
-    }
+        if (lastResponse.ok) {
+          return lastResponse;
+        }
 
-    if (lastResponse && lastResponse.status === 404) {
-      console.warn(`Gemini model '${model}' returned 404; trying fallback model...`);
+        const errBody = await lastResponse.clone().text();
+        lastErrorText = errBody;
+        console.error(`Gemini fetch [model: ${model}, slot: ${index + 1}, status: ${lastResponse.status}]: ${errBody}`);
+      } catch (fetchErr: any) {
+        console.error(`Gemini fetch network error [model: ${model}, slot: ${index + 1}]: ${fetchErr?.message || fetchErr}`);
+      }
     }
   }
 
-  return lastResponse!;
+  if (!lastResponse) {
+    throw new Error("Gemini request failed: unable to connect to Gemini API endpoints.");
+  }
+
+  return lastResponse;
 }
