@@ -786,9 +786,9 @@ function OfficialSourceImport() {
             <UploadCloud size={24} />
           </div>
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
+            <h2 style={{ fontSize: "clamp(15px, 4vw, 17px)", fontWeight: 800, color: D.text, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, lineHeight: 1.4 }}>
               Add Knowledge & Import Documents
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: D.accent, color: "#000" }}>Fast Ingestion</span>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100, background: "rgba(16,185,129,0.2)", color: D.accent, border: "1px solid rgba(16,185,129,0.4)", whiteSpace: "nowrap", flexShrink: 0, display: "inline-flex", alignItems: "center" }}>Fast Ingestion</span>
             </h2>
             <p style={{ fontSize: 13, color: D.muted, marginTop: 2 }}>Upload PDF, DOCX, TXT files or scrape official campus URLs directly into AI memory.</p>
           </div>
