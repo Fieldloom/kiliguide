@@ -95,62 +95,66 @@ export function AdminWorkspace({ role }: { role?: string }) {
         {/* Sidebar */}
         <aside
           style={{
-            width: 260, flexShrink: 0, background: "rgba(6,10,14,0.85)",
-            backdropFilter: "blur(24px)",
-            borderRight: `1px solid ${D.border}`, display: "flex", flexDirection: "column",
-            position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 50,
-            transform: menu ? "translateX(0)" : undefined,
-            transition: "transform 0.3s ease-in-out"
+            background: "linear-gradient(165deg, rgba(13, 22, 33, 0.96) 0%, rgba(6, 10, 16, 0.98) 100%)",
+            backdropFilter: "blur(32px)",
+            WebkitBackdropFilter: "blur(32px)",
+            transition: "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease"
           }}
-          className={`lg:relative lg:translate-x-0 ${menu ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}
+          className={`
+            fixed z-50 flex flex-col
+            max-lg:top-3 max-lg:bottom-3 max-lg:left-3 max-lg:w-[calc(100vw-48px)] max-lg:max-w-[290px] max-lg:rounded-[32px] max-lg:border max-lg:border-[#10b981]/30 max-lg:shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_32px_rgba(16,185,129,0.15)] max-lg:overflow-hidden
+            lg:relative lg:top-0 lg:bottom-0 lg:left-0 lg:w-[260px] lg:flex-shrink-0 lg:rounded-none lg:border-r lg:border-white/10 lg:translate-x-0
+            ${menu ? "translate-x-0 opacity-100" : "-translate-x-[calc(100%+30px)] opacity-0 lg:translate-x-0 lg:opacity-100"}
+          `}
         >
-          <div style={{ padding: "24px 20px 20px", borderBottom: `1px solid ${D.border}` }}>
+          {/* Top Ambient Glow & Logo */}
+          <div style={{ padding: "24px 20px 20px", borderBottom: `1px solid ${D.border}`, background: "radial-gradient(ellipse at top left, rgba(16,185,129,0.18), transparent 70%)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 40, height: 40, borderRadius: "16px", overflow: "hidden", display: "grid", placeItems: "center", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", flexShrink: 0 }}>
+                <span style={{ width: 42, height: 42, borderRadius: "18px", overflow: "hidden", display: "grid", placeItems: "center", background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", flexShrink: 0, boxShadow: "0 4px 14px rgba(16,185,129,0.2)" }}>
                   <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
                 </span>
                 <div>
                   <strong style={{ fontSize: 16, display: "block", color: D.text, letterSpacing: "-0.03em" }}>KiliGuide</strong>
-                  <small style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.15em", color: D.accent, background: "rgba(16,185,129,0.15)", padding: "2px 6px", borderRadius: "100px" }}>SUPERADMIN</small>
+                  <small style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.15em", color: D.accent, background: "rgba(16,185,129,0.18)", border: "1px solid rgba(16,185,129,0.3)", padding: "2px 8px", borderRadius: "100px" }}>SUPERADMIN</small>
                 </div>
               </div>
-              <button onClick={() => setMenu(false)} style={{ color: D.muted, padding: 6, borderRadius: "10px", background: "rgba(255,255,255,0.05)", border: "none" }} className="lg:hidden">
+              <button onClick={() => setMenu(false)} style={{ color: D.muted, padding: 8, borderRadius: "12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" }} className="lg:hidden">
                 <X size={18} />
               </button>
             </div>
           </div>
 
-          <nav style={{ flex: 1, overflowY: "auto", padding: "20px 12px" }}>
-            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em", color: D.muted, padding: "4px 12px 12px" }}>WORKSPACE NAVIGATION</p>
+          <nav style={{ flex: 1, overflowY: "auto", padding: "20px 14px" }}>
+            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em", color: D.muted, padding: "4px 10px 12px" }}>WORKSPACE NAVIGATION</p>
             {allNavItems.map(({ label, icon: Icon }) => (
               <button
                 key={label}
                 onClick={() => go(label)}
                 style={{
                   display: "flex", width: "100%", alignItems: "center", gap: 12,
-                  padding: "12px 16px", borderRadius: 16, fontSize: 13, fontWeight: tab === label ? 700 : 500,
-                  background: tab === label ? "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05))" : "transparent",
+                  padding: "12px 16px", borderRadius: 20, fontSize: 13, fontWeight: tab === label ? 800 : 500,
+                  background: tab === label ? "linear-gradient(135deg, rgba(16,185,129,0.22), rgba(16,185,129,0.06))" : "transparent",
                   color: tab === label ? "#fff" : D.muted,
-                  border: tab === label ? "1px solid rgba(16,185,129,0.3)" : "1px solid transparent",
-                  boxShadow: tab === label ? "0 4px 16px rgba(16,185,129,0.15)" : "none",
+                  border: tab === label ? "1px solid rgba(16,185,129,0.35)" : "1px solid transparent",
+                  boxShadow: tab === label ? "0 6px 20px rgba(16,185,129,0.18)" : "none",
                   cursor: "pointer", transition: "all 0.2s ease",
                   marginBottom: 6
                 }}
               >
                 <Icon size={18} style={{ color: tab === label ? D.accent : D.muted }} />
                 <span>{label}</span>
-                {tab === label && <div style={{ width: 6, height: 6, borderRadius: "50%", background: D.accent, marginLeft: "auto", boxShadow: `0 0 8px ${D.accent}` }} />}
+                {tab === label && <div style={{ width: 7, height: 7, borderRadius: "50%", background: D.accent, marginLeft: "auto", boxShadow: `0 0 10px ${D.accent}` }} />}
               </button>
             ))}
             <div style={{ marginTop: 16 }}>
-              <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 16, fontSize: 13, fontWeight: 500, color: D.muted, cursor: "pointer", background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}` }} />
+              <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 20, fontSize: 13, fontWeight: 500, color: D.muted, cursor: "pointer", background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}` }} />
             </div>
           </nav>
 
-          <div style={{ padding: "16px 20px", borderTop: `1px solid ${D.border}`, background: "rgba(0,0,0,0.2)" }}>
+          <div style={{ padding: "16px 20px", borderTop: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: "14px", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "#fff", flexShrink: 0, boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>SA</span>
+              <span style={{ width: 38, height: 38, borderRadius: "16px", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "#fff", flexShrink: 0, boxShadow: "0 4px 14px rgba(16,185,129,0.35)" }}>SA</span>
               <div style={{ minWidth: 0 }}>
                 <b style={{ fontSize: 13, display: "block", color: D.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Super Administrator</b>
                 <small style={{ fontSize: 11, color: D.accent, fontWeight: 600 }}>System Control</small>
@@ -159,7 +163,7 @@ export function AdminWorkspace({ role }: { role?: string }) {
           </div>
         </aside>
 
-        {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", border: "none" }} className="lg:hidden" />}
+        {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", border: "none" }} className="lg:hidden" />}
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }} className="lg:ml-[260px]">
           {/* Top Sticky Header */}
