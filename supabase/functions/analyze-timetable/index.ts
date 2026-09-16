@@ -40,10 +40,10 @@ Deno.serve(async (req) => {
     const dekutKnowledge = `DeKUT Timetable Layout Rule: The timetable columns define the specific class group by Course and Year.Semester (e.g., 'BBIT 3.1' means Bachelor of Business IT, Year 3 Semester 1; 'IT 2.1' means IT Year 2 Semester 1). You MUST cross-reference the class cells with these column headers to know who the class belongs to.`;
 
     const courseFilter = courses.trim()
-      ? `IMPORTANT: The student is enrolled in classes under: ${courses}. Find the columns that match these courses/groups and ONLY extract recurring weekly classes from those specific columns. Ignore all other columns.`
-      : `Extract ALL recurring weekly classes found in the timetable across all columns.`;
+      ? `CRITICAL INSTRUCTION: The student is enrolled in ${courses}. Find ALL columns matching this class group or courses and extract EVERY SINGLE recurring class, lecture, lab, and tutorial scheduled for them across all days (Monday to Saturday, 07:00 to 20:00). Do not omit any course unit.`
+      : `Extract ALL recurring weekly classes found in the timetable across all columns and groups.`;
 
-    const promptText = `Analyze this student timetable document. ${dekutKnowledge} ${courseFilter} Extract all recurring weekly classes for the specified course/group. Return JSON only in this exact format: {"classes":[{"title":"Course Name or Code","dayOfWeek":"Monday","startTime":"08:00","endTime":"11:00","location":"Room Name"}]}. Use 24-hour time format (HH:mm) for startTime and endTime. Day of week must be English name (e.g. Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday).`;
+    const promptText = `Analyze this student timetable document. ${dekutKnowledge} ${courseFilter} Extract all recurring weekly classes for the specified course/group thoroughly. Return JSON only in this exact format: {"classes":[{"title":"Course Name or Code","dayOfWeek":"Monday","startTime":"08:00","endTime":"11:00","location":"Room Name"}]}. Use 24-hour time format (HH:mm) for startTime and endTime. Day of week must be English name (e.g. Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday).`;
     
     const response = await geminiAnalyzeDocument(buffer, mimeType, promptText);
 

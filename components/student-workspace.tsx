@@ -249,8 +249,10 @@ export function StudentWorkspace() {
       return;
     }
     setTimetableMetadata(prev => ({ ...prev, [resourceId]: data }));
-    setSelectedGroup(prev => ({ ...prev, [resourceId]: data.groups?.[0] || "" }));
-    setSelectedCourses(prev => ({ ...prev, [resourceId]: [] }));
+    const firstGrp = data.groups?.[0] || "";
+    const defaultCourses = firstGrp && data.mapped?.[firstGrp] ? data.mapped[firstGrp] : (data.courses || []);
+    setSelectedGroup(prev => ({ ...prev, [resourceId]: firstGrp }));
+    setSelectedCourses(prev => ({ ...prev, [resourceId]: defaultCourses }));
   };
 
   const handleAnalyzeTimetable = async (resourceId: string) => {
@@ -1460,7 +1462,17 @@ export function StudentWorkspace() {
                                     <span>{extractingMetadataId === t.id ? "Scanning..." : "Rescan"}</span>
                                   </button>
                                 </div>
-                                <select value={selectedGroup[t.id] || ""} onChange={e => setSelectedGroup(prev => ({ ...prev, [t.id]: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none">
+                                <select 
+                                  value={selectedGroup[t.id] || ""} 
+                                  onChange={e => {
+                                    const newGrp = e.target.value;
+                                    setSelectedGroup(prev => ({ ...prev, [t.id]: newGrp }));
+                                    const meta = timetableMetadata[t.id];
+                                    const grpCourses = newGrp && meta?.mapped?.[newGrp] ? meta.mapped[newGrp] : (meta?.courses || []);
+                                    setSelectedCourses(prev => ({ ...prev, [t.id]: grpCourses }));
+                                  }} 
+                                  className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none"
+                                >
                                   <option value="">Select a group...</option>
                                   {timetableMetadata[t.id].groups.map(g => <option key={g} value={g}>{g}</option>)}
                                 </select>
