@@ -795,21 +795,45 @@ export function ParentWorkspace() {
             </div>
           </div>
         ) : tab === "Notices" ? (
-          <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
-            <div style={{ maxWidth: 800, margin: "0 auto", paddingBottom: 100 }}>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 32 }}>Campus Notices</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
+            <div className="max-w-4xl mx-auto pb-28">
+              <div className="mb-6">
+                <span className="text-[11px] font-bold tracking-widest text-[#f97316] uppercase">OFFICIAL ANNOUNCEMENTS</span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">Campus Notices</h2>
+                <p className="text-sm text-zinc-400 mt-1">University bulletins, academic calendars, and parent updates.</p>
+              </div>
+
+              <div className="flex flex-col gap-4">
                 {notices.map(notice => (
-                  <div key={notice.id} className="glass-panel" style={{ padding: 24, borderLeft: "4px solid #f97316" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                      <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{notice.title}</h3>
-                      <span style={{ fontSize: 12, color: "#a1a1aa" }}>{new Date(notice.published_at).toLocaleDateString()}</span>
+                  <article key={notice.id} className="glass-panel p-5 sm:p-6 rounded-3xl border-l-4 border-l-[#f97316] border border-white/10 bg-black/30 backdrop-blur-md shadow-xl flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      {notice.category && (
+                        <span className="text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-full bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30">
+                          {notice.category}
+                        </span>
+                      )}
+                      <span className="text-xs text-zinc-400 font-medium ml-auto">
+                        {new Date(notice.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
                     </div>
-                    <p style={{ color: "#ececec", fontSize: 15, lineHeight: 1.6, marginBottom: 16 }}>{notice.summary || notice.body}</p>
-                    {notice.category && <span style={{ fontSize: 11, color: "#fff", background: "rgba(255,255,255,0.1)", padding: "4px 10px", borderRadius: 12 }}>{notice.category}</span>}
-                  </div>
+
+                    <h3 className="text-base sm:text-lg font-bold text-white leading-snug break-words">
+                      {notice.title}
+                    </h3>
+                    
+                    <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap break-words">
+                      {notice.body || notice.summary}
+                    </p>
+                  </article>
                 ))}
-                {notices.length === 0 && <p style={{ color: "#a1a1aa" }}>No new notices.</p>}
+
+                {notices.length === 0 && (
+                  <div className="glass-panel p-8 sm:p-12 rounded-3xl border border-white/10 text-center bg-black/20">
+                    <Bell className="mx-auto text-zinc-500 mb-3" size={36} />
+                    <p className="text-white font-bold text-base">No Campus Notices</p>
+                    <p className="text-zinc-400 text-xs mt-1">You are all caught up with official university updates.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

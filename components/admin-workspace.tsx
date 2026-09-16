@@ -507,41 +507,88 @@ function TicketsWorkspace() {
 // ── NOTICES ─────────────────────────────────────────────────────────────
 function NoticesWorkspace() {
   const [notices, setNotices] = useState<any[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   useEffect(() => {
     supabase?.from("notices").select("*").order("published_at", { ascending: false }).then(({ data }) => setNotices(data || []));
   }, []);
 
   const remove = async (id: string) => {
     if(!supabase) return;
+    setDeletingId(id);
     await supabase.from("notices").delete().eq("id", id);
     setNotices(ns => ns.filter(n => n.id !== id));
+    setDeletingId(null);
   };
 
   return (
-    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
-      <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 14 }}>
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${D.border}` }}>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>TITLE</th>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>DATE</th>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {notices.map(n => (
-            <tr key={n.id} style={{ borderBottom: `1px solid ${D.border}` }}>
-              <td style={{ padding: "20px 16px 20px 0" }}>
-                <b style={{ display: "block", color: D.text, marginBottom: 4 }}>{n.title}</b>
-                <small style={{ color: D.muted, fontSize: 13 }}>{n.summary?.substring(0, 80)}...</small>
-              </td>
-              <td style={{ padding: "20px 16px 20px 0", color: D.muted }}>{new Date(n.published_at).toLocaleDateString()}</td>
-              <td style={{ padding: "20px 0", textAlign: "right" }}>
-                <button onClick={() => remove(n.id)} style={{ background: "transparent", border: `1px solid #ef444444`, color: "#ef4444", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {notices.map(n => (
+        <article 
+          key={n.id} 
+          style={{ 
+            borderRadius: 24, 
+            background: "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))", 
+            padding: "20px 24px", 
+            border: `1px solid ${D.border}`,
+            backdropFilter: "blur(16px)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12
+          }}
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", padding: "4px 10px", borderRadius: 100, background: "rgba(16,185,129,0.15)", color: D.accent, border: "1px solid rgba(16,185,129,0.3)", textTransform: "uppercase" }}>
+                {n.category || "General Notice"}
+              </span>
+              <span style={{ fontSize: 12, color: D.muted, display: "flex", alignItems: "center", gap: 4 }}>
+                <Clock size={12} />
+                {new Date(n.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+              </span>
+            </div>
+
+            <button 
+              onClick={() => remove(n.id)} 
+              disabled={deletingId === n.id}
+              style={{ 
+                background: "rgba(239,68,68,0.1)", 
+                border: "1px solid rgba(239,68,68,0.3)", 
+                color: "#ef4444", 
+                padding: "6px 14px", 
+                borderRadius: 12, 
+                cursor: deletingId === n.id ? "not-allowed" : "pointer", 
+                fontSize: 12, 
+                fontWeight: 700,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              <Trash2 size={14} />
+              {deletingId === n.id ? "Deleting..." : "Delete Notice"}
+            </button>
+          </div>
+
+          <div>
+            <h3 style={{ fontSize: "clamp(16px, 4vw, 18px)", fontWeight: 800, color: D.text, marginBottom: 8, lineHeight: 1.4, wordBreak: "break-word" }}>
+              {n.title}
+            </h3>
+            <p style={{ fontSize: 14, color: D.muted, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {n.body || n.summary}
+            </p>
+          </div>
+        </article>
+      ))}
+
+      {notices.length === 0 && (
+        <div style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 48, textAlign: "center", border: `1px solid ${D.border}` }}>
+          <Bell size={36} style={{ color: D.muted, margin: "0 auto 12px" }} />
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text }}>No Notices Published</h3>
+          <p style={{ marginTop: 6, fontSize: 13, color: D.muted }}>Click "Create Notice" above to publish a campus announcement.</p>
+        </div>
+      )}
     </section>
   );
 }
