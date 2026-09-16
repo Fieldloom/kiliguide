@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
     }
 
     const targetUserId = user?.id || resource.user_id;
+    const { data: userProfile } = await admin.from("profiles").select("institution_id").eq("id", targetUserId).single();
+    const institutionId = userProfile?.institution_id || "00000000-0000-0000-0000-000000000001";
 
     await admin.from("personal_resources").update({ processing_status: "processing" }).eq("id", resourceId);
 
@@ -121,6 +123,7 @@ Deno.serve(async (req) => {
 
           rows.push({
             user_id: targetUserId,
+            institution_id: institutionId,
             resource_id: resourceId,
             title: cls.title,
             starts_at: s.toISOString(),
