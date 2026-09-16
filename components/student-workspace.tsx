@@ -715,7 +715,7 @@ export function StudentWorkspace() {
                   <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
                     Welcome back, {name.split(" ")[0]} 👋
                   </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Intelligent Campus Companion • Academic Year 2025/2026</p>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Intelligent Campus Companion • Academic Year 2026/2027</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#10b981", display: "flex", alignItems: "center", gap: 8 }}>

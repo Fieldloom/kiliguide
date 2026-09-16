@@ -469,7 +469,7 @@ export function ParentWorkspace() {
                   <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
                     Welcome, <span style={{ color: "#f97316" }}>{name.split(" ")[0]}</span> 🏡
                   </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Parent & Guardian Portal • Student Financial & Academic Guidance</p>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Parent & Guardian Portal • Academic Year 2026/2027</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#f97316", display: "flex", alignItems: "center", gap: 8 }}>

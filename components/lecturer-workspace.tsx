@@ -448,7 +448,7 @@ export function LecturerWorkspace() {
                   <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
                     Welcome back, <span style={{ color: "#8b5cf6" }}>Dr. {name.split(" ")[0]}</span> 🎓
                   </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Academic Faculty Portal • Teaching & Research Workspace</p>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Academic Faculty Portal • Academic Year 2026/2027</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#8b5cf6", display: "flex", alignItems: "center", gap: 8 }}>
