@@ -4,27 +4,6 @@ import { encodeBase64 } from "jsr:@std/encoding/base64";
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
-async function extractPdfText(buf: ArrayBuffer): Promise<string> {
-  try {
-    const pdfjsLib = await import("npm:pdfjs-dist@3.11.174/legacy/build/pdf.js");
-    const data = new Uint8Array(buf);
-    const pdfLib = (pdfjsLib as any).default ?? pdfjsLib;
-    const loadingTask = pdfLib.getDocument({ data, useSystemFonts: true });
-    const pdfDocument = await loadingTask.promise;
-    let fullText = "";
-    for (let i = 1; i <= Math.min(pdfDocument.numPages, 10); i++) {
-      const page = await pdfDocument.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(" ");
-      fullText += pageText + "\n\n";
-    }
-    return fullText.trim();
-  } catch (err) {
-    console.warn("pdfjs extraction failed or skipped:", err);
-    return "";
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
@@ -56,6 +35,7 @@ Deno.serve(async (req) => {
     const ext = resource.storage_path.split('.').pop()?.toLowerCase() || '';
     const mimeType = ext === 'pdf' ? 'application/pdf' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
     const buffer = await fileData.arrayBuffer();
+    const base64Data = encodeBase64(new Uint8Array(buffer));
 
     const dekutKnowledge = `DeKUT Timetable Layout Rule: The timetable columns define the specific class group by Course and Year.Semester (e.g., 'BBIT 3.1' means Bachelor of Business IT, Year 3 Semester 1; 'IT 2.1' means IT Year 2 Semester 1). You MUST cross-reference the class cells with these column headers to know who the class belongs to.`;
 
@@ -63,27 +43,17 @@ Deno.serve(async (req) => {
       ? `IMPORTANT: The student is enrolled in classes under: ${courses}. Find the columns that match these courses/groups and ONLY extract recurring weekly classes from those specific columns. Ignore all other columns.`
       : `Extract ALL recurring weekly classes found in the timetable across all columns.`;
 
-    let parts: any[] = [];
-    if (ext === 'pdf') {
-      const extractedText = await extractPdfText(buffer);
-      if (extractedText && extractedText.length > 50) {
-        parts = [
-          { text: `Analyze this student timetable text content:\n\n${extractedText}\n\n${dekutKnowledge} ${courseFilter} Extract all recurring weekly classes for the specified course/group. Return JSON only in this exact format: {"classes":[{"title":"Course Name or Code","dayOfWeek":"Monday","startTime":"08:00","endTime":"11:00","location":"Room Name"}]}. Use 24-hour time format (HH:mm) for startTime and endTime. Day of week must be English name (e.g. Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday).` }
-        ];
-      }
-    }
-
-    if (!parts.length) {
-      const base64Data = encodeBase64(new Uint8Array(buffer));
-      const promptText = `Analyze this student timetable document. ${dekutKnowledge} ${courseFilter} Extract all recurring weekly classes for the specified course/group. Return JSON only in this exact format: {"classes":[{"title":"Course Name or Code","dayOfWeek":"Monday","startTime":"08:00","endTime":"11:00","location":"Room Name"}]}. Use 24-hour time format (HH:mm) for startTime and endTime. Day of week must be English name (e.g. Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday).`;
-      parts = [
-        { inlineData: { mimeType, data: base64Data } },
-        { text: promptText }
-      ];
-    }
-
+    const promptText = `Analyze this student timetable document. ${dekutKnowledge} ${courseFilter} Extract all recurring weekly classes for the specified course/group. Return JSON only in this exact format: {"classes":[{"title":"Course Name or Code","dayOfWeek":"Monday","startTime":"08:00","endTime":"11:00","location":"Room Name"}]}. Use 24-hour time format (HH:mm) for startTime and endTime. Day of week must be English name (e.g. Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday).`;
+    
     const geminiPayload = {
-      contents: [{ parts }],
+      contents: [
+        {
+          parts: [
+            { inlineData: { mimeType, data: base64Data } },
+            { text: promptText }
+          ]
+        }
+      ],
       generationConfig: {
         temperature: 0.1,
         responseMimeType: "application/json"
