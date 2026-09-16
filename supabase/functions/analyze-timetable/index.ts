@@ -54,75 +54,38 @@ Deno.serve(async (req) => {
 
     const promptText = `Analyze this student timetable document. ${dekutKnowledge} ${courseFilter} Expand every weekly class into individual events between ${semesterStart} and ${semesterEnd} in timezone ${timezone}. Return JSON only: {"events":[{"title":"Course name","start":"ISO-8601 datetime with offset","end":"ISO-8601 datetime with offset","location":"room"}]}. Do not invent unclear classes.`;
     
-    let textResult = "{}";
-
-    if (mimeType.startsWith("image/")) {
-      // Use NVIDIA for images
-      const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
-      if (!nvidiaKey) throw new Error("NVIDIA_API_KEY is not configured.");
-
-      const payload = {
-        model: "meta/llama-3.2-11b-vision-instruct",
-        messages: [
-          {
-            role: "system",
-            content: "You are a JSON-only data extraction system. You MUST respond with ONLY a valid JSON object. No explanations, no markdown, no text before or after the JSON. Just the raw JSON object."
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: promptText },
-              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } }
-            ]
-          }
-        ],
-        temperature: 0,
-        max_tokens: 4000
-      };
-
-      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-        method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${nvidiaKey}` }, body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("NVIDIA API error body:", errText);
-        throw new Error("NVIDIA request failed: " + errText);
+    const geminiPayload = {
+      contents: [
+        {
+          parts: [
+            { inlineData: { mimeType, data: base64Data } },
+            { text: promptText }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json"
       }
+    };
 
-      const result = await response.json();
-      textResult = result.choices?.[0]?.message?.content ?? "{}";
-    } else {
-      // Use Cerebras for PDFs after extracting text
-      const cerebrasKey = Deno.env.get("CEREBRAS_API_KEY");
-      if (!cerebrasKey) throw new Error("CEREBRAS_API_KEY is not configured.");
-      
-      const pdfText = await extractPdfText(buffer);
-      if (!pdfText) throw new Error("No text could be extracted from this PDF.");
-
-      const payload = {
-        model: "llama3.1-70b",
-        messages: [
-          { role: "system", content: "You are a highly accurate data extraction system. You only output valid JSON based on the user's instructions." },
-          { role: "user", content: promptText + "\n\nRaw Extracted Timetable Text:\n" + pdfText }
-        ],
-        temperature: 0,
-        response_format: { type: "json_object" }
-      };
-
-      const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-        method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cerebrasKey}` }, body: JSON.stringify(payload)
-      });
-      
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("Cerebras API error body:", errText);
-        throw new Error("Cerebras request failed: " + errText);
+    const response = await geminiFetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiPayload)
       }
-      
-      const result = await response.json(); 
-      textResult = result.choices?.[0]?.message?.content ?? "{}";
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Gemini API error body:", errText);
+      throw new Error(`Gemini request failed (${response.status}): ${errText}`);
     }
+
+    const geminiResult = await response.json();
+    let textResult = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
     
     textResult = textResult.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
     
