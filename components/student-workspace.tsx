@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Plus, Paperclip, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Plus, Paperclip, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 
@@ -81,7 +81,9 @@ export function StudentWorkspace() {
   const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [semesterStart, setSemesterStart] = useState("");
+  const [semesterEnd, setSemesterEnd] = useState("");
   const [escalatePayload, setEscalatePayload] = useState<{subject: string, body: string} | null>(null);
+  const [activeTimetableIdx, setActiveTimetableIdx] = useState(0);
 
   const toggleListening = () => {
     if (isListening) {
@@ -118,7 +120,6 @@ export function StudentWorkspace() {
 
     recognition.start();
   };
-  const [semesterEnd, setSemesterEnd] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
   const [customInstructions, setCustomInstructions] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -1429,115 +1430,181 @@ export function StudentWorkspace() {
                 </label>
               </div>
 
-              {/* Uploaded Timetables Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                {timetables.map(t => (
-                  <div key={t.id} className="glass-panel p-4 rounded-2xl flex flex-col gap-3 border border-white/10 bg-white/5">
-                    <div className="flex items-center gap-3">
-                      <CalendarDays className="text-[#10b981] flex-shrink-0" size={20} />
-                      <span className="font-semibold text-sm text-white flex-1 truncate">{t.title}</span>
+              {/* Innovative Timetable Carousel */}
+              {timetables.length > 0 ? (
+                <div className="mb-8">
+                  {/* Carousel Header & Controls */}
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="text-[#10b981]" size={18} />
+                      <h3 className="text-xs sm:text-sm font-bold text-white m-0 uppercase tracking-wider">
+                        Timetable Files ({activeTimetableIdx + 1} of {timetables.length})
+                      </h3>
                     </div>
-                    <span className="text-xs text-[#10b981] bg-[#10b981]/15 px-2.5 py-1 rounded-full self-start flex items-center gap-1.5 font-medium">
-                      <ClockIcon size={12} /> {t.processing_status}
-                    </span>
 
-                    {t.processing_status !== "ready" && (
-                      <div className="mt-2 pt-3 border-t border-white/5 flex flex-col gap-3">
-                        {!timetableMetadata[t.id] ? (
-                          <>
-                            <p className="text-xs text-zinc-400 m-0">First, scan the available classes and courses from the timetable image.</p>
-                            <button onClick={() => handleExtractMetadata(t.id)} disabled={extractingMetadataId === t.id} className="w-full flex items-center justify-center gap-2 bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 py-2.5 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors">
-                              {extractingMetadataId === t.id ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-                              <span>{extractingMetadataId === t.id ? "Scanning Timetable..." : "Scan Timetable"}</span>
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex flex-col gap-3">
-                              <div>
-                                <div className="flex justify-between items-center mb-1">
-                                  <label className="text-xs text-zinc-400 font-semibold block">1. Select Class/Group</label>
-                                  <button 
-                                    type="button" 
-                                    onClick={() => handleExtractMetadata(t.id)} 
-                                    disabled={extractingMetadataId === t.id} 
-                                    className="text-[11px] text-[#10b981] hover:underline cursor-pointer flex items-center gap-1 bg-transparent border-none p-0"
-                                  >
-                                    <RotateCw size={11} className={extractingMetadataId === t.id ? "animate-spin" : ""} />
-                                    <span>{extractingMetadataId === t.id ? "Scanning..." : "Rescan"}</span>
-                                  </button>
-                                </div>
-                                <select 
-                                  value={selectedGroup[t.id] || ""} 
-                                  onChange={e => {
-                                    const newGrp = e.target.value;
-                                    setSelectedGroup(prev => ({ ...prev, [t.id]: newGrp }));
-                                    const meta = timetableMetadata[t.id];
-                                    const grpCourses = newGrp && meta?.mapped?.[newGrp] ? meta.mapped[newGrp] : (meta?.courses || []);
-                                    setSelectedCourses(prev => ({ ...prev, [t.id]: grpCourses }));
-                                  }} 
-                                  className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none"
-                                >
-                                  <option value="">Select a group...</option>
-                                  {timetableMetadata[t.id].groups.map(g => <option key={g} value={g}>{g}</option>)}
-                                </select>
-                                {timetableMetadata[t.id].groups.length === 0 && (
-                                  <p className="text-[11px] text-amber-400 mt-1.5 m-0 flex items-center justify-between">
-                                    <span>No groups extracted from previous scan.</span>
-                                    <button type="button" onClick={() => handleExtractMetadata(t.id)} className="underline text-[#10b981] font-semibold bg-transparent border-none p-0 cursor-pointer">Click to Rescan</button>
-                                  </p>
-                                )}
-                              </div>
+                    {timetables.length > 1 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTimetableIdx(prev => (prev === 0 ? timetables.length - 1 : prev - 1))}
+                          className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
+                          title="Previous Timetable"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        
+                        {/* Slide Dots */}
+                        <div className="flex items-center gap-1 px-1">
+                          {timetables.map((_, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setActiveTimetableIdx(idx)}
+                              className={`h-2 rounded-full transition-all cursor-pointer border-none p-0 ${
+                                idx === activeTimetableIdx ? "w-6 bg-[#10b981]" : "w-2 bg-white/20 hover:bg-white/40"
+                              }`}
+                            />
+                          ))}
+                        </div>
 
-                              <div>
-                                <label className="text-xs text-zinc-400 font-semibold mb-1 block">2. Select Your Courses</label>
-                                <input type="text" placeholder="Filter courses..." value={courseSearchFilters[t.id] || ""} onChange={e => setCourseSearchFilters(prev => ({...prev, [t.id]: e.target.value}))} className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none mb-2" />
-                                <div className="max-h-36 overflow-y-auto bg-black/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 hide-scroll">
-                                  {timetableMetadata[t.id].courses
-                                    .filter(c => {
-                                      const group = selectedGroup[t.id];
-                                      const mappedGroup = group ? timetableMetadata[t.id].mapped?.[group] : undefined;
-                                      if (mappedGroup && !mappedGroup.includes(c)) return false;
-                                      const query = courseSearchFilters[t.id]?.toLowerCase();
-                                      if (query && !c.toLowerCase().includes(query)) return false;
-                                      return true;
-                                    })
-                                    .map(c => (
-                                    <label key={c} className="flex items-center gap-2 text-xs text-zinc-200 cursor-pointer">
-                                      <input type="checkbox" checked={selectedCourses[t.id]?.includes(c) || false} onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        setSelectedCourses(prev => {
-                                          const curr = prev[t.id] || [];
-                                          return { ...prev, [t.id]: checked ? [...curr, c] : curr.filter(x => x !== c) };
-                                        });
-                                      }} className="accent-[#10b981] w-4 h-4" />
-                                      <span className="truncate">{c}</span>
-                                    </label>
-                                  ))}
-                                  {timetableMetadata[t.id].courses.length === 0 && <span className="text-xs text-zinc-500">No courses extracted.</span>}
-                                </div>
-                              </div>
-                            </div>
-
-                            <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0} className="w-full flex items-center justify-center gap-2 bg-[#10b981] text-black font-semibold py-2.5 rounded-xl text-xs cursor-pointer disabled:opacity-50 transition-colors">
-                              {analyzingId === t.id ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                              <span>{analyzingId === t.id ? "Generating Schedule..." : "Generate Schedule"}</span>
-                            </button>
-                          </>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setActiveTimetableIdx(prev => (prev === timetables.length - 1 ? 0 : prev + 1))}
+                          className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
+                          title="Next Timetable"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
                       </div>
                     )}
                   </div>
-                ))}
 
-                {timetables.length === 0 && (
-                  <div className="col-span-full glass-panel p-6 sm:p-10 text-center rounded-2xl border border-white/5">
-                    <CalendarDays size={40} className="text-zinc-500 mx-auto mb-3" />
-                    <h3 className="text-sm sm:text-base font-bold text-white mb-1">No Timetable Uploaded Yet</h3>
-                    <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto m-0">Upload an image or PDF of your class timetable, and KiliGuide AI will automatically build your weekly schedule!</p>
-                  </div>
-                )}
-              </div>
+                  {/* Active Carousel Card */}
+                  <AnimatePresence mode="wait">
+                    {(() => {
+                      const safeIdx = activeTimetableIdx % timetables.length;
+                      const t = timetables[safeIdx] || timetables[0];
+                      if (!t) return null;
+                      return (
+                        <motion.div
+                          key={t.id}
+                          initial={{ opacity: 0, scale: 0.96, x: 20 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.96, x: -20 }}
+                          transition={{ duration: 0.25, ease: "easeOut" }}
+                          className="glass-panel p-5 sm:p-6 rounded-3xl border border-[#10b981]/30 bg-gradient-to-br from-[#10b981]/10 via-black/40 to-black/60 shadow-[0_20px_40px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                        >
+                          <div className="absolute top-0 right-0 w-40 h-40 bg-[#10b981]/10 rounded-full blur-3xl pointer-events-none" />
+
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-[#10b981]/15 border border-[#10b981]/30 grid place-items-center text-[#10b981]">
+                                <CalendarDays size={20} />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-base text-white m-0 truncate max-w-xs">{t.title}</h4>
+                                <span className="text-[11px] text-zinc-400">Uploaded {new Date(t.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+
+                            <span className="text-xs text-[#10b981] bg-[#10b981]/15 border border-[#10b981]/30 px-3 py-1 rounded-full flex items-center gap-1.5 font-semibold">
+                              <ClockIcon size={12} /> {t.processing_status}
+                            </span>
+                          </div>
+
+                          {t.processing_status !== "ready" && (
+                            <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-4">
+                              {!timetableMetadata[t.id] ? (
+                                <div className="bg-black/40 border border-white/5 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                                  <p className="text-xs text-zinc-400 m-0">First, scan available classes & courses from this timetable image.</p>
+                                  <button onClick={() => handleExtractMetadata(t.id)} disabled={extractingMetadataId === t.id} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-black font-bold px-5 py-2.5 rounded-xl text-xs cursor-pointer disabled:opacity-50 transition-all shadow-lg flex-shrink-0">
+                                    {extractingMetadataId === t.id ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+                                    <span>{extractingMetadataId === t.id ? "Scanning Timetable..." : "Scan Timetable"}</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Group selection */}
+                                    <div className="bg-black/30 p-3.5 rounded-2xl border border-white/5 flex flex-col gap-2">
+                                      <div className="flex justify-between items-center">
+                                        <label className="text-xs text-zinc-300 font-semibold block">1. Select Class/Group</label>
+                                        <button 
+                                          type="button" 
+                                          onClick={() => handleExtractMetadata(t.id)} 
+                                          disabled={extractingMetadataId === t.id} 
+                                          className="text-[11px] text-[#10b981] hover:underline cursor-pointer flex items-center gap-1 bg-transparent border-none p-0"
+                                        >
+                                          <RotateCw size={11} className={extractingMetadataId === t.id ? "animate-spin" : ""} />
+                                          <span>{extractingMetadataId === t.id ? "Scanning..." : "Rescan"}</span>
+                                        </button>
+                                      </div>
+                                      <select 
+                                        value={selectedGroup[t.id] || ""} 
+                                        onChange={e => {
+                                          const newGrp = e.target.value;
+                                          setSelectedGroup(prev => ({ ...prev, [t.id]: newGrp }));
+                                          const meta = timetableMetadata[t.id];
+                                          const grpCourses = newGrp && meta?.mapped?.[newGrp] ? meta.mapped[newGrp] : (meta?.courses || []);
+                                          setSelectedCourses(prev => ({ ...prev, [t.id]: grpCourses }));
+                                        }} 
+                                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 text-white text-xs outline-none focus:border-[#10b981]"
+                                      >
+                                        <option value="">Select a group...</option>
+                                        {timetableMetadata[t.id].groups.map(g => <option key={g} value={g}>{g}</option>)}
+                                      </select>
+                                    </div>
+
+                                    {/* Course Selection */}
+                                    <div className="bg-black/30 p-3.5 rounded-2xl border border-white/5 flex flex-col gap-2">
+                                      <label className="text-xs text-zinc-300 font-semibold block">2. Select Your Courses</label>
+                                      <input type="text" placeholder="Filter courses..." value={courseSearchFilters[t.id] || ""} onChange={e => setCourseSearchFilters(prev => ({...prev, [t.id]: e.target.value}))} className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-white text-xs outline-none focus:border-[#10b981]" />
+                                      <div className="max-h-32 overflow-y-auto bg-black/40 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 hide-scroll">
+                                        {timetableMetadata[t.id].courses
+                                          .filter(c => {
+                                            const group = selectedGroup[t.id];
+                                            const mappedGroup = group ? timetableMetadata[t.id].mapped?.[group] : undefined;
+                                            if (mappedGroup && !mappedGroup.includes(c)) return false;
+                                            const query = courseSearchFilters[t.id]?.toLowerCase();
+                                            if (query && !c.toLowerCase().includes(query)) return false;
+                                            return true;
+                                          })
+                                          .map(c => (
+                                          <label key={c} className="flex items-center gap-2 text-xs text-zinc-200 cursor-pointer hover:text-white transition-colors">
+                                            <input type="checkbox" checked={selectedCourses[t.id]?.includes(c) || false} onChange={(e) => {
+                                              const checked = e.target.checked;
+                                              setSelectedCourses(prev => {
+                                                const curr = prev[t.id] || [];
+                                                return { ...prev, [t.id]: checked ? [...curr, c] : curr.filter(x => x !== c) };
+                                              });
+                                            }} className="accent-[#10b981] w-4 h-4 rounded" />
+                                            <span className="truncate">{c}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <button onClick={() => handleAnalyzeTimetable(t.id)} disabled={analyzingId === t.id || !selectedGroup[t.id] || (selectedCourses[t.id] || []).length === 0} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#10b981] to-[#059669] text-black font-extrabold py-3 rounded-xl text-sm cursor-pointer disabled:opacity-50 hover:shadow-[0_8px_24px_rgba(16,185,129,0.3)] transition-all">
+                                    {analyzingId === t.id ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                                    <span>{analyzingId === t.id ? "Generating Schedule..." : "Generate AI Weekly Schedule"}</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })()}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="glass-panel p-6 sm:p-10 text-center rounded-3xl border border-white/10 mb-8 bg-white/5">
+                  <CalendarDays size={40} className="text-[#10b981] mx-auto mb-3 opacity-80" />
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-1">No Timetable Uploaded Yet</h3>
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto m-0 leading-relaxed">Upload an image or PDF of your class timetable, and KiliGuide AI will automatically build your interactive weekly carousel schedule!</p>
+                </div>
+              )}
 
               {/* Weekly Schedule Section */}
               {calendarEvents.length > 0 && (() => {
