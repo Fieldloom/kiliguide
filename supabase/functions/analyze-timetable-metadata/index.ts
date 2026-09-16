@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { geminiFetch } from "../_shared/gemini.ts";
-import { encodeBase64 } from "jsr:@std/encoding/base64";
+import { geminiAnalyzeDocument } from "../_shared/gemini.ts";
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
@@ -35,33 +34,10 @@ Deno.serve(async (req) => {
     const ext = resource.storage_path.split('.').pop()?.toLowerCase() || '';
     const mimeType = ext === 'pdf' ? 'application/pdf' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
     const buffer = await fileData.arrayBuffer();
-    const base64Data = encodeBase64(new Uint8Array(buffer));
 
     const promptText = `Analyze this student timetable document. Extract all unique Class Groups (Semesters like 'BBIT 3.1', 'IT 2.1') found in the column headers, and all unique Course/Unit names found in the cells. Also, map which courses belong to which Class Group. Return JSON only in this exact format: {"groups":["string"],"courses":["string"], "mapped": {"group_name": ["course_name"]}}. Do not include times or dates, just the strings.`;
 
-    const geminiPayload = {
-      contents: [
-        {
-          parts: [
-            { inlineData: { mimeType, data: base64Data } },
-            { text: promptText }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: "application/json"
-      }
-    };
-
-    const response = await geminiFetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(geminiPayload)
-      }
-    );
+    const response = await geminiAnalyzeDocument(buffer, mimeType, promptText);
 
     if (!response.ok) {
       const errText = await response.text();
