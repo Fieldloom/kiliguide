@@ -1,6 +1,6 @@
 import { encodeBase64 } from "jsr:@std/encoding/base64";
 
-const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+const modelsToTry = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-exp"];
 
 function availableKeys() {
   return [
