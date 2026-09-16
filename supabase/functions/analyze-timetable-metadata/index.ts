@@ -4,6 +4,27 @@ import { encodeBase64 } from "jsr:@std/encoding/base64";
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
+async function extractPdfText(buf: ArrayBuffer): Promise<string> {
+  try {
+    const pdfjsLib = await import("npm:pdfjs-dist@3.11.174/legacy/build/pdf.js");
+    const data = new Uint8Array(buf);
+    const pdfLib = (pdfjsLib as any).default ?? pdfjsLib;
+    const loadingTask = pdfLib.getDocument({ data, useSystemFonts: true });
+    const pdfDocument = await loadingTask.promise;
+    let fullText = "";
+    for (let i = 1; i <= Math.min(pdfDocument.numPages, 10); i++) {
+      const page = await pdfDocument.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(" ");
+      fullText += pageText + "\n\n";
+    }
+    return fullText.trim();
+  } catch (err) {
+    console.warn("pdfjs extraction failed or skipped:", err);
+    return "";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
@@ -35,19 +56,28 @@ Deno.serve(async (req) => {
     const ext = resource.storage_path.split('.').pop()?.toLowerCase() || '';
     const mimeType = ext === 'pdf' ? 'application/pdf' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
     const buffer = await fileData.arrayBuffer();
-    const base64Data = encodeBase64(new Uint8Array(buffer));
 
-    const promptText = `Analyze this student timetable document. Extract all unique Class Groups (Semesters like 'BBIT 3.1', 'IT 2.1') found in the column headers, and all unique Course/Unit names found in the cells. Also, map which courses belong to which Class Group. Return JSON only in this exact format: {"groups":["string"],"courses":["string"], "mapped": {"group_name": ["course_name"]}}. Do not include times or dates, just the strings.`;
-    
+    let parts: any[] = [];
+    if (ext === 'pdf') {
+      const extractedText = await extractPdfText(buffer);
+      if (extractedText && extractedText.length > 50) {
+        parts = [
+          { text: `Analyze this student timetable text content:\n\n${extractedText}\n\nExtract all unique Class Groups (Semesters like 'BBIT 3.1', 'IT 2.1') found in the column headers, and all unique Course/Unit names found in the cells. Also, map which courses belong to which Class Group. Return JSON only in this exact format: {"groups":["string"],"courses":["string"], "mapped": {"group_name": ["course_name"]}}. Do not include times or dates, just the strings.` }
+        ];
+      }
+    }
+
+    if (!parts.length) {
+      const base64Data = encodeBase64(new Uint8Array(buffer));
+      const promptText = `Analyze this student timetable document. Extract all unique Class Groups (Semesters like 'BBIT 3.1', 'IT 2.1') found in the column headers, and all unique Course/Unit names found in the cells. Also, map which courses belong to which Class Group. Return JSON only in this exact format: {"groups":["string"],"courses":["string"], "mapped": {"group_name": ["course_name"]}}. Do not include times or dates, just the strings.`;
+      parts = [
+        { inlineData: { mimeType, data: base64Data } },
+        { text: promptText }
+      ];
+    }
+
     const geminiPayload = {
-      contents: [
-        {
-          parts: [
-            { inlineData: { mimeType, data: base64Data } },
-            { text: promptText }
-          ]
-        }
-      ],
+      contents: [{ parts }],
       generationConfig: {
         temperature: 0.1,
         responseMimeType: "application/json"
