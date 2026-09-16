@@ -140,6 +140,30 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!supabase) { setMessage("Connect Supabase to enable password reset."); return; }
+    if (!email || !email.includes("@")) {
+      setMessage("Please enter your email address above, then click 'Forgot password?'.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${location.origin}/auth/callback?next=/portal`,
+      });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage("Check your email for the password reset link.");
+      }
+    } catch (err: any) {
+      setMessage(err?.message || "Could not send reset password email.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <main className="bg-aurora min-h-screen text-white flex flex-col items-center justify-center p-4 sm:p-8 relative overflow-x-hidden">
       
@@ -172,7 +196,7 @@ export default function LoginPage() {
               <input 
                 required type="email" value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@students.campus.ac.ke"
+                placeholder="you@example.com"
                 className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d] focus:ring-1 focus:ring-[#19c37d]/30"
                 onBlur={handleEmailBlur}
               />
@@ -230,7 +254,18 @@ export default function LoginPage() {
             )}
             
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Password</label>
+              <div className="flex items-center justify-between mb-1.5 pl-1">
+                <label className="block text-xs font-semibold text-zinc-400">Password</label>
+                {mode === "signin" && (
+                  <button 
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs text-[#19c37d] font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <input 
                 required minLength={8} type="password" value={password} onChange={e => setPassword(e.target.value)} 
                 placeholder="••••••••"
