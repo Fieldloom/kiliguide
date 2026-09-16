@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Plus, Paperclip, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Plus, Paperclip, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 
@@ -1448,11 +1448,28 @@ export function StudentWorkspace() {
                           <>
                             <div className="flex flex-col gap-3">
                               <div>
-                                <label className="text-xs text-zinc-400 font-semibold mb-1 block">1. Select Class/Group</label>
+                                <div className="flex justify-between items-center mb-1">
+                                  <label className="text-xs text-zinc-400 font-semibold block">1. Select Class/Group</label>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => handleExtractMetadata(t.id)} 
+                                    disabled={extractingMetadataId === t.id} 
+                                    className="text-[11px] text-[#10b981] hover:underline cursor-pointer flex items-center gap-1 bg-transparent border-none p-0"
+                                  >
+                                    <RotateCw size={11} className={extractingMetadataId === t.id ? "animate-spin" : ""} />
+                                    <span>{extractingMetadataId === t.id ? "Scanning..." : "Rescan"}</span>
+                                  </button>
+                                </div>
                                 <select value={selectedGroup[t.id] || ""} onChange={e => setSelectedGroup(prev => ({ ...prev, [t.id]: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs outline-none">
                                   <option value="">Select a group...</option>
                                   {timetableMetadata[t.id].groups.map(g => <option key={g} value={g}>{g}</option>)}
                                 </select>
+                                {timetableMetadata[t.id].groups.length === 0 && (
+                                  <p className="text-[11px] text-amber-400 mt-1.5 m-0 flex items-center justify-between">
+                                    <span>No groups extracted from previous scan.</span>
+                                    <button type="button" onClick={() => handleExtractMetadata(t.id)} className="underline text-[#10b981] font-semibold bg-transparent border-none p-0 cursor-pointer">Click to Rescan</button>
+                                  </p>
+                                )}
                               </div>
 
                               <div>
