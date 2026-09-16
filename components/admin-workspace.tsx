@@ -98,13 +98,13 @@ export function AdminWorkspace({ role }: { role?: string }) {
             background: "linear-gradient(165deg, rgba(13, 22, 33, 0.96) 0%, rgba(6, 10, 16, 0.98) 100%)",
             backdropFilter: "blur(32px)",
             WebkitBackdropFilter: "blur(32px)",
-            transition: "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease"
+            transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)"
           }}
           className={`
             fixed z-50 flex flex-col
             max-lg:top-3 max-lg:bottom-3 max-lg:left-3 max-lg:w-[calc(100vw-48px)] max-lg:max-w-[290px] max-lg:rounded-[32px] max-lg:border max-lg:border-[#10b981]/30 max-lg:shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_32px_rgba(16,185,129,0.15)] max-lg:overflow-hidden
-            lg:relative lg:top-0 lg:bottom-0 lg:left-0 lg:w-[260px] lg:flex-shrink-0 lg:rounded-none lg:border-r lg:border-white/10 lg:translate-x-0
-            ${menu ? "translate-x-0 opacity-100" : "-translate-x-[calc(100%+30px)] opacity-0 lg:translate-x-0 lg:opacity-100"}
+            lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:w-[260px] lg:flex-shrink-0 lg:rounded-none lg:border-r lg:border-white/10
+            ${menu ? "translate-x-0 opacity-100" : "-translate-x-[calc(100%+30px)] opacity-0 lg:-translate-x-full lg:opacity-0"}
           `}
         >
           {/* Top Ambient Glow & Logo */}
@@ -165,11 +165,11 @@ export function AdminWorkspace({ role }: { role?: string }) {
 
         {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", border: "none" }} className="lg:hidden" />}
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }} className="lg:ml-[260px]">
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, transition: "margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1)" }} className={menu ? "lg:ml-[260px]" : "lg:ml-0"}>
           {/* Top Sticky Header */}
           <header style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "0 20px", borderBottom: `1px solid ${D.border}`, background: "rgba(6,10,14,0.85)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 30 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, maxWidth: 480 }}>
-              <button onClick={() => setMenu(true)} style={{ color: D.text, padding: "8px 12px", borderRadius: 14, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }} className="lg:hidden">
+              <button onClick={() => setMenu(!menu)} style={{ color: D.text, padding: "8px 12px", borderRadius: 14, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
                 <Menu size={18} />
                 <span style={{ fontSize: 12, fontWeight: 700 }}>Menu</span>
               </button>
@@ -184,15 +184,6 @@ export function AdminWorkspace({ role }: { role?: string }) {
                 />
               </label>
             </div>
-
-            {/* Quick Action Button Header */}
-            {tab === "Documents" && (
-              <button onClick={() => setUploadModal(true)} style={{ borderRadius: 100, background: "linear-gradient(135deg, #10b981, #059669)", padding: "8px 16px", fontSize: 12, fontWeight: 800, color: "#000", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", border: "none", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}>
-                <UploadCloud size={16} />
-                <span className="hidden sm:inline">Upload Document</span>
-                <span className="sm:hidden">Upload</span>
-              </button>
-            )}
           </header>
 
           <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px 120px" }}>
@@ -210,7 +201,7 @@ export function AdminWorkspace({ role }: { role?: string }) {
       </div>
 
       {/* Mobile Sticky Curved Navigation Bar */}
-      <nav className="lg:hidden" style={{ position: "fixed", bottom: 12, left: 12, right: 12, zIndex: 40, background: "rgba(10, 16, 24, 0.92)", backdropFilter: "blur(24px)", borderRadius: 28, border: "1px solid rgba(255,255,255,0.12)", padding: "8px 12px", boxShadow: "0 12px 32px rgba(0,0,0,0.6)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <nav className="flex lg:hidden" style={{ position: "fixed", bottom: 12, left: 12, right: 12, zIndex: 40, background: "rgba(10, 16, 24, 0.92)", backdropFilter: "blur(24px)", borderRadius: 28, border: "1px solid rgba(255,255,255,0.12)", padding: "8px 12px", boxShadow: "0 12px 32px rgba(0,0,0,0.6)", justifyContent: "space-between", alignItems: "center" }}>
         {[
           { label: "Overview", icon: LayoutDashboard },
           { label: "Documents", icon: FileText },
