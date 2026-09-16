@@ -234,21 +234,21 @@ export function ParentWorkspace() {
   };
 
   const SidebarContent = () => (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "radial-gradient(circle at 50% 0%, rgba(249, 115, 22, 0.18) 0%, rgba(11, 15, 20, 0.96) 75%)", backdropFilter: "blur(20px)", borderRadius: 24, overflow: "hidden" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "rgba(10, 14, 20, 0.94)", backdropFilter: "blur(24px)", borderRadius: 24, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
       {/* 1. Header & Brand */}
-      <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ padding: "16px 16px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, overflow: "hidden", display: "grid", placeItems: "center", background: "rgba(249, 115, 22, 0.15)", border: "1px solid rgba(249, 115, 22, 0.3)" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, overflow: "hidden", display: "grid", placeItems: "center", background: "rgba(249, 115, 22, 0.12)", border: "1px solid rgba(249, 115, 22, 0.25)" }}>
               <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
             </span>
             <div>
-              <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>KiliGuide</span>
-              <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", marginTop: 1 }}>Parent Portal</span>
+              <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em" }}>KiliGuide</span>
+              <span style={{ display: "block", fontSize: 11, color: "#a1a1aa", marginTop: 1, fontWeight: 500 }}>Parent Portal</span>
             </div>
           </div>
           {mobileSidebar && (
-            <button onClick={() => setMobileSidebar(false)} style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "none", color: "#a1a1aa", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            <button onClick={() => setMobileSidebar(false)} style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", color: "#a1a1aa", cursor: "pointer", display: "grid", placeItems: "center" }}>
               <X size={18} />
             </button>
           )}
@@ -256,24 +256,24 @@ export function ParentWorkspace() {
 
         {/* ChatGPT "+ New Chat" Button */}
         <motion.button 
-          whileHover={{ scale: 1.01 }} 
+          whileHover={{ scale: 1.01, backgroundColor: "rgba(249, 115, 22, 0.18)" }} 
           whileTap={{ scale: 0.98 }} 
           onClick={() => { setActiveConvId(null); setTab("Chats"); setMobileSidebar(false); }} 
-          style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 8, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600, background: "linear-gradient(180deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.08) 100%)", color: "#f97316", border: "1px solid rgba(249, 115, 22, 0.3)", cursor: "pointer", boxShadow: "0 4px 12px rgba(249, 115, 22, 0.1)" }}
+          style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 8, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600, background: "rgba(249, 115, 22, 0.12)", color: "#ffffff", border: "1px solid rgba(249, 115, 22, 0.3)", cursor: "pointer", transition: "all 0.2s ease" }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> <span>New Chat</span>
+            <Plus size={16} style={{ color: "#f97316" }} /> <span>New Chat</span>
           </div>
-          <span style={{ fontSize: 10, opacity: 0.6, background: "rgba(249,115,22,0.2)", padding: "2px 6px", borderRadius: 4 }}>Ctrl+K</span>
+          <span style={{ fontSize: 10, opacity: 0.9, background: "rgba(249,115,22,0.2)", color: "#f97316", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>Ctrl+K</span>
         </motion.button>
       </div>
 
       {/* 2. Main Scrollable Container */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
         
         {/* Navigation / Workspace Tools */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 8px 8px" }}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 8px 8px" }}>
             Navigation
           </div>
           {navigation.filter(([lbl]) => lbl !== "Documents" || showDocuments).map(([label, Icon]) => {
@@ -282,29 +282,50 @@ export function ParentWorkspace() {
               <button 
                 key={label} 
                 onClick={() => switchTab(label)}
-                style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, borderRadius: 10, padding: "9px 10px", fontSize: 13, fontWeight: 500, background: isActive ? "rgba(249, 115, 22, 0.15)" : "transparent", color: isActive ? "#f97316" : "#d4d4d8", border: isActive ? "1px solid rgba(249, 115, 22, 0.25)" : "1px solid transparent", cursor: "pointer", marginBottom: 2, transition: "background 0.15s" }}
+                style={{ 
+                  display: "flex", 
+                  width: "100%", 
+                  alignItems: "center", 
+                  gap: 10, 
+                  borderRadius: 10, 
+                  padding: "9px 12px", 
+                  fontSize: 13, 
+                  fontWeight: isActive ? 600 : 500, 
+                  background: isActive ? "rgba(249, 115, 22, 0.14)" : "transparent", 
+                  color: isActive ? "#ffffff" : "#d4d4d8", 
+                  border: isActive ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid transparent", 
+                  cursor: "pointer", 
+                  marginBottom: 3, 
+                  transition: "all 0.15s ease" 
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) e.currentTarget.style.background = "transparent";
+                }}
               >
                 <Icon size={16} style={{ color: isActive ? "#f97316" : "#a1a1aa", flexShrink: 0 }} />
                 <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
               </button>
             );
           })}
-          <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, borderRadius: 10, padding: "9px 10px", fontSize: 13, fontWeight: 500, color: "#a1a1aa", cursor: "pointer", marginBottom: 2 }} />
+          <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, borderRadius: 10, padding: "9px 12px", fontSize: 13, fontWeight: 500, color: "#d4d4d8", cursor: "pointer", marginBottom: 3 }} />
         </div>
 
         {/* ChatGPT-style Recent Conversations */}
         {conversations.length > 0 && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px 8px" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 Recent Chats
               </span>
-              <span style={{ fontSize: 10, color: "#52525b" }}>{conversations.length}</span>
+              <span style={{ fontSize: 10, color: "#71717a", fontWeight: 600 }}>{conversations.length}</span>
             </div>
             
             {groups.today.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: "#52525b", padding: "2px 8px 6px" }}>Today</div>
+                <div style={{ fontSize: 10, color: "#71717a", padding: "2px 8px 6px", fontWeight: 500 }}>Today</div>
                 {groups.today.map(c => {
                   const isActive = activeConvId === c.id && tab === "Chats";
                   return (
@@ -312,10 +333,10 @@ export function ParentWorkspace() {
                       key={c.id} 
                       onClick={() => loadConv(c.id)} 
                       className="conv-item" 
-                      style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, padding: "7px 10px", cursor: "pointer", background: isActive ? "rgba(255,255,255,0.08)" : "transparent", marginBottom: 2 }}
+                      style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, padding: "7px 10px", cursor: "pointer", background: isActive ? "rgba(249, 115, 22, 0.12)" : "transparent", border: isActive ? "1px solid rgba(249, 115, 22, 0.25)" : "1px solid transparent", marginBottom: 2 }}
                     >
                       <MessageSquare size={14} style={{ color: isActive ? "#f97316" : "#71717a", flexShrink: 0 }} />
-                      <span style={{ flex: 1, fontSize: 12, color: isActive ? "#fff" : "#a1a1aa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                      <span style={{ flex: 1, fontSize: 12, color: isActive ? "#ffffff" : "#d4d4d8", fontWeight: isActive ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
                       <button onClick={(e) => deleteConv(c.id, e)} className="del-btn" style={{ opacity: 0, color: "#a1a1aa", background: "transparent", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
                         <Trash2 size={12} />
                       </button>
@@ -329,13 +350,13 @@ export function ParentWorkspace() {
       </div>
 
       {/* 3. Bottom ChatGPT-Style User Profile Bar */}
-      <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.3)" }}>
+      <div style={{ padding: "12px 14px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.2)" }}>
         <button onClick={() => switchTab("Profile")} style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", cursor: "pointer", padding: "4px", borderRadius: 8, textAlign: "left", minWidth: 0 }}>
-          <span style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #f97316, #ea580c)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 2px 8px rgba(249,115,22,0.2)" }}>
+          <span style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #f97316, #ea580c)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 2px 8px rgba(249,115,22,0.3)" }}>
             {name.charAt(0).toUpperCase()}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#fff", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{name}</span>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ffffff", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{name}</span>
             <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>Parent Account</span>
           </div>
         </button>
