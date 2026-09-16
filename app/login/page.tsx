@@ -16,13 +16,15 @@ export default function LoginPage() {
   const [role, setRole] = useState("student");
   const [regNum, setRegNum] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [institutionId, setInstitutionId] = useState("");
+  const [institutionId, setInstitutionId] = useState("00000000-0000-0000-0000-000000000001");
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [detectedInstitution, setDetectedInstitution] = useState<string | null>(null);
 
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [allowRegistration, setAllowRegistration] = useState(true);
+
+  const [departments, setDepartments] = useState<any[]>([]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -34,12 +36,29 @@ export default function LoginPage() {
     });
   }, []);
 
-  // Load institutions when switching to signup mode
+  // Load institutions when in signup mode
   const loadInstitutions = async () => {
     if (!supabase || institutions.length > 0) return;
     const { data } = await supabase.from("institutions").select("id, name, domain").order("name");
-    if (data) setInstitutions(data);
+    if (data && data.length > 0) {
+      setInstitutions(data);
+      if (!institutionId) setInstitutionId(data[0].id);
+    }
   };
+
+  // Load departments if available
+  const loadDepartments = async () => {
+    if (!supabase || departments.length > 0) return;
+    const { data } = await supabase.from("departments").select("id, name").order("name");
+    if (data && data.length > 0) setDepartments(data);
+  };
+
+  useEffect(() => {
+    if (mode === "signup") {
+      loadInstitutions();
+      if (role === "staff") loadDepartments();
+    }
+  }, [mode, role]);
 
   // On email blur: detect institution from domain (for sign-in awareness)
   const handleEmailBlur = async () => {
@@ -66,41 +85,59 @@ export default function LoginPage() {
     e.preventDefault();
     if (!supabase) { setMessage("Connect Supabase to enable secure sign-in."); return; }
     setBusy(true);
-    
-    let result;
-    if (mode === "signin") {
-      result = await supabase.auth.signInWithPassword({ email, password });
-    } else {
-      result = await supabase.auth.signUp({ 
-        email, 
-        password, 
-        options: { 
-          emailRedirectTo: `${location.origin}/auth/callback`, 
-          data: { 
-            full_name: email.split("@")[0],
-            role,
-            registration_number: role === "student" ? regNum : null,
-            department_id: role === "staff" ? departmentId : null,
-            institution_id: institutionId || null,
+    setMessage("");
+
+    try {
+      let result;
+      if (mode === "signin") {
+        result = await supabase.auth.signInWithPassword({ email, password });
+      } else {
+        const isUuid = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+        
+        result = await supabase.auth.signUp({ 
+          email, 
+          password, 
+          options: { 
+            emailRedirectTo: `${location.origin}/auth/callback`, 
+            data: { 
+              full_name: email.split("@")[0],
+              role,
+              registration_number: role === "student" ? regNum : null,
+              department_id: (role === "staff" && isUuid(departmentId)) ? departmentId : null,
+              institution_id: (institutionId && isUuid(institutionId)) ? institutionId : null,
+            } 
           } 
-        } 
-      });
-    }
-    
-    if (result.error) {
-      setMessage(result.error.message);
+        });
+      }
+      
+      if (result.error) {
+        let errorMsg = result.error.message;
+        if (!errorMsg || errorMsg === "{}" || typeof errorMsg !== "string" || errorMsg.trim() === "") {
+          errorMsg = mode === "signin"
+            ? "Invalid login credentials. Please verify your email and password."
+            : "Account creation failed. If you already have an account, try signing in.";
+        }
+        setMessage(errorMsg);
+        setBusy(false);
+        return;
+      }
+      
+      if (mode === "signup") {
+        setMessage("Check your email to confirm your account.");
+        setBusy(false);
+        return;
+      }
+      
+      const destination = await getRoleDestination();
+      router.replace(destination);
+    } catch (err: any) {
+      console.error("Authentication error:", err);
+      const catchMsg = err?.message && err.message !== "{}" 
+        ? err.message 
+        : "An error occurred during authentication. Please try again.";
+      setMessage(catchMsg);
       setBusy(false);
-      return;
     }
-    
-    if (mode === "signup") {
-      setMessage("Check your email to confirm your account.");
-      setBusy(false);
-      return;
-    }
-    
-    const destination = await getRoleDestination();
-    router.replace(destination);
   };
 
   return (
@@ -171,8 +208,8 @@ export default function LoginPage() {
                   onFocus={loadInstitutions}
                   className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]"
                 >
-                  <option value="" className="bg-zinc-900">Select your university…</option>
-                  {institutions.map(inst => (
+                  <option value="00000000-0000-0000-0000-000000000001" className="bg-zinc-900">Dedan Kimathi University of Technology</option>
+                  {institutions.filter(inst => inst.id !== "00000000-0000-0000-0000-000000000001").map(inst => (
                     <option key={inst.id} value={inst.id} className="bg-zinc-900">{inst.name}</option>
                   ))}
                 </select>
@@ -180,22 +217,14 @@ export default function LoginPage() {
               </div>
             )}
 
-            {mode === "signup" && role === "student" && (
-              <div className="animate-fadeIn">
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Registration Number</label>
-                <input required value={regNum} onChange={e => setRegNum(e.target.value)} placeholder="e.g. C026-01-0982/2021" className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d] focus:ring-1 focus:ring-[#19c37d]/30" />
-              </div>
-            )}
-
             {mode === "signup" && role === "staff" && (
               <div className="animate-fadeIn">
                 <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Department</label>
-                <select required value={departmentId} onChange={e => setDepartmentId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]">
-                  <option value="" className="bg-zinc-900">Select Department...</option>
-                  <option value="1" className="bg-zinc-900">Computer Science</option>
-                  <option value="2" className="bg-zinc-900">Engineering</option>
-                  <option value="3" className="bg-zinc-900">Finance Office</option>
-                  <option value="4" className="bg-zinc-900">Registry</option>
+                <select value={departmentId} onChange={e => setDepartmentId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]">
+                  <option value="" className="bg-zinc-900">Select Department (Optional)...</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id} className="bg-zinc-900">{dept.name}</option>
+                  ))}
                 </select>
               </div>
             )}

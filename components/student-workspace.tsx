@@ -69,6 +69,8 @@ export function StudentWorkspace() {
   const [courseSearchFilters, setCourseSearchFilters] = useState<Record<string, string>>({});
   const [extractingMetadataId, setExtractingMetadataId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [institutionId, setInstitutionId] = useState<string>("00000000-0000-0000-0000-000000000001");
+  const [institutionName, setInstitutionName] = useState<string>("Dedan Kimathi University of Technology");
   const [language, setLanguage] = useState("en");
   const [docQuery, setDocQuery] = useState("");
   const [ticketSubject, setTicketSubject] = useState("");
@@ -150,10 +152,12 @@ export function StudentWorkspace() {
       setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('@students.dkut.ac.ke')) || false);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
       if (user && supabase) {
-        const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions").eq("id", user.id).single();
+        const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions,institution_id,institutions(name)").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
         if (prof?.custom_instructions) setCustomInstructions(prof.custom_instructions);
-        
+        if (prof?.institution_id) setInstitutionId(prof.institution_id);
+        if ((prof as any)?.institutions?.name) setInstitutionName((prof as any).institutions.name);
+
         const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
         if (settings && settings.value === 'true') setShowDocuments(true);
       }
@@ -201,7 +205,8 @@ export function StudentWorkspace() {
       subject: ticketSubject,
       description: ticketDesc,
       created_by: profile?.id,
-      department_id: ticketDeptId || null
+      department_id: ticketDeptId || null,
+      institution_id: institutionId || null
     }).select();
     if (!error && data) {
       setTickets([data[0], ...tickets]);
