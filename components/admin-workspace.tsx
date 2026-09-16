@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight,
+  Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight, ChevronUp,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
-  ShieldCheck, Ticket, Upload, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap
+  ShieldCheck, Ticket, Upload, UploadCloud, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap,
+  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, FileCode, Folder
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
@@ -84,107 +86,155 @@ export function AdminWorkspace({ role }: { role?: string }) {
 
   const go = (next: Tab) => { setTab(next); setMenu(false); };
 
+  const allNavItems = role === "super_admin" ? [...nav, { label: "Institutions" as Tab, icon: Building2 }] : nav;
+
   return (
-    <main className="bg-aurora" style={{ minHeight: "100vh", background: D.bg, color: D.text, display: "flex" }}>
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: 260, flexShrink: 0, background: D.sidebar,
-          backdropFilter: "blur(24px)",
-          borderRight: `1px solid ${D.border}`, display: "flex", flexDirection: "column",
-          position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 50,
-          transform: menu ? "translateX(0)" : undefined,
-          transition: "transform 0.3s"
-        }}
-        className={`lg:relative lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div style={{ padding: "24px 20px 20px", borderBottom: `1px solid ${D.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <main className="bg-aurora" style={{ minHeight: "100vh", background: D.bg, color: D.text, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", flex: 1, minWidth: 0 }}>
+        {/* Sidebar */}
+        <aside
+          style={{
+            width: 260, flexShrink: 0, background: "rgba(6,10,14,0.85)",
+            backdropFilter: "blur(24px)",
+            borderRight: `1px solid ${D.border}`, display: "flex", flexDirection: "column",
+            position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 50,
+            transform: menu ? "translateX(0)" : undefined,
+            transition: "transform 0.3s ease-in-out"
+          }}
+          className={`lg:relative lg:translate-x-0 ${menu ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}
+        >
+          <div style={{ padding: "24px 20px 20px", borderBottom: `1px solid ${D.border}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ width: 40, height: 40, borderRadius: "16px", overflow: "hidden", display: "grid", placeItems: "center", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", flexShrink: 0 }}>
+                  <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
+                </span>
+                <div>
+                  <strong style={{ fontSize: 16, display: "block", color: D.text, letterSpacing: "-0.03em" }}>KiliGuide</strong>
+                  <small style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.15em", color: D.accent, background: "rgba(16,185,129,0.15)", padding: "2px 6px", borderRadius: "100px" }}>SUPERADMIN</small>
+                </div>
+              </div>
+              <button onClick={() => setMenu(false)} style={{ color: D.muted, padding: 6, borderRadius: "10px", background: "rgba(255,255,255,0.05)", border: "none" }} className="lg:hidden">
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <nav style={{ flex: 1, overflowY: "auto", padding: "20px 12px" }}>
+            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em", color: D.muted, padding: "4px 12px 12px" }}>WORKSPACE NAVIGATION</p>
+            {allNavItems.map(({ label, icon: Icon }) => (
+              <button
+                key={label}
+                onClick={() => go(label)}
+                style={{
+                  display: "flex", width: "100%", alignItems: "center", gap: 12,
+                  padding: "12px 16px", borderRadius: 16, fontSize: 13, fontWeight: tab === label ? 700 : 500,
+                  background: tab === label ? "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05))" : "transparent",
+                  color: tab === label ? "#fff" : D.muted,
+                  border: tab === label ? "1px solid rgba(16,185,129,0.3)" : "1px solid transparent",
+                  boxShadow: tab === label ? "0 4px 16px rgba(16,185,129,0.15)" : "none",
+                  cursor: "pointer", transition: "all 0.2s ease",
+                  marginBottom: 6
+                }}
+              >
+                <Icon size={18} style={{ color: tab === label ? D.accent : D.muted }} />
+                <span>{label}</span>
+                {tab === label && <div style={{ width: 6, height: 6, borderRadius: "50%", background: D.accent, marginLeft: "auto", boxShadow: `0 0 8px ${D.accent}` }} />}
+              </button>
+            ))}
+            <div style={{ marginTop: 16 }}>
+              <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 16, fontSize: 13, fontWeight: 500, color: D.muted, cursor: "pointer", background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}` }} />
+            </div>
+          </nav>
+
+          <div style={{ padding: "16px 20px", borderTop: `1px solid ${D.border}`, background: "rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", display: "grid", placeItems: "center", background: "transparent", flexShrink: 0 }}>
-                <img src="/logo.png" alt="KiliGuide" style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.3) translateY(2px)" }} />
-              </span>
-              <div>
-                <strong style={{ fontSize: 16, display: "block", color: D.text, letterSpacing: "-0.03em" }}>KiliGuide</strong>
-                <small style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", color: D.accent }}>SUPERADMIN</small>
+              <span style={{ width: 36, height: 36, borderRadius: "14px", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "#fff", flexShrink: 0, boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>SA</span>
+              <div style={{ minWidth: 0 }}>
+                <b style={{ fontSize: 13, display: "block", color: D.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Super Administrator</b>
+                <small style={{ fontSize: 11, color: D.accent, fontWeight: 600 }}>System Control</small>
               </div>
             </div>
-            <button onClick={() => setMenu(false)} style={{ color: D.muted, padding: 4, background:"transparent", border:"none" }} className="lg:hidden">
-              <X size={18} />
-            </button>
           </div>
-        </div>
+        </aside>
 
-        <nav style={{ flex: 1, overflowY: "auto", padding: "24px 12px" }}>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: D.muted, padding: "4px 12px 12px" }}>WORKSPACE</p>
-          {(role === "super_admin" ? [...nav, { label: "Institutions" as Tab, icon: Building2 }] : nav).map(({ label, icon: Icon }) => (
-            <button
-              key={label}
-              onClick={() => go(label)}
-              style={{
-                display: "flex", width: "100%", alignItems: "center", gap: 12,
-                padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500,
-                background: tab === label ? "rgba(16,185,129,0.15)" : "transparent",
-                color: tab === label ? D.accent : D.muted,
-                border: tab === label ? "1px solid rgba(16,185,129,0.2)" : "1px solid transparent",
-                cursor: "pointer", transition: "all 0.15s",
-                marginBottom: 4
-              }}
-              onMouseEnter={e => { if (tab !== label) e.currentTarget.style.color = D.text; }}
-              onMouseLeave={e => { if (tab !== label) e.currentTarget.style.color = D.muted; }}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
-          <InstallButton style={{ display: "flex", width: "100%", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: D.muted, cursor: "pointer", marginBottom: 4 }} />
-        </nav>
+        {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", border: "none" }} className="lg:hidden" />}
 
-        <div style={{ padding: "16px 20px", borderTop: `1px solid ${D.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>A</span>
-            <div style={{ minWidth: 0 }}>
-              <b style={{ fontSize: 13, display: "block", color: D.text }}>Administrator</b>
-              <small style={{ fontSize: 11, color: D.muted }}>System Access</small>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }} className="lg:ml-[260px]">
+          {/* Top Sticky Header */}
+          <header style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "0 20px", borderBottom: `1px solid ${D.border}`, background: "rgba(6,10,14,0.85)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 30 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, maxWidth: 480 }}>
+              <button onClick={() => setMenu(true)} style={{ color: D.text, padding: "8px 12px", borderRadius: 14, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }} className="lg:hidden">
+                <Menu size={18} />
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Menu</span>
+              </button>
+              
+              <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, borderRadius: 100, border: `1px solid ${D.border}`, background: "rgba(255,255,255,0.03)", padding: "8px 16px", cursor: "text" }}>
+                <Search size={16} style={{ color: D.muted, flexShrink: 0 }} />
+                <input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: D.text }}
+                  placeholder="Search workspace…"
+                />
+              </label>
             </div>
-          </div>
-        </div>
-      </aside>
 
-      {menu && <button aria-label="Close" onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.6)", border:"none" }} className="lg:hidden" />}
-
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }} className="lg:ml-[260px]">
-        <header style={{ height: 64, display: "flex", alignItems: "center", gap: 16, padding: "0 32px", borderBottom: `1px solid ${D.border}`, background: "rgba(6,8,10,0.6)", backdropFilter: "blur(16px)", flexShrink: 0, position: "sticky", top: 0, zIndex: 30 }}>
-          <button onClick={() => setMenu(true)} style={{ color: D.text, padding: 6, borderRadius: 8, background:"transparent", border:"none" }} className="lg:hidden">
-            <Menu size={20} />
-          </button>
-          <label style={{ flex: 1, maxWidth: 360, display: "flex", alignItems: "center", gap: 10, borderRadius: 100, border: `1px solid ${D.border}`, background: "rgba(255,255,255,0.03)", padding: "8px 16px", cursor: "text" }}>
-            <Search size={16} style={{ color: D.muted, flexShrink: 0 }} />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: D.text }}
-              placeholder="Search administration…"
-            />
-          </label>
-        </header>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px 80px" }}>
-          <div style={{ maxWidth: 1400, margin: "0 auto", height: tab === "AI Assistant" ? "calc(100vh - 140px)" : "auto" }}>
-            {tab === "Tickets" ? <TicketsWorkspace /> : tab === "Overview" ? (
-              <Overview done={done} setDone={setDone} onTab={go} stats={stats} />
-            ) : tab === "AI Assistant" ? (
-              <AdminChat />
-            ) : (
-              <WorkspaceTab tab={tab} onCompose={() => setComposer(true)} />
+            {/* Quick Action Button Header */}
+            {tab === "Documents" && (
+              <button onClick={() => setComposer(true)} style={{ borderRadius: 100, background: "linear-gradient(135deg, #10b981, #059669)", padding: "8px 16px", fontSize: 12, fontWeight: 800, color: "#000", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", border: "none", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}>
+                <UploadCloud size={16} />
+                <span className="hidden sm:inline">Upload Document</span>
+                <span className="sm:hidden">Upload</span>
+              </button>
             )}
+          </header>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px 120px" }}>
+            <div style={{ maxWidth: 1400, margin: "0 auto", height: tab === "AI Assistant" ? "calc(100vh - 140px)" : "auto" }}>
+              {tab === "Tickets" ? <TicketsWorkspace /> : tab === "Overview" ? (
+                <Overview done={done} setDone={setDone} onTab={go} stats={stats} />
+              ) : tab === "AI Assistant" ? (
+                <AdminChat />
+              ) : (
+                <WorkspaceTab tab={tab} onCompose={() => setComposer(true)} />
+              )}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Mobile Sticky Curved Navigation Bar */}
+      <nav className="lg:hidden" style={{ position: "fixed", bottom: 12, left: 12, right: 12, zIndex: 40, background: "rgba(10, 16, 24, 0.92)", backdropFilter: "blur(24px)", borderRadius: 28, border: "1px solid rgba(255,255,255,0.12)", padding: "8px 12px", boxShadow: "0 12px 32px rgba(0,0,0,0.6)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {[
+          { label: "Overview", icon: LayoutDashboard },
+          { label: "Documents", icon: FileText },
+          { label: "AI Assistant", icon: MessageSquareText },
+          { label: "Tickets", icon: Ticket },
+          { label: "Web Crawler", icon: Globe as any },
+        ].map(({ label, icon: Icon }) => {
+          const isActive = tab === label;
+          return (
+            <button
+              key={label}
+              onClick={() => go(label as Tab)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                padding: "8px 12px", borderRadius: 20,
+                background: isActive ? "rgba(16,185,129,0.2)" : "transparent",
+                color: isActive ? D.accent : D.muted,
+                border: isActive ? "1px solid rgba(16,185,129,0.3)" : "1px solid transparent",
+                cursor: "pointer", flex: 1, transition: "all 0.2s"
+              }}
+            >
+              <Icon size={18} style={{ color: isActive ? D.accent : D.muted }} />
+              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500 }}>{label.split(" ")[0]}</span>
+            </button>
+          );
+        })}
+      </nav>
+
       {composer && <Compose onClose={() => setComposer(false)} />}
-
-
     </main>
   );
 }
@@ -584,6 +634,7 @@ function OfficialSourceImport() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const ingest = async () => {
     if (!supabase) { setStatus("Supabase is not configured."); return; }
@@ -636,54 +687,152 @@ function OfficialSourceImport() {
   ];
 
   return (
-    <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1.1fr 0.9fr", marginBottom: 32 }} className="xl:grid-cols-[1.1fr_.9fr] grid-cols-1">
-      <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 32, border: `1px solid ${D.border}` }}>
-        <p style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, fontWeight: 700, color: D.text }}>
-          <ShieldCheck size={20} style={{ color: D.accent }} /> Import an official DeKUT source
-        </p>
-        <p style={{ marginTop: 8, fontSize: 14, color: D.muted, lineHeight: 1.7 }}>
-          Only official <b style={{ color: D.text }}>dkut.ac.ke</b> webpages. KiliGuide stores the source URL, extracts content, and creates RAG embeddings.
-        </p>
-        <label style={{ display: "block", marginTop: 24, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", color: D.muted }}>
-          OFFICIAL URL
-          <input value={url} onChange={e => setUrl(e.target.value)} style={{ display: "block", width: "100%", marginTop: 8, borderRadius: 10, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "14px 16px", fontSize: 14, outline: "none" }}
-            onFocus={e => (e.currentTarget.style.borderColor = D.accent)}
-            onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
-        </label>
-        <button disabled={busy} onClick={ingest} style={{ marginTop: 16, borderRadius: 10, background: busy ? D.card : D.accent, padding: "12px 20px", fontSize: 14, fontWeight: 700, color: busy ? D.muted : "#000", cursor: busy ? "not-allowed" : "pointer", border: "none" }}>
-          {busy ? "Indexing…" : "Scrape into knowledge base"}
-        </button>
-
-        <div style={{ margin: "32px 0", borderTop: `1px solid ${D.border}` }} />
-
-        <p style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, fontWeight: 700, color: D.text }}>
-          <Upload size={18} /> Upload Document or Image
-        </p>
-        <input onChange={e => setFile(e.target.files?.[0] ?? null)} accept=".pdf,.docx,.txt,image/*" type="file"
-          style={{ display: "block", marginTop: 16, fontSize: 14, color: D.muted, width: "100%" }} />
-        <button disabled={busy || !file} onClick={upload} style={{ marginTop: 16, borderRadius: 10, border: `1px solid ${D.border}`, padding: "12px 20px", fontSize: 14, fontWeight: 700, color: busy || !file ? D.muted : D.text, cursor: busy || !file ? "not-allowed" : "pointer", background: "rgba(255,255,255,0.03)" }}>
-          {busy ? "Working…" : file ? `Upload ${file.name}` : "Choose a file"}
-        </button>
-        {status && (
-          <p style={{ marginTop: 16, borderRadius: 8, padding: "12px 16px", fontSize: 14, background: status.startsWith("✓") ? "#10b98115" : "#ef444415", color: status.startsWith("✓") ? D.accent : "#ef4444", border: `1px solid ${status.startsWith("✓") ? "#10b98133" : "#ef444433"}` }}>{status}</p>
-        )}
-      </section>
-
-      <section style={{ borderRadius: 16, background: "rgba(16,185,129,0.05)", padding: 32, border: `1px solid rgba(16,185,129,0.15)` }}>
-        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: D.accent }}>SUGGESTED FIRST SOURCES</p>
-        <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-          {suggestions.map(([name, address]) => (
-            <button key={address} onClick={() => setUrl(`https://${address}`)}
-              style={{ display: "block", width: "100%", borderRadius: 12, border: `1px solid rgba(16,185,129,0.2)`, padding: "16px", textAlign: "left", background: "transparent", cursor: "pointer", color: D.text }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(16,185,129,0.1)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-            >
-              <b style={{ display: "block", fontSize: 14 }}>{name}</b>
-              <small style={{ marginTop: 4, display: "block", fontSize: 12, color: D.muted }}>{address}</small>
-            </button>
-          ))}
+    <div style={{ marginBottom: 32 }}>
+      {/* Section Header Card */}
+      <div 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        style={{
+          borderRadius: 24,
+          background: "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,10,14,0.6))",
+          padding: "20px 24px",
+          border: "1px solid rgba(16,185,129,0.25)",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          cursor: "pointer", boxShadow: "0 8px 32px rgba(0,0,0,0.3)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 16, background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", color: "#000", flexShrink: 0, boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}>
+            <UploadCloud size={24} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: 17, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
+              Add Knowledge & Import Documents
+              <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: D.accent, color: "#000" }}>Fast Ingestion</span>
+            </h2>
+            <p style={{ fontSize: 13, color: D.muted, marginTop: 2 }}>Upload PDF, DOCX, TXT files or scrape official campus URLs directly into AI memory.</p>
+          </div>
         </div>
-      </section>
+        <button style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, color: D.text, width: 36, height: 36, borderRadius: 12, display: "grid", placeItems: "center" }}>
+          {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{ overflow: "hidden", marginTop: 16 }}
+          >
+            <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+              {/* Card 1: Upload File CTA */}
+              <section style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <FileCode size={20} style={{ color: D.accent }} />
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text }}>Direct File Upload</h3>
+                </div>
+                <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.6, marginBottom: 20 }}>
+                  Upload handbook PDFs, timetables, or course notices. Text is extracted and indexed automatically.
+                </p>
+
+                <div style={{ borderRadius: 18, border: `2px dashed ${file ? D.accent : "rgba(255,255,255,0.15)"}`, background: file ? "rgba(16,185,129,0.05)" : "rgba(0,0,0,0.2)", padding: 24, textAlign: "center", transition: "all 0.2s" }}>
+                  <UploadCloud size={32} style={{ color: file ? D.accent : D.muted, margin: "0 auto 10px" }} />
+                  <label style={{ cursor: "pointer", display: "block" }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: D.text, display: "block" }}>
+                      {file ? file.name : "Click or drag file to upload"}
+                    </span>
+                    <span style={{ fontSize: 12, color: D.muted, marginTop: 4, display: "block" }}>
+                      Supports PDF, DOCX, TXT, Images (Max 25MB)
+                    </span>
+                    <input onChange={e => setFile(e.target.files?.[0] ?? null)} accept=".pdf,.docx,.txt,image/*" type="file" style={{ display: "none" }} />
+                  </label>
+                </div>
+
+                <button 
+                  disabled={busy || !file} 
+                  onClick={upload} 
+                  style={{ 
+                    width: "100%", marginTop: 16, borderRadius: 16, 
+                    background: busy || !file ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #10b981, #059669)", 
+                    padding: "14px 20px", fontSize: 14, fontWeight: 800, 
+                    color: busy || !file ? D.muted : "#000", 
+                    cursor: busy || !file ? "not-allowed" : "pointer", border: "none", 
+                    boxShadow: file && !busy ? "0 4px 16px rgba(16,185,129,0.3)" : "none",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+                  }}
+                >
+                  <Upload size={18} />
+                  {busy ? "Processing Document…" : file ? `Confirm & Upload ${file.name.slice(0, 20)}...` : "Choose File to Upload"}
+                </button>
+              </section>
+
+              {/* Card 2: Web URL Scrape */}
+              <section style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <Globe size={20} style={{ color: "#3b82f6" }} />
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text }}>Scrape Webpage URL</h3>
+                </div>
+                <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.6, marginBottom: 16 }}>
+                  Scrape any official <b style={{ color: D.text }}>dkut.ac.ke</b> page directly into the knowledge base.
+                </p>
+
+                <label style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: D.muted, marginBottom: 8 }}>
+                  OFFICIAL TARGET URL
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input 
+                    value={url} 
+                    onChange={e => setUrl(e.target.value)} 
+                    style={{ flex: 1, borderRadius: 14, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "12px 14px", fontSize: 13, outline: "none" }}
+                    placeholder="https://www.dkut.ac.ke/..."
+                  />
+                </div>
+
+                <button 
+                  disabled={busy} 
+                  onClick={ingest} 
+                  style={{ 
+                    width: "100%", marginTop: 16, borderRadius: 16, 
+                    background: busy ? "rgba(255,255,255,0.05)" : "#3b82f6", 
+                    padding: "14px 20px", fontSize: 14, fontWeight: 800, 
+                    color: busy ? D.muted : "#fff", 
+                    cursor: busy ? "not-allowed" : "pointer", border: "none",
+                    boxShadow: !busy ? "0 4px 16px rgba(59,130,246,0.3)" : "none",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+                  }}
+                >
+                  <Globe size={18} />
+                  {busy ? "Fetching Page Content…" : "Scrape & Index Web Page"}
+                </button>
+
+                {/* Suggestions Pills */}
+                <div style={{ marginTop: 16 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: D.muted, display: "block", marginBottom: 8 }}>Quick Suggested Portals:</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {suggestions.map(([label, link]) => (
+                      <button 
+                        key={link} 
+                        onClick={() => setUrl(`https://${link}`)}
+                        style={{ fontSize: 11, fontWeight: 600, padding: "6px 10px", borderRadius: 100, background: "rgba(255,255,255,0.04)", border: `1px solid ${D.border}`, color: D.text, cursor: "pointer" }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {status && (
+              <div style={{ marginTop: 16, borderRadius: 16, padding: "14px 18px", fontSize: 14, background: status.startsWith("✓") ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: status.startsWith("✓") ? D.accent : "#ef4444", border: `1px solid ${status.startsWith("✓") ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`, display: "flex", alignItems: "center", gap: 10 }}>
+                {status.startsWith("✓") ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+                <span>{status}</span>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -696,6 +845,7 @@ function DocumentLibrary() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = async () => {
     if (!supabase) { setLoading(false); return; }
@@ -730,86 +880,176 @@ function DocumentLibrary() {
 
   const statusColor = (d: ManagedDocument) => {
     if (d.status === "archived") return { bg: "#3a3a3a", text: D.muted };
-    if (d.processing_status === "ready") return { bg: "#19c37d22", text: D.accent };
-    if (d.processing_status === "failed") return { bg: "#ef444422", text: "#ef4444" };
-    return { bg: "#f59e0b22", text: "#f59e0b" };
+    if (d.processing_status === "ready") return { bg: "rgba(16,185,129,0.15)", text: D.accent, border: "rgba(16,185,129,0.3)" };
+    if (d.processing_status === "failed") return { bg: "rgba(239,68,68,0.15)", text: "#ef4444", border: "rgba(239,68,68,0.3)" };
+    return { bg: "rgba(245,158,11,0.15)", text: "#f59e0b", border: "rgba(245,158,11,0.3)" };
   };
 
   return (
-    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+    <section style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text }}>Knowledge base documents</h2>
-          <p style={{ marginTop: 4, fontSize: 14, color: D.muted }}>Review, archive, or remove every approved source.</p>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
+            <Folder size={20} style={{ color: D.accent }} />
+            Knowledge Base Documents
+            <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, color: D.muted }}>
+              {visible.length} items
+            </span>
+          </h2>
+          <p style={{ marginTop: 4, fontSize: 14, color: D.muted }}>Review, manage, archive or remove documents indexed for RAG retrieval.</p>
         </div>
-        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 8, border: `1px solid ${D.border}`, padding: "8px 16px", fontSize: 12, fontWeight: 600, color: D.muted, background: "rgba(255,255,255,0.03)", cursor: "pointer" }}>
-          <RefreshCw size={14} /> Refresh
+
+        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 100, border: `1px solid ${D.border}`, padding: "8px 16px", fontSize: 12, fontWeight: 700, color: D.muted, background: "rgba(255,255,255,0.03)", cursor: "pointer" }}>
+          <RefreshCw size={14} /> Refresh List
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
-        <label style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 10, borderRadius: 8, border: `1px solid ${D.border}`, padding: "10px 14px", background: D.bg }}>
+      {/* Filter and Search Bar */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+        <label style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 10, borderRadius: 16, border: `1px solid ${D.border}`, padding: "10px 16px", background: "rgba(0,0,0,0.2)" }}>
           <Search size={16} style={{ color: D.muted, flexShrink: 0 }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: D.text }} placeholder="Search documents or source URL" />
+          <input value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: D.text }} placeholder="Search title, category or URL..." />
         </label>
-        <select value={filter} onChange={e => setFilter(e.target.value)} style={{ borderRadius: 8, border: `1px solid ${D.border}`, padding: "10px 14px", fontSize: 14, background: D.bg, color: D.text, outline: "none" }}>
-          <option value="all">All statuses</option>
-          <option value="ready">Ready</option>
-          <option value="failed">Failed</option>
-          <option value="uploaded">Uploaded</option>
-          <option value="archived">Archived</option>
-        </select>
+
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          {["all", "ready", "processing", "failed", "archived"].map(st => (
+            <button
+              key={st}
+              onClick={() => setFilter(st)}
+              style={{
+                padding: "8px 14px", borderRadius: 100, fontSize: 12, fontWeight: filter === st ? 800 : 500,
+                textTransform: "capitalize",
+                background: filter === st ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.03)",
+                color: filter === st ? D.accent : D.muted,
+                border: filter === st ? "1px solid rgba(16,185,129,0.3)" : `1px solid ${D.border}`,
+                cursor: "pointer", transition: "all 0.15s"
+              }}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
       </div>
 
       {notice && (
-        <p style={{ marginTop: 16, borderRadius: 8, padding: "12px 16px", fontSize: 14, background: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? "#10b98115" : "#ef444415", color: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? D.accent : "#ef4444" }}>{notice}</p>
+        <p style={{ marginBottom: 20, borderRadius: 14, padding: "12px 16px", fontSize: 13, background: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? D.accent : "#ef4444" }}>{notice}</p>
       )}
 
-      <div style={{ marginTop: 24, overflowX: "auto" }}>
-        <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${D.border}` }}>
-              {["Document", "Source", "Status", "RAG", "Controls"].map((h, i) => (
-                <th key={h} style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: D.muted, textAlign: i === 4 ? "right" : "left" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={5} style={{ padding: "48px 0", textAlign: "center", color: D.muted }}>Loading knowledge base…</td></tr>
-            ) : visible.length ? visible.map(d => {
-              const sc = statusColor(d);
-              return (
-                <tr key={d.id} style={{ borderBottom: `1px solid ${D.border}` }}>
-                  <td style={{ padding: "20px 16px 20px 0" }}>
-                    <b style={{ display: "block", color: D.text, marginBottom: 4 }}>{d.title}</b>
-                    <small style={{ color: D.muted, fontSize: 13 }}>{d.category} · {d.file_type.toUpperCase()} · {new Date(d.created_at).toLocaleDateString()}</small>
-                  </td>
-                  <td style={{ padding: "20px 16px 20px 0", maxWidth: 160, fontSize: 13 }}>
-                    <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#6366f1" }}>{d.source_url ?? "Uploaded file"}</span>
-                  </td>
-                  <td style={{ padding: "20px 16px 20px 0" }}>
-                    <span style={{ borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.text }}>
-                      {d.status === "archived" ? "Archived" : d.processing_status ?? "Uploaded"}
-                    </span>
-                    {d.processing_error && <small style={{ display: "block", color: "#ef4444", marginTop: 4, maxWidth: 140 }}>{d.processing_error}</small>}
-                  </td>
-                  <td style={{ padding: "20px 16px 20px 0", fontSize: 13, color: D.muted }}>{d.chunk_count ?? 0} chunks</td>
-                  <td style={{ padding: "20px 0", textAlign: "right" }}>
-                    <button onClick={() => archive(d)} style={{ borderRadius: 6, border: `1px solid ${D.border}`, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: D.muted, background: "transparent", cursor: "pointer", marginRight: 8 }}>
-                      {d.status === "archived" ? "Restore" : "Archive"}
+      {/* Mobile-Friendly Curved Card View */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center", color: D.muted, fontSize: 14 }}>
+            <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 12px" }} />
+            Loading knowledge documents...
+          </div>
+        ) : visible.length ? (
+          visible.map(d => {
+            const sc = statusColor(d);
+            const isExpanded = expandedId === d.id;
+            return (
+              <div 
+                key={d.id} 
+                style={{ 
+                  borderRadius: 20, 
+                  background: "rgba(255,255,255,0.02)", 
+                  border: `1px solid ${D.border}`, 
+                  padding: 20, 
+                  transition: "all 0.2s" 
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 240 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 14, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", display: "grid", placeItems: "center", color: D.accent, flexShrink: 0 }}>
+                      <FileText size={20} />
+                    </div>
+                    <div>
+                      <b style={{ fontSize: 15, color: D.text, display: "block", marginBottom: 4 }}>{d.title}</b>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.05)", color: D.muted, textTransform: "uppercase" }}>
+                          {d.file_type}
+                        </span>
+                        <span style={{ fontSize: 12, color: D.muted }}>
+                          {d.category} · {new Date(d.created_at).toLocaleDateString()}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: sc.bg, color: sc.text, border: sc.border ? `1px solid ${sc.border}` : "none" }}>
+                          {d.status === "archived" ? "Archived" : d.processing_status ?? "Uploaded"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* High Visibility Buttons */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <button 
+                      onClick={() => setExpandedId(isExpanded ? null : d.id)}
+                      style={{ borderRadius: 12, border: `1px solid ${D.border}`, padding: "8px 12px", fontSize: 12, fontWeight: 600, color: D.muted, background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <Eye size={14} />
+                      <span>{isExpanded ? "Hide" : "Details"}</span>
                     </button>
-                    <button onClick={() => remove(d)} style={{ borderRadius: 6, border: "1px solid #ef444444", padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#ef4444", background: "transparent", cursor: "pointer" }}>
-                      Delete
+                    <button 
+                      onClick={() => archive(d)} 
+                      style={{ 
+                        borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", 
+                        padding: "8px 14px", fontSize: 12, fontWeight: 700, 
+                        color: d.status === "archived" ? D.accent : D.text, 
+                        background: d.status === "archived" ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.05)", 
+                        cursor: "pointer", display: "flex", alignItems: "center", gap: 6 
+                      }}
+                    >
+                      <RotateCcw size={14} />
+                      <span>{d.status === "archived" ? "Restore" : "Archive"}</span>
                     </button>
-                  </td>
-                </tr>
-              );
-            }) : (
-              <tr><td colSpan={5} style={{ padding: "48px 0", textAlign: "center", color: D.muted }}>No documents match this view.</td></tr>
-            )}
-          </tbody>
-        </table>
+                    <button 
+                      onClick={() => remove(d)} 
+                      style={{ 
+                        borderRadius: 12, border: "1px solid rgba(239,68,68,0.3)", 
+                        padding: "8px 14px", fontSize: 12, fontWeight: 700, 
+                        color: "#f87171", background: "rgba(239,68,68,0.1)", 
+                        cursor: "pointer", display: "flex", alignItems: "center", gap: 6 
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible Document Details */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      style={{ overflow: "hidden", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}
+                    >
+                      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", fontSize: 12 }}>
+                        <div style={{ background: "rgba(0,0,0,0.2)", padding: 12, borderRadius: 12, border: `1px solid ${D.border}` }}>
+                          <span style={{ color: D.muted, display: "block", marginBottom: 2, fontWeight: 700 }}>Source URL / Path</span>
+                          <span style={{ color: D.text, wordBreak: "break-all" }}>{d.source_url || d.storage_path}</span>
+                        </div>
+                        <div style={{ background: "rgba(0,0,0,0.2)", padding: 12, borderRadius: 12, border: `1px solid ${D.border}` }}>
+                          <span style={{ color: D.muted, display: "block", marginBottom: 2, fontWeight: 700 }}>RAG Embeddings</span>
+                          <span style={{ color: D.accent, fontWeight: 800 }}>{d.chunk_count ?? 0} vectorized chunks</span>
+                        </div>
+                      </div>
+                      {d.processing_error && (
+                        <div style={{ marginTop: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", padding: 10, borderRadius: 12, color: "#f87171", fontSize: 12 }}>
+                          <b>Error Trace:</b> {d.processing_error}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ padding: 48, textAlign: "center", color: D.muted, fontSize: 14 }}>
+            No documents found matching this filter.
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1070,93 +1310,94 @@ function WebCrawlerWorkspace() {
 
   return (
     <section>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 24 }}>
 
         {/* Discover Card */}
-        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 16, padding: 24 }}>
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <Globe size={20} style={{ color: "#3b82f6" }} />
-            <b style={{ fontSize: 16, color: D.text }}>1. Discover URLs</b>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(59,130,246,0.15)", display: "grid", placeItems: "center" }}>
+              <Globe size={20} style={{ color: "#60a5fa" }} />
+            </div>
+            <b style={{ fontSize: 16, color: D.text }}>1. Discover Page URLs</b>
           </div>
           <p style={{ fontSize: 13, color: D.muted, marginBottom: 20, lineHeight: 1.6 }}>
-            Fetch the sitemap and add all eligible pages to the crawl queue. Does not scrape yet.
+            Fetch official campus sitemap XML and queue all eligible links for crawling.
           </p>
-          <button disabled={crawling} onClick={() => triggerCrawl("discover")} style={{ width: "100%", background: "#3b82f622", color: "#60a5fa", border: "1px solid #3b82f640", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Globe size={16} /> Discover Pages
+          <button disabled={crawling} onClick={() => triggerCrawl("discover")} style={{ width: "100%", background: "rgba(59,130,246,0.15)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.3)", padding: "14px", borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Globe size={18} /> Discover Pages
           </button>
         </div>
 
         {/* Crawl Pending Card */}
-        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 16, padding: 24 }}>
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 24, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <Zap size={20} style={{ color: "#facc15" }} />
-            <b style={{ fontSize: 16, color: D.text }}>2. Crawl & Embed</b>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(250,204,21,0.15)", display: "grid", placeItems: "center" }}>
+              <Zap size={20} style={{ color: "#facc15" }} />
+            </div>
+            <b style={{ fontSize: 16, color: D.text }}>2. Crawl & Vectorize</b>
           </div>
           <p style={{ fontSize: 13, color: D.muted, marginBottom: 20, lineHeight: 1.6 }}>
-            Scrape {crawlStatus?.pending ?? 0} pending URLs, extract text, and store AI vector embeddings. Processes 20 at a time.
+            Scrape {crawlStatus?.pending ?? 0} pending URLs, clean text, and generate RAG vector embeddings.
           </p>
-          <button disabled={crawling} onClick={() => triggerCrawl("crawl")} style={{ width: "100%", background: "#facc1522", color: "#facc15", border: "1px solid #facc1540", padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Zap size={16} /> Process Queue
+          <button disabled={crawling} onClick={() => triggerCrawl("crawl")} style={{ width: "100%", background: "rgba(250,204,21,0.15)", color: "#facc15", border: "1px solid rgba(250,204,21,0.3)", padding: "14px", borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Zap size={18} /> Process Queue ({crawlStatus?.pending ?? 0})
           </button>
         </div>
       </div>
 
       {/* Full Crawl */}
-      <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid #f8717140", borderRadius: 16, padding: 24, marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 24, padding: 24, marginBottom: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
               <RefreshCw size={20} style={{ color: "#f87171" }} />
               <b style={{ fontSize: 16, color: D.text }}>Full Crawl (Discover + Process)</b>
             </div>
-            <p style={{ fontSize: 13, color: D.muted }}>Discovers new pages from sitemap AND processes 20 pending URLs in one shot.</p>
+            <p style={{ fontSize: 13, color: D.muted }}>Discovers new pages from sitemaps AND processes 20 pending URLs automatically in one single execution.</p>
           </div>
-          <button disabled={crawling} onClick={() => triggerCrawl("full")} style={{ whiteSpace: "nowrap", background: "#f87171", color: "#000", border: "none", padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: crawling ? 0.6 : 1 }}>
-            {crawling ? <><RefreshCw size={16} style={{ animation: "spin 1s linear infinite" }} /> Running...</> : <><RefreshCw size={16} /> Run Full Crawl</>}
+          <button disabled={crawling} onClick={() => triggerCrawl("full")} style={{ whiteSpace: "nowrap", background: "linear-gradient(135deg, #ef4444, #dc2626)", color: "#fff", border: "none", padding: "12px 24px", borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: crawling ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: crawling ? 0.6 : 1, boxShadow: "0 4px 16px rgba(239,68,68,0.3)" }}>
+            {crawling ? <><RefreshCw size={16} className="animate-spin" /> Running Crawl...</> : <><RefreshCw size={16} /> Run Full Crawl</>}
           </button>
         </div>
       </div>
 
       {/* Crawl Log Message */}
       {crawlMessage && (
-        <div style={{ background: crawlMessage.startsWith("✅") ? "rgba(25,195,125,0.1)" : "rgba(248,113,113,0.1)", border: `1px solid ${crawlMessage.startsWith("✅") ? "#19c37d40" : "#f8717140"}`, borderRadius: 10, padding: 16, marginBottom: 24, fontSize: 14, color: crawlMessage.startsWith("✅") ? "#19c37d" : "#f87171" }}>
+        <div style={{ background: crawlMessage.startsWith("✅") ? "rgba(16,185,129,0.1)" : "rgba(248,113,113,0.1)", border: `1px solid ${crawlMessage.startsWith("✅") ? "rgba(16,185,129,0.3)" : "rgba(248,113,113,0.3)"}`, borderRadius: 16, padding: 16, marginBottom: 24, fontSize: 14, color: crawlMessage.startsWith("✅") ? D.accent : "#f87171" }}>
           {crawlMessage}
         </div>
       )}
 
-      {/* Recent Crawl Queue */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: D.text }}>Recent Crawl Queue</h3>
-      <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "rgba(255,255,255,0.02)", textAlign: "left", fontSize: 12, color: D.muted, textTransform: "uppercase" }}>
-              <th style={{ padding: "12px 20px" }}>URL</th>
-              <th style={{ padding: "12px 20px" }}>Status</th>
-              <th style={{ padding: "12px 20px" }}>Last Crawled</th>
-            </tr>
-          </thead>
-          <tbody>
-            {crawlQueue.length === 0 ? (
-              <tr><td colSpan={3} style={{ padding: "32px 20px", textAlign: "center", color: D.muted }}>No pages in queue yet. Run "Discover Pages" first.</td></tr>
-            ) : crawlQueue.map(row => (
-              <tr key={row.id} style={{ borderBottom: `1px solid ${D.border}` }}>
-                <td style={{ padding: "12px 20px", fontSize: 12, color: D.text, maxWidth: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  <a href={row.url} target="_blank" rel="noopener noreferrer" style={{ color: "#60a5fa", textDecoration: "none" }}>{row.url}</a>
-                </td>
-                <td style={{ padding: "12px 20px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: row.status === "done" ? "rgba(25,195,125,0.1)" : row.status === "failed" ? "rgba(248,113,113,0.1)" : row.status === "crawling" ? "rgba(251,191,36,0.1)" : "rgba(255,255,255,0.05)", color: row.status === "done" ? "#19c37d" : row.status === "failed" ? "#f87171" : row.status === "crawling" ? "#fbbf24" : D.muted }}>
-                    {row.status === "done" ? <CheckCircle2 size={12} /> : row.status === "failed" ? <XCircle size={12} /> : <Clock size={12} />}
-                    {row.status}
-                  </span>
-                  {row.error && <span title={row.error} style={{ fontSize: 11, color: "#f87171", display: "block", marginTop: 4 }}>⚠ {row.error.slice(0, 60)}...</span>}
-                </td>
-                <td style={{ padding: "12px 20px", fontSize: 12, color: D.muted }}>
-                  {row.last_crawled_at ? new Date(row.last_crawled_at).toLocaleString() : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Recent Crawl Queue - Curved Responsive Cards */}
+      <h3 style={{ fontSize: 17, fontWeight: 800, marginBottom: 16, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
+        <Clock size={18} style={{ color: D.accent }} />
+        Recent Crawl Queue Log
+      </h3>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {crawlQueue.length === 0 ? (
+          <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 20, padding: 36, textAlign: "center", color: D.muted }}>
+            No pages in queue yet. Click "Discover Pages" to populate.
+          </div>
+        ) : crawlQueue.map(row => (
+          <div key={row.id} style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 20, padding: 16, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 240, overflow: "hidden" }}>
+              <a href={row.url} target="_blank" rel="noopener noreferrer" style={{ color: "#60a5fa", textDecoration: "none", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-all" }}>
+                <span>{row.url}</span>
+                <ExternalLink size={12} style={{ flexShrink: 0 }} />
+              </a>
+              <span style={{ fontSize: 11, color: D.muted, marginTop: 4, display: "block" }}>
+                Last crawled: {row.last_crawled_at ? new Date(row.last_crawled_at).toLocaleString() : "Never"}
+              </span>
+              {row.error && <span title={row.error} style={{ fontSize: 11, color: "#f87171", display: "block", marginTop: 4 }}>⚠ {row.error.slice(0, 100)}</span>}
+            </div>
+
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 100, fontSize: 11, fontWeight: 800, textTransform: "uppercase", background: row.status === "done" ? "rgba(16,185,129,0.15)" : row.status === "failed" ? "rgba(239,68,68,0.15)" : row.status === "crawling" ? "rgba(250,204,21,0.15)" : "rgba(255,255,255,0.05)", color: row.status === "done" ? D.accent : row.status === "failed" ? "#f87171" : row.status === "crawling" ? "#facc15" : D.muted, border: `1px solid ${row.status === "done" ? "rgba(16,185,129,0.3)" : row.status === "failed" ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.1)"}` }}>
+              {row.status === "done" ? <CheckCircle2 size={12} /> : row.status === "failed" ? <XCircle size={12} /> : <Clock size={12} />}
+              {row.status}
+            </span>
+          </div>
+        ))}
       </div>
     </section>
   );
