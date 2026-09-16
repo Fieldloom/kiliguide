@@ -41,7 +41,8 @@ export function AdminWorkspace({ role }: { role?: string }) {
   const [menu, setMenu] = useState(false);
   const [query, setQuery] = useState("");
   const [done, setDone] = useState<number[]>([]);
-  const [composer, setComposer] = useState(false);
+  const [noticeModal, setNoticeModal] = useState(false);
+  const [uploadModal, setUploadModal] = useState(false);
   
   const [stats, setStats] = useState({ users: 0, docs: 0, tickets: 0, notices: 0, healthScore: 100, chartData: [0,0,0,0,0,0,0] });
 
@@ -182,7 +183,7 @@ export function AdminWorkspace({ role }: { role?: string }) {
 
             {/* Quick Action Button Header */}
             {tab === "Documents" && (
-              <button onClick={() => setComposer(true)} style={{ borderRadius: 100, background: "linear-gradient(135deg, #10b981, #059669)", padding: "8px 16px", fontSize: 12, fontWeight: 800, color: "#000", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", border: "none", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}>
+              <button onClick={() => setUploadModal(true)} style={{ borderRadius: 100, background: "linear-gradient(135deg, #10b981, #059669)", padding: "8px 16px", fontSize: 12, fontWeight: 800, color: "#000", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", border: "none", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}>
                 <UploadCloud size={16} />
                 <span className="hidden sm:inline">Upload Document</span>
                 <span className="sm:hidden">Upload</span>
@@ -197,7 +198,7 @@ export function AdminWorkspace({ role }: { role?: string }) {
               ) : tab === "AI Assistant" ? (
                 <AdminChat />
               ) : (
-                <WorkspaceTab tab={tab} onCompose={() => setComposer(true)} />
+                <WorkspaceTab tab={tab} onCompose={() => setNoticeModal(true)} onUpload={() => setUploadModal(true)} />
               )}
             </div>
           </div>
@@ -234,7 +235,8 @@ export function AdminWorkspace({ role }: { role?: string }) {
         })}
       </nav>
 
-      {composer && <Compose onClose={() => setComposer(false)} />}
+      {noticeModal && <Compose onClose={() => setNoticeModal(false)} />}
+      {uploadModal && <UploadDocumentModal onClose={() => setUploadModal(false)} />}
     </main>
   );
 }
@@ -336,7 +338,7 @@ function Overview({ done, setDone, onTab, stats }: { done: number[]; setDone: (x
   );
 }
 
-function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
+function WorkspaceTab({ tab, onCompose, onUpload }: { tab: Tab; onCompose: () => void; onUpload: () => void }) {
   return (
     <section>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 40 }}>
@@ -346,7 +348,7 @@ function WorkspaceTab({ tab, onCompose }: { tab: Tab; onCompose: () => void }) {
           <p style={{ marginTop: 8, color: D.muted, fontSize: 15 }}>Manage your university {tab.toLowerCase()} from this workspace.</p>
         </div>
         {["Notices", "Documents"].includes(tab) && (
-          <button onClick={onCompose} style={{ borderRadius: 100, background: D.accent, padding: "12px 24px", fontSize: 14, fontWeight: 700, color: "#000", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", border: "none", boxShadow: `0 4px 12px ${D.accent}44` }}>
+          <button onClick={tab === "Documents" ? onUpload : onCompose} style={{ borderRadius: 100, background: D.accent, padding: "12px 24px", fontSize: 14, fontWeight: 700, color: "#000", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", border: "none", boxShadow: `0 4px 12px ${D.accent}44` }}>
             <Upload size={16} />
             {tab === "Documents" ? "Upload document" : `Create ${tab.slice(0, -1)}`}
           </button>
@@ -1052,6 +1054,179 @@ function DocumentLibrary() {
         )}
       </div>
     </section>
+  );
+}
+
+// ── Upload Document Modal ──────────────────────────────────────────────────
+function UploadDocumentModal({ onClose }: { onClose: () => void }) {
+  const [activeMode, setActiveMode] = useState<"file" | "url">("file");
+  const [file, setFile] = useState<File | null>(null);
+  const [url, setUrl] = useState("https://www.dkut.ac.ke/");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+
+  const handleUpload = async () => {
+    if (!supabase) return;
+    if (activeMode === "file") {
+      if (!file) return;
+      setBusy(true); setStatus("Uploading file to storage...");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
+      const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+      const ext = file.name.split(".").pop()?.toLowerCase() || "file";
+      const path = `admin/${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: se } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type || "application/octet-stream" });
+      if (se) { setBusy(false); setStatus(se.message); return; }
+      
+      setStatus("Creating document record...");
+      const { data: doc, error: de } = await supabase.from("documents").insert({ 
+        title: file.name.replace(/\.[^.]+$/, ""), 
+        category: "Administration", 
+        storage_path: path, 
+        file_type: ext, 
+        uploaded_by: user.id, 
+        institution_id: profile?.institution_id, 
+        metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } 
+      }).select("id,title").single();
+      
+      if (de) { setBusy(false); setStatus(de.message); return; }
+      
+      if (ext === "txt") {
+        setStatus("Indexing text into AI vector DB...");
+        const text = await file.text();
+        const { data, error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text } });
+        setStatus(error ? `Uploaded but indexing failed: ${error.message}` : `✓ "${doc.title}" indexed into ${data?.chunks || 0} chunks!`);
+      } else {
+        setStatus(`Extracting text from ${ext.toUpperCase()}...`);
+        const { data, error } = await supabase.functions.invoke("process-document", { body: { documentId: doc.id, storagePath: path, extension: ext } });
+        setStatus(error ? `Extraction failed: ${error.message}` : `✓ "${doc.title}" indexed into ${data?.chunks || 0} chunks!`);
+      }
+      setBusy(false);
+      setTimeout(() => onClose(), 1500);
+    } else {
+      if (!url.trim()) return;
+      setBusy(true); setStatus("Fetching official webpage...");
+      const result = await scrapeDeKut(url);
+      if (result.error) { setBusy(false); setStatus(`Scrape failed: ${result.error}`); return; }
+      
+      setStatus("Saving web document record...");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setBusy(false); setStatus("Session expired."); return; }
+      const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+      const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
+      
+      const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
+      if (se) { setBusy(false); setStatus(se.message); return; }
+      
+      const { data: doc, error: de } = await supabase.from("documents").insert({ 
+        title: result.title || "Scraped Webpage", 
+        category: "Administration", 
+        source_url: url, 
+        storage_path: path, 
+        file_type: "txt", 
+        uploaded_by: user.id, 
+        institution_id: profile?.institution_id, 
+        metadata: { processing_status: "processing" } 
+      }).select("id").single();
+      
+      if (de) { setBusy(false); setStatus(de.message); return; }
+      
+      setStatus("Generating vector embeddings...");
+      const { error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });
+      setBusy(false);
+      setStatus(error ? `Scraped but indexing failed: ${error.message}` : `✓ "${result.title}" scraped and indexed!`);
+      setTimeout(() => onClose(), 1500);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", padding: 16 }}>
+      <motion.section 
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        style={{ width: "100%", maxWidth: 520, borderRadius: 24, background: "rgba(10, 16, 24, 0.95)", padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", display: "grid", placeItems: "center", color: D.accent }}>
+              <UploadCloud size={20} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Upload Document to AI</h2>
+              <p style={{ fontSize: 12, color: D.muted }}>Ingest handbook, schedule, or webpage into knowledge base.</p>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={busy} style={{ color: D.muted, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, borderRadius: 10, cursor: "pointer", padding: 6 }}><X size={18} /></button>
+        </div>
+
+        {/* Mode Switch */}
+        <div style={{ display: "flex", gap: 8, background: "rgba(255,255,255,0.03)", padding: 4, borderRadius: 14, border: `1px solid ${D.border}`, marginBottom: 20 }}>
+          <button 
+            onClick={() => setActiveMode("file")} 
+            style={{ flex: 1, padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", background: activeMode === "file" ? D.accent : "transparent", color: activeMode === "file" ? "#000" : D.muted, transition: "all 0.2s" }}
+          >
+            File Upload
+          </button>
+          <button 
+            onClick={() => setActiveMode("url")} 
+            style={{ flex: 1, padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", background: activeMode === "url" ? "#3b82f6" : "transparent", color: activeMode === "url" ? "#fff" : D.muted, transition: "all 0.2s" }}
+          >
+            Webpage URL
+          </button>
+        </div>
+
+        {activeMode === "file" ? (
+          <div>
+            <div style={{ borderRadius: 18, border: `2px dashed ${file ? D.accent : "rgba(255,255,255,0.15)"}`, background: file ? "rgba(16,185,129,0.05)" : "rgba(0,0,0,0.3)", padding: 24, textAlign: "center", transition: "all 0.2s" }}>
+              <UploadCloud size={36} style={{ color: file ? D.accent : D.muted, margin: "0 auto 12px" }} />
+              <label style={{ cursor: "pointer", display: "block" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: D.text, display: "block" }}>
+                  {file ? file.name : "Choose or drag a document file"}
+                </span>
+                <span style={{ fontSize: 12, color: D.muted, marginTop: 4, display: "block" }}>
+                  Supports PDF, DOCX, TXT, Images (Max 25MB)
+                </span>
+                <input onChange={e => setFile(e.target.files?.[0] ?? null)} accept=".pdf,.docx,.txt,image/*" type="file" style={{ display: "none" }} />
+              </label>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: D.muted, marginBottom: 8 }}>
+              OFFICIAL TARGET URL
+            </label>
+            <input 
+              value={url} 
+              onChange={e => setUrl(e.target.value)} 
+              style={{ width: "100%", borderRadius: 14, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.4)", color: D.text, padding: "12px 14px", fontSize: 13, outline: "none" }}
+              placeholder="https://www.dkut.ac.ke/..."
+            />
+          </div>
+        )}
+
+        {status && (
+          <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 12, background: status.startsWith("✓") ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${status.startsWith("✓") ? "rgba(16,185,129,0.3)" : D.border}`, fontSize: 13, color: status.startsWith("✓") ? D.accent : D.text, fontWeight: 600 }}>
+            {status}
+          </div>
+        )}
+
+        <button 
+          disabled={busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim())} 
+          onClick={handleUpload} 
+          style={{ 
+            width: "100%", marginTop: 20, borderRadius: 16, 
+            background: busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim()) ? "rgba(255,255,255,0.05)" : activeMode === "file" ? "linear-gradient(135deg, #10b981, #059669)" : "#3b82f6", 
+            padding: "14px 20px", fontSize: 14, fontWeight: 800, 
+            color: busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim()) ? D.muted : "#000", 
+            cursor: busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim()) ? "not-allowed" : "pointer", border: "none", 
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+          }}
+        >
+          <Upload size={18} />
+          {busy ? "Processing..." : activeMode === "file" ? (file ? `Confirm & Upload ${file.name.slice(0, 18)}...` : "Select File to Upload") : "Scrape & Index Webpage"}
+        </button>
+      </motion.section>
+    </div>
   );
 }
 
