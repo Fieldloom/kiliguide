@@ -5,7 +5,7 @@ import {
   Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight, ChevronUp,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
   ShieldCheck, Ticket, Upload, UploadCloud, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap,
-  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, FileCode, Folder, Pencil
+  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeDeKut } from "../app/actions";
@@ -1453,16 +1453,276 @@ function Compose({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── INSTITUTIONS (SUPER ADMIN ONLY) ──────────────────────────────────────────
+// ── INSTITUTION MODALS & WORKSPACE (SUPER ADMIN ONLY) ──────────────────────────
+
+function ContactInstitutionModal({ inst, onClose, onSent }: { inst: any; onClose: () => void; onSent: () => void }) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+
+  const sendDirective = async () => {
+    if (!title.trim() || !body.trim()) { setStatus("Please fill title and message body."); return; }
+    if (!supabase) return;
+    setBusy(true);
+    setStatus("Sending administrative notice...");
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase.from("notices").insert({
+      title: `[SUPERADMIN DIRECTIVE] ${title}`,
+      body,
+      summary: body.substring(0, 100),
+      author_id: user?.id,
+      institution_id: inst.id,
+      category: "Administrative Directive"
+    }).select("id").single();
+
+    if (error) {
+      setStatus(`Error: ${error.message}`);
+      setBusy(false);
+      return;
+    }
+
+    if (data) {
+      supabase.functions.invoke("send-push", {
+        body: { recipientId: "all", title: `Superadmin Notice: ${title}`, body, url: "/portal/student", tag: `notice-${data.id}` }
+      });
+    }
+
+    setBusy(false);
+    onSent();
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", padding: 16 }}>
+      <section style={{ width: "100%", maxWidth: 500, borderRadius: 24, background: "#0c131d", padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.8)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${D.border}`, paddingBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(16,185,129,0.15)", display: "grid", placeItems: "center", color: D.accent }}>
+              <MessageSquareText size={18} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text }}>Message Institution</h2>
+              <p style={{ fontSize: 12, color: D.muted }}>{inst.name} ({inst.domain})</p>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={busy} style={{ color: D.muted, background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 8, cursor: "pointer", padding: 6 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {status && <div style={{ marginTop: 12, fontSize: 12, color: status.startsWith("Error") ? "#ef4444" : D.accent }}>{status}</div>}
+
+        <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          SUBJECT / TITLE
+          <input value={title} onChange={e=>setTitle(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }} placeholder="e.g. System Maintenance Notice or Compliance Review" />
+        </label>
+
+        <label style={{ display: "block", marginTop: 14, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          DIRECTIVE MESSAGE
+          <textarea value={body} onChange={e=>setBody(e.target.value)} disabled={busy} rows={5} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none", resize: "vertical" }} placeholder="Type administrative directive to publish to institution workspace..." />
+        </label>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button onClick={onClose} disabled={busy} style={{ flex: 1, borderRadius: 12, border: `1px solid ${D.border}`, background: "transparent", color: D.muted, padding: "12px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+          <button onClick={sendDirective} disabled={busy} style={{ flex: 1, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", padding: "12px 0", fontSize: 13, fontWeight: 800, cursor: busy ? "not-allowed" : "pointer", boxShadow: "0 4px 14px rgba(16,185,129,0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Send size={16} /> Send Directive
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AddInstitutionModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [name, setName] = useState("");
+  const [domain, setDomain] = useState("");
+  const [themeColor, setThemeColor] = useState("#10b981");
+  const [contactEmail, setContactEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleCreate = async () => {
+    if (!name.trim() || !domain.trim()) { setError("Name and Domain are required."); return; }
+    if (!supabase) return;
+    setBusy(true);
+    setError("");
+
+    const cleanDomain = domain.toLowerCase().trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
+    const { error: insertError } = await supabase.from("institutions").insert({
+      name: name.trim(),
+      domain: cleanDomain,
+      theme_color: themeColor,
+      contact_email: contactEmail.trim() || null,
+      status: "active"
+    });
+
+    setBusy(false);
+    if (insertError) {
+      setError(insertError.message);
+    } else {
+      onCreated();
+      onClose();
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", padding: 16 }}>
+      <section style={{ width: "100%", maxWidth: 480, borderRadius: 24, background: "#0c131d", padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.8)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${D.border}`, paddingBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(16,185,129,0.15)", display: "grid", placeItems: "center", color: D.accent }}>
+              <Building2 size={18} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text }}>Add New Institution</h2>
+              <p style={{ fontSize: 12, color: D.muted }}>Register a new campus tenant on KiliGuide</p>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={busy} style={{ color: D.muted, background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 8, cursor: "pointer", padding: 6 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {error && <div style={{ marginTop: 12, fontSize: 12, color: "#ef4444" }}>{error}</div>}
+
+        <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          INSTITUTION NAME
+          <input value={name} onChange={e=>setName(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }} placeholder="e.g. University of Nairobi" />
+        </label>
+
+        <label style={{ display: "block", marginTop: 14, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          DOMAIN (e.g. uonbi.ac.ke)
+          <input value={domain} onChange={e=>setDomain(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }} placeholder="uonbi.ac.ke" />
+        </label>
+
+        <label style={{ display: "block", marginTop: 14, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          ADMIN CONTACT EMAIL
+          <input value={contactEmail} onChange={e=>setContactEmail(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }} placeholder="admin@uonbi.ac.ke" />
+        </label>
+
+        <label style={{ display: "block", marginTop: 14, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          BRAND THEME COLOR
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+            <input type="color" value={themeColor} onChange={e=>setThemeColor(e.target.value)} disabled={busy} style={{ width: 40, height: 38, borderRadius: 8, border: "none", cursor: "pointer", background: "transparent" }} />
+            <input value={themeColor} onChange={e=>setThemeColor(e.target.value)} disabled={busy} style={{ flex: 1, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "8px 12px", fontSize: 13, outline: "none" }} />
+          </div>
+        </label>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+          <button onClick={onClose} disabled={busy} style={{ flex: 1, borderRadius: 12, border: `1px solid ${D.border}`, background: "transparent", color: D.muted, padding: "12px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+          <button onClick={handleCreate} disabled={busy} style={{ flex: 1, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", padding: "12px 0", fontSize: 13, fontWeight: 800, cursor: busy ? "not-allowed" : "pointer", boxShadow: "0 4px 14px rgba(16,185,129,0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Plus size={16} /> Create Institution
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function EditInstitutionModal({ inst, onClose, onUpdated }: { inst: any; onClose: () => void; onUpdated: () => void }) {
+  const [name, setName] = useState(inst.name || "");
+  const [domain, setDomain] = useState(inst.domain || "");
+  const [contactEmail, setContactEmail] = useState(inst.contact_email || "");
+  const [status, setStatus] = useState(inst.status || "active");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    if (!name.trim() || !domain.trim()) { setError("Name and Domain are required."); return; }
+    if (!supabase) return;
+    setBusy(true);
+    setError("");
+
+    const { error: updateError } = await supabase.from("institutions").update({
+      name: name.trim(),
+      domain: domain.toLowerCase().trim(),
+      contact_email: contactEmail.trim() || null,
+      status
+    }).eq("id", inst.id);
+
+    setBusy(false);
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      onUpdated();
+      onClose();
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", padding: 16 }}>
+      <section style={{ width: "100%", maxWidth: 480, borderRadius: 24, background: "#0c131d", padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.8)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${D.border}`, paddingBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(16,185,129,0.15)", display: "grid", placeItems: "center", color: D.accent }}>
+              <Pencil size={18} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: D.text }}>Edit Institution</h2>
+              <p style={{ fontSize: 12, color: D.muted }}>Update details for {inst.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={busy} style={{ color: D.muted, background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 8, cursor: "pointer", padding: 6 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {error && <div style={{ marginTop: 12, fontSize: 12, color: "#ef4444" }}>{error}</div>}
+
+        <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          INSTITUTION NAME
+          <input value={name} onChange={e=>setName(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+        </label>
+
+        <label style={{ display: "block", marginTop: 14, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          DOMAIN
+          <input value={domain} onChange={e=>setDomain(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+        </label>
+
+        <label style={{ display: "block", marginTop: 14, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          CONTACT EMAIL
+          <input value={contactEmail} onChange={e=>setContactEmail(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }} />
+        </label>
+
+        <label style={{ display: "block", marginTop: 14, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          STATUS
+          <select value={status} onChange={e=>setStatus(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 12, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "10px 14px", fontSize: 13, outline: "none" }}>
+            <option value="active" style={{ background: "#111" }}>Active (Approved)</option>
+            <option value="suspended" style={{ background: "#111" }}>Suspended (Inapproved)</option>
+            <option value="pending" style={{ background: "#111" }}>Pending</option>
+          </select>
+        </label>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+          <button onClick={onClose} disabled={busy} style={{ flex: 1, borderRadius: 12, border: `1px solid ${D.border}`, background: "transparent", color: D.muted, padding: "12px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+          <button onClick={handleSave} disabled={busy} style={{ flex: 1, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", padding: "12px 0", fontSize: 13, fontWeight: 800, cursor: busy ? "not-allowed" : "pointer", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}>
+            Save Changes
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function InstitutionsWorkspace() {
   const [requests, setRequests] = useState<any[]>([]);
   const [approvedList, setApprovedList] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
   const [allowRegistration, setAllowRegistration] = useState(true);
   const [showDocuments, setShowDocuments] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTab, setFilterTab] = useState<"all" | "active" | "suspended">("all");
+
+  const [contactInst, setContactInst] = useState<any | null>(null);
+  const [addModal, setAddModal] = useState(false);
+  const [editInst, setEditInst] = useState<any | null>(null);
 
   const load = async () => {
     if (!supabase) return;
+    setBusy(true);
     const [reqRes, instRes, settingsRes] = await Promise.all([
       supabase.from("institution_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("institutions").select("*").order("name", { ascending: true }),
@@ -1477,6 +1737,7 @@ function InstitutionsWorkspace() {
       const doc = settingsRes.data.find(s => s.key === "show_documents_to_users");
       if (doc) setShowDocuments(doc.value === 'true');
     }
+    setBusy(false);
   };
 
   useEffect(() => { load(); }, []);
@@ -1515,119 +1776,395 @@ function InstitutionsWorkspace() {
     else load();
   };
 
+  const handleToggleStatus = async (inst: any) => {
+    if (!supabase) return;
+    const isSuspended = inst.status === "suspended";
+    const nextStatus = isSuspended ? "active" : "suspended";
+    const actionName = isSuspended ? "Re-activate" : "Inapprove / Suspend";
+    if (!confirm(`${actionName} institution "${inst.name}"?`)) return;
+
+    setBusy(true);
+    const { error } = await supabase.from("institutions").update({ status: nextStatus }).eq("id", inst.id);
+    setBusy(false);
+    if (error) alert(`Error updating status: ${error.message}`);
+    else load();
+  };
+
+  const handleDeleteInstitution = async (inst: any) => {
+    if (!supabase) return;
+    if (inst.id === '00000000-0000-0000-0000-000000000001') {
+      alert("Cannot delete the default root system institution.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to DELETE institution "${inst.name}"?\n\nThis will remove all associated tenant notices, documents, and re-assign members to default.`)) return;
+
+    setBusy(true);
+    const { error: rpcError } = await supabase.rpc("delete_institution", { inst_id: inst.id });
+    if (rpcError) {
+      console.warn("RPC delete_institution error, attempting direct delete:", rpcError);
+      const { error: directError } = await supabase.from("institutions").delete().eq("id", inst.id);
+      if (directError) alert(`Error deleting institution: ${directError.message}`);
+    }
+    setBusy(false);
+    load();
+  };
+
+  const filteredInstitutions = useMemo(() => {
+    return approvedList.filter(inst => {
+      const matchSearch = inst.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          inst.domain.toLowerCase().includes(searchQuery.toLowerCase());
+      const instStatus = inst.status || "active";
+      if (filterTab === "active") return matchSearch && instStatus === "active";
+      if (filterTab === "suspended") return matchSearch && instStatus === "suspended";
+      return matchSearch;
+    });
+  }, [approvedList, searchQuery, filterTab]);
+
+  const activeCount = approvedList.filter(i => (i.status || "active") === "active").length;
+  const suspendedCount = approvedList.filter(i => i.status === "suspended").length;
+  const pendingRequestsCount = requests.filter(r => r.status === "pending").length;
+
   return (
-    <section style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
-      {/* Global Control Toggles */}
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 28, paddingBottom: 24, borderBottom: `1px solid ${D.border}` }}>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
-            <Building2 size={20} style={{ color: D.accent }} />
-            Multi-Tenant Platform Settings
-          </h2>
-          <p style={{ marginTop: 4, fontSize: 13, color: D.muted }}>Control institution onboarding and global feature flags across all tenants.</p>
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Show Documents Tab</span>
-            <div 
-              onClick={toggleDocuments}
-              style={{ width: 40, height: 22, borderRadius: 11, background: showDocuments ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
-            >
-              <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showDocuments ? 20 : 2, transition: "all 0.2s" }} />
-            </div>
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Allow New Institutions</span>
-            <div 
-              onClick={toggleRegistration}
-              style={{ width: 40, height: 22, borderRadius: 11, background: allowRegistration ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
-            >
-              <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: allowRegistration ? 20 : 2, transition: "all 0.2s" }} />
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {/* Pending Onboarding Requests */}
-      <h3 style={{ fontSize: 17, fontWeight: 800, color: D.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-        Institution Onboarding Requests
-        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>
-          {requests.filter(r => r.status === "pending").length} pending
-        </span>
-      </h3>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 36 }}>
-        {requests.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: D.muted, fontSize: 13, background: "rgba(0,0,0,0.2)", borderRadius: 20, border: `1px solid ${D.border}` }}>
-            No institution onboarding requests found.
+    <section style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Top Action Header Bar */}
+      <div style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 24 }}>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 10 }}>
+              <Building2 size={24} style={{ color: D.accent }} />
+              Multi-Tenant Institution Management
+            </h2>
+            <p style={{ marginTop: 4, fontSize: 13, color: D.muted }}>Approve onboarding, suspend/activate accounts, communicate directly, or delete institution tenants.</p>
           </div>
-        ) : requests.map(r => (
-          <div 
-            key={r.id}
-            style={{ 
-              borderRadius: 20, 
-              background: "rgba(255,255,255,0.02)", 
-              border: `1px solid ${D.border}`, 
-              padding: 20,
-              display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                <b style={{ fontSize: 16, color: D.text }}>{r.name}</b>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>
-                  {r.domain}
-                </span>
+
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => setAddModal(true)}
+              style={{
+                background: "linear-gradient(135deg, #10b981, #059669)",
+                color: "#000", padding: "10px 18px", borderRadius: 14,
+                fontSize: 13, fontWeight: 800, border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 8, boxShadow: "0 4px 14px rgba(16,185,129,0.3)"
+              }}
+            >
+              <Plus size={18} /> Add Institution
+            </button>
+          </div>
+        </div>
+
+        {/* Global Controls & Feature Toggles */}
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, paddingTop: 16, borderTop: `1px solid ${D.border}` }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: D.muted, display: "flex", alignItems: "center", gap: 6 }}>
+            <Settings size={16} style={{ color: D.accent }} /> Platform Controls
+          </span>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Show Documents Tab</span>
+              <div 
+                onClick={toggleDocuments}
+                style={{ width: 40, height: 22, borderRadius: 11, background: showDocuments ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
+              >
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showDocuments ? 20 : 2, transition: "all 0.2s" }} />
               </div>
-              <span style={{ fontSize: 13, color: D.muted, display: "block" }}>
-                Admin: <strong style={{ color: D.text }}>{r.admin_name}</strong> ({r.admin_email})
-              </span>
-              {r.notes && (
-                <p style={{ fontSize: 12, color: D.muted, marginTop: 6, background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 10 }}>
-                  Notes: {r.notes}
-                </p>
-              )}
-            </div>
+            </label>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ borderRadius: 100, padding: "4px 12px", fontSize: 11, fontWeight: 800, background: r.status === "approved" ? "rgba(16,185,129,0.15)" : r.status === "rejected" ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)", color: r.status === "approved" ? D.accent : r.status === "rejected" ? "#ef4444" : "#f59e0b", textTransform: "uppercase" }}>
-                {r.status}
-              </span>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Allow New Institutions</span>
+              <div 
+                onClick={toggleRegistration}
+                style={{ width: 40, height: 22, borderRadius: 11, background: allowRegistration ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
+              >
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: allowRegistration ? 20 : 2, transition: "all 0.2s" }} />
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
 
-              {r.status === "pending" && (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button disabled={busy} onClick={() => handleApprove(r.id, r.name)} style={{ background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", padding: "8px 16px", borderRadius: 12, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 800, border: "none", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>Approve</button>
-                  <button disabled={busy} onClick={() => handleReject(r.id, r.name)} style={{ background: "rgba(239,68,68,0.1)", border: `1px solid rgba(239,68,68,0.3)`, color: "#ef4444", padding: "8px 16px", borderRadius: 12, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700 }}>Reject</button>
+      {/* Analytics & Metrics Header Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 20, padding: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.muted }}>TOTAL TENANTS</span>
+            <Building2 size={18} style={{ color: D.accent }} />
+          </div>
+          <b style={{ fontSize: 24, fontWeight: 800, color: D.text, marginTop: 8, display: "block" }}>{approvedList.length}</b>
+        </div>
+
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 20, padding: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.muted }}>ACTIVE INSTITUTIONS</span>
+            <ShieldCheck size={18} style={{ color: D.accent }} />
+          </div>
+          <b style={{ fontSize: 24, fontWeight: 800, color: D.accent, marginTop: 8, display: "block" }}>{activeCount}</b>
+        </div>
+
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 20, padding: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.muted }}>SUSPENDED / INAPPROVED</span>
+            <XCircle size={18} style={{ color: "#ef4444" }} />
+          </div>
+          <b style={{ fontSize: 24, fontWeight: 800, color: suspendedCount > 0 ? "#ef4444" : D.text, marginTop: 8, display: "block" }}>{suspendedCount}</b>
+        </div>
+
+        <div style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, borderRadius: 20, padding: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.muted }}>PENDING REQUESTS</span>
+            <Clock size={18} style={{ color: "#f59e0b" }} />
+          </div>
+          <b style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b", marginTop: 8, display: "block" }}>{pendingRequestsCount}</b>
+        </div>
+      </div>
+
+      {/* Pending Onboarding Requests Section */}
+      {requests.length > 0 && (
+        <div style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: D.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+            Pending Institution Onboarding Requests
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>
+              {pendingRequestsCount} pending
+            </span>
+          </h3>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {requests.map(r => (
+              <div 
+                key={r.id}
+                style={{ 
+                  borderRadius: 20, 
+                  background: "rgba(0,0,0,0.2)", 
+                  border: `1px solid ${D.border}`, 
+                  padding: 18,
+                  display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 240 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                    <b style={{ fontSize: 15, color: D.text }}>{r.name}</b>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>
+                      {r.domain}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 12, color: D.muted, display: "block" }}>
+                    Admin: <strong style={{ color: D.text }}>{r.admin_name}</strong> ({r.admin_email})
+                  </span>
+                  {r.notes && (
+                    <p style={{ fontSize: 12, color: D.muted, marginTop: 6, background: "rgba(0,0,0,0.3)", padding: 8, borderRadius: 10 }}>
+                      Notes: {r.notes}
+                    </p>
+                  )}
                 </div>
-              )}
+
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ borderRadius: 100, padding: "4px 12px", fontSize: 11, fontWeight: 800, background: r.status === "approved" ? "rgba(16,185,129,0.15)" : r.status === "rejected" ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)", color: r.status === "approved" ? D.accent : r.status === "rejected" ? "#ef4444" : "#f59e0b", textTransform: "uppercase" }}>
+                    {r.status}
+                  </span>
+
+                  {r.status === "pending" && (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button disabled={busy} onClick={() => handleApprove(r.id, r.name)} style={{ background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", padding: "8px 16px", borderRadius: 12, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 800, border: "none", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>Approve</button>
+                      <button disabled={busy} onClick={() => handleReject(r.id, r.name)} style={{ background: "rgba(239,68,68,0.1)", border: `1px solid rgba(239,68,68,0.3)`, color: "#ef4444", padding: "8px 16px", borderRadius: 12, cursor: busy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700 }}>Reject</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Registered Institutions Directory */}
+      <div style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 20 }}>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
+            Registered Campus Institutions Directory
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "rgba(16,185,129,0.15)", color: D.accent }}>
+              {filteredInstitutions.length} listed
+            </span>
+          </h3>
+
+          {/* Search & Filter controls */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+            <div style={{ position: "relative", minWidth: 220 }}>
+              <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: D.muted }} />
+              <input
+                value={searchQuery}
+                onChange={e=>setSearchQuery(e.target.value)}
+                placeholder="Search name or domain..."
+                style={{
+                  width: "100%", padding: "8px 12px 8px 36px", borderRadius: 12,
+                  background: "rgba(0,0,0,0.3)", border: `1px solid ${D.border}`,
+                  color: D.text, fontSize: 13, outline: "none"
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", background: "rgba(0,0,0,0.3)", padding: 3, borderRadius: 12, border: `1px solid ${D.border}` }}>
+              {(["all", "active", "suspended"] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setFilterTab(t)}
+                  style={{
+                    padding: "6px 12px", borderRadius: 9, fontSize: 12, fontWeight: filterTab === t ? 800 : 500,
+                    background: filterTab === t ? "rgba(16,185,129,0.2)" : "transparent",
+                    color: filterTab === t ? D.accent : D.muted, border: "none", cursor: "pointer",
+                    textTransform: "capitalize"
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Approved Active Institutions List */}
-      <h3 style={{ fontSize: 17, fontWeight: 800, color: D.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-        Approved Active Campus Institutions
-        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "rgba(16,185,129,0.15)", color: D.accent }}>
-          {approvedList.length} active
-        </span>
-      </h3>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
-        {approvedList.map(inst => (
-          <div key={inst.id} style={{ borderRadius: 20, background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, padding: 18, display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", display: "grid", placeItems: "center", color: D.accent, fontWeight: 800, flexShrink: 0 }}>
-              <Building2 size={20} />
-            </div>
-            <div style={{ overflow: "hidden" }}>
-              <b style={{ fontSize: 14, color: D.text, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{inst.name}</b>
-              <small style={{ color: "#60a5fa", fontSize: 12, display: "block", marginTop: 2 }}>{inst.domain}</small>
-            </div>
+        {/* Institution Cards Grid */}
+        {filteredInstitutions.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", color: D.muted, fontSize: 13, background: "rgba(0,0,0,0.2)", borderRadius: 20, border: `1px solid ${D.border}` }}>
+            No matching institutions found.
           </div>
-        ))}
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+            {filteredInstitutions.map(inst => {
+              const isSuspended = inst.status === "suspended";
+              return (
+                <div
+                  key={inst.id}
+                  style={{
+                    borderRadius: 20, background: "rgba(0,0,0,0.2)",
+                    border: `1px solid ${isSuspended ? "rgba(239,68,68,0.3)" : D.border}`,
+                    padding: 20, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16,
+                    position: "relative", overflow: "hidden"
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div
+                          style={{
+                            width: 44, height: 44, borderRadius: 14,
+                            background: isSuspended ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)",
+                            border: `1px solid ${isSuspended ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.3)"}`,
+                            display: "grid", placeItems: "center",
+                            color: isSuspended ? "#ef4444" : D.accent, flexShrink: 0
+                          }}
+                        >
+                          <Building2 size={22} />
+                        </div>
+                        <div>
+                          <b style={{ fontSize: 15, color: D.text, display: "block" }}>{inst.name}</b>
+                          <small style={{ color: "#60a5fa", fontSize: 12, fontWeight: 600 }}>{inst.domain}</small>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 100,
+                          background: isSuspended ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)",
+                          color: isSuspended ? "#ef4444" : D.accent,
+                          border: `1px solid ${isSuspended ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.3)"}`,
+                          textTransform: "uppercase", letterSpacing: "0.05em"
+                        }}
+                      >
+                        {isSuspended ? "SUSPENDED" : "ACTIVE"}
+                      </span>
+                    </div>
+
+                    {inst.contact_email && (
+                      <p style={{ fontSize: 12, color: D.muted, marginTop: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Mail size={14} style={{ color: D.accent }} /> {inst.contact_email}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Actions Bar for Superadmin */}
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
+                    {/* Send Directive Notice */}
+                    <button
+                      onClick={() => setContactInst(inst)}
+                      title="Send administrative directive message to institution"
+                      style={{
+                        flex: 1, minWidth: 100, background: "rgba(59,130,246,0.12)", color: "#60a5fa",
+                        border: "1px solid rgba(59,130,246,0.25)", padding: "8px 12px", borderRadius: 12,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                      }}
+                    >
+                      <MessageSquareText size={14} /> Message
+                    </button>
+
+                    {/* Suspend / Activate Toggle */}
+                    <button
+                      onClick={() => handleToggleStatus(inst)}
+                      title={isSuspended ? "Re-activate Institution" : "Suspend (Inapprove) Institution"}
+                      style={{
+                        background: isSuspended ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)",
+                        color: isSuspended ? D.accent : "#f59e0b",
+                        border: `1px solid ${isSuspended ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
+                        padding: "8px 12px", borderRadius: 12,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+                      }}
+                    >
+                      {isSuspended ? <ShieldCheck size={14} /> : <XCircle size={14} />}
+                      {isSuspended ? "Activate" : "Suspend"}
+                    </button>
+
+                    {/* Edit */}
+                    <button
+                      onClick={() => setEditInst(inst)}
+                      title="Edit Institution details"
+                      style={{
+                        background: "rgba(255,255,255,0.05)", color: D.muted,
+                        border: `1px solid ${D.border}`, padding: "8px 10px", borderRadius: 12,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center"
+                      }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => handleDeleteInstitution(inst)}
+                      title="Delete Institution"
+                      style={{
+                        background: "rgba(239,68,68,0.1)", color: "#ef4444",
+                        border: "1px solid rgba(239,68,68,0.25)", padding: "8px 10px", borderRadius: 12,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center"
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* Render Active Modals */}
+      {contactInst && (
+        <ContactInstitutionModal
+          inst={contactInst}
+          onClose={() => setContactInst(null)}
+          onSent={load}
+        />
+      )}
+
+      {addModal && (
+        <AddInstitutionModal
+          onClose={() => setAddModal(false)}
+          onCreated={load}
+        />
+      )}
+
+      {editInst && (
+        <EditInstitutionModal
+          inst={editInst}
+          onClose={() => setEditInst(null)}
+          onUpdated={load}
+        />
+      )}
     </section>
   );
 }
