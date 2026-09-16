@@ -50,7 +50,7 @@ export default function Onboarding() {
     try {
       // 1. Update Profile (include institution_id if not already set)
       const updates: any = {};
-      if (role === "student") updates.registration_number = regNum;
+      if (role === "student" && regNum) updates.registration_number = regNum;
       if (role === "parent") updates.registration_number = linkedReg;
       if (!alreadyHasInstitution && institutionId) updates.institution_id = institutionId;
       
@@ -106,18 +106,11 @@ export default function Onboarding() {
           <OptionCard type="visitor" title="I am a Visitor" desc="Explore public campus information." icon={User} />
         </div>
 
-        {role === "student" && (
-          <div style={{ marginBottom: 32, animation: "fadeIn 0.3s ease" }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ececec", marginBottom: 8 }}>Registration Number</label>
-            <input value={regNum} onChange={e => setRegNum(e.target.value)} placeholder="e.g. C026-01-0982/2021" style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none" }} />
-          </div>
-        )}
-
         {role === "staff" && (
           <div style={{ marginBottom: 32, animation: "fadeIn 0.3s ease" }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ececec", marginBottom: 8 }}>Department</label>
             <select value={department} onChange={e => setDepartment(e.target.value)} style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none", appearance: "none" }}>
-              <option value="">Select your department...</option>
+              <option value="">Select your department (Optional)...</option>
               <option value="cs">Computer Science</option>
               <option value="eng">Engineering</option>
               <option value="finance">Finance Office</option>
@@ -139,8 +132,8 @@ export default function Onboarding() {
           <div style={{ marginBottom: 32, animation: "fadeIn 0.3s ease" }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ececec", marginBottom: 8 }}>Your University</label>
             <select value={institutionId} onChange={e => setInstitutionId(e.target.value)} style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none", appearance: "none" }}>
-              <option value="">Select your university…</option>
-              {institutions.map(inst => (
+              <option value="00000000-0000-0000-0000-000000000001">Dedan Kimathi University of Technology</option>
+              {institutions.filter(inst => inst.id !== "00000000-0000-0000-0000-000000000001").map(inst => (
                 <option key={inst.id} value={inst.id}>{inst.name}</option>
               ))}
             </select>
@@ -149,7 +142,7 @@ export default function Onboarding() {
 
         <button 
           onClick={completeOnboarding}
-          disabled={!role || loading || (role === "student" && !regNum) || (role === "parent" && !linkedReg) || (role === "staff" && !department) || (!alreadyHasInstitution && !institutionId)}
+          disabled={!role || loading || (role === "parent" && !linkedReg) || (!alreadyHasInstitution && !institutionId)}
           style={{ width: "100%", background: role ? "#19c37d" : "#1A2A20", color: role ? "#000" : "#8e8ea0", padding: "16px", borderRadius: 12, fontSize: 16, fontWeight: 600, border: "none", cursor: role ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
         >
           {loading ? <Loader2 size={20} className="animate-spin" /> : "Complete Setup"}
