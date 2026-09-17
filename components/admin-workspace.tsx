@@ -48,39 +48,54 @@ export function AdminWorkspace({ role }: { role?: string }) {
 
   useEffect(() => {
     if (!supabase) return;
-    Promise.all([
-      supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("documents").select("*", { count: "exact", head: true }).eq("status", "active"),
-      supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
-      supabase.from("notices").select("*", { count: "exact", head: true }),
-      supabase.from("documents").select("processing_status"),
-      supabase.from("messages").select("created_at").gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-    ]).then(([u, d, t, n, healthDocs, chartMsgs]) => {
-      let healthyCount = 0;
-      let totalDocs = 0;
-      if (healthDocs.data) {
-        totalDocs = healthDocs.data.length;
-        healthyCount = healthDocs.data.filter((doc: any) => doc.processing_status === "ready" || doc.processing_status === "archived" || doc.processing_status === null).length;
-      }
-      const healthScore = totalDocs === 0 ? 100 : Math.round((healthyCount / totalDocs) * 100);
+    const client = supabase;
+    client.auth.getUser().then(async ({ data: { user } }) => {
+      const { data: prof } = user ? await client.from("profiles").select("role").eq("id", user.id).single() : { data: null };
+      const { data: roles } = user ? await client.from("user_roles").select("role").eq("user_id", user.id) : { data: null };
+      const isSuperAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
 
-      const days = [0,0,0,0,0,0,0];
-      if (chartMsgs.data) {
-        const now = new Date();
-        chartMsgs.data.forEach((msg: any) => {
-          const msgDate = new Date(msg.created_at);
-          const diffDays = Math.floor(Math.abs(now.getTime() - msgDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays < 7) days[6 - diffDays]++;
+      let docsQuery = client.from("documents").select("*", { count: "exact", head: true }).eq("status", "active");
+      let healthDocsQuery = client.from("documents").select("processing_status");
+
+      if (!isSuperAdmin && user?.id) {
+        docsQuery = docsQuery.eq("uploaded_by", user.id);
+        healthDocsQuery = healthDocsQuery.eq("uploaded_by", user.id);
+      }
+
+      Promise.all([
+        client.from("profiles").select("*", { count: "exact", head: true }),
+        docsQuery,
+        client.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
+        client.from("notices").select("*", { count: "exact", head: true }),
+        healthDocsQuery,
+        client.from("messages").select("created_at").gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      ]).then(([u, d, t, n, healthDocs, chartMsgs]) => {
+        let healthyCount = 0;
+        let totalDocs = 0;
+        if (healthDocs.data) {
+          totalDocs = healthDocs.data.length;
+          healthyCount = healthDocs.data.filter((doc: any) => doc.processing_status === "ready" || doc.processing_status === "archived" || doc.processing_status === null).length;
+        }
+        const healthScore = totalDocs === 0 ? 100 : Math.round((healthyCount / totalDocs) * 100);
+
+        const days = [0,0,0,0,0,0,0];
+        if (chartMsgs.data) {
+          const now = new Date();
+          chartMsgs.data.forEach((msg: any) => {
+            const msgDate = new Date(msg.created_at);
+            const diffDays = Math.floor(Math.abs(now.getTime() - msgDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays < 7) days[6 - diffDays]++;
+          });
+        }
+
+        setStats({
+          users: u.count ?? 0,
+          docs: d.count ?? 0,
+          tickets: t.count ?? 0,
+          notices: n.count ?? 0,
+          healthScore,
+          chartData: days
         });
-      }
-
-      setStats({
-        users: u.count ?? 0,
-        docs: d.count ?? 0,
-        tickets: t.count ?? 0,
-        notices: n.count ?? 0,
-        healthScore,
-        chartData: days
       });
     });
   }, [tab]);
@@ -930,8 +945,20 @@ function DocumentLibrary() {
 
   const load = async () => {
     if (!supabase) { setLoading(false); return; }
+    const client = supabase;
     setLoading(true);
-    const { data, error } = await supabase.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error").order("created_at", { ascending: false });
+    const { data: { user } } = await client.auth.getUser();
+    const { data: prof } = user ? await client.from("profiles").select("role").eq("id", user.id).single() : { data: null };
+    const { data: roles } = user ? await client.from("user_roles").select("role").eq("user_id", user.id) : { data: null };
+    const isSuperAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
+
+    let query = client.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error,uploaded_by").order("created_at", { ascending: false });
+
+    if (!isSuperAdmin && user?.id) {
+      query = query.eq("uploaded_by", user.id);
+    }
+
+    const { data, error } = await query;
     setDocuments((data ?? []) as ManagedDocument[]);
     setNotice(error ? error.message : "");
     setLoading(false);
