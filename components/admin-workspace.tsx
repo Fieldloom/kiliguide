@@ -639,8 +639,32 @@ function NoticesWorkspace() {
 // ── USERS ─────────────────────────────────────────────────────────────
 function UsersWorkspace() {
   const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadUsers = async () => {
+    if (!supabase) { setLoading(false); return; }
+    const client = supabase;
+    setLoading(true);
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    const { data: prof } = await client.from("profiles").select("role, institution_id").eq("id", user.id).single();
+    const { data: roles } = await client.from("user_roles").select("role").eq("user_id", user.id);
+    const isSuperAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
+
+    let query = client.from("profiles").select(`*, user_roles(role), institutions(name)`).order("created_at", { ascending: false });
+
+    if (!isSuperAdmin && prof?.institution_id) {
+      query = query.eq("institution_id", prof.institution_id);
+    }
+
+    const { data } = await query;
+    setUsers(data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    supabase?.from("profiles").select(`*, user_roles(role)`).order("created_at", { ascending: false }).then(({ data }) => setUsers(data || []));
+    loadUsers();
   }, []);
 
   const updateRole = async (userId: string, newRole: string) => {
