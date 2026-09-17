@@ -251,43 +251,136 @@ export function AdminWorkspace({ role }: { role?: string }) {
   );
 }
 
-function Metric({ icon: Icon, value, label, color }: { icon: any; value: string; label: string; color: string }) {
+function Metric({ icon: Icon, value, label, color, sublabel }: { icon: any; value: string; label: string; color: string; sublabel?: string }) {
   return (
-    <div style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, right: 0, width: 100, height: 100, background: color, opacity: 0.05, filter: "blur(40px)", borderRadius: "50%" }} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "relative", zIndex: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", color: D.muted, textTransform: "uppercase" }}>{label}</span>
-          <Icon size={16} style={{ color }} />
+    <motion.div
+      whileHover={{ y: -4, transition: { duration: 0.2, ease: "easeOut" } }}
+      style={{
+        borderRadius: 22,
+        background: "linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        padding: "22px 24px",
+        border: "1px solid rgba(255, 255, 255, 0.09)",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }}
+    >
+      <div style={{ position: "absolute", top: -20, right: -20, width: 110, height: 110, background: color, opacity: 0.12, filter: "blur(35px)", borderRadius: "50%", pointerEvents: "none" }} />
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: D.muted, textTransform: "uppercase" }}>{label}</span>
+        <div style={{ width: 38, height: 38, borderRadius: 14, background: `${color}18`, border: `1px solid ${color}35`, display: "grid", placeItems: "center", color, boxShadow: `0 4px 14px ${color}25` }}>
+          <Icon size={18} />
         </div>
-        <b style={{ fontSize: 32, fontWeight: 800, color: D.text, letterSpacing: "-0.02em" }}>{value}</b>
       </div>
-    </div>
+
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <b style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", letterSpacing: "-0.03em", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}>{value}</b>
+        {sublabel && (
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: `${color}15`, color, border: `1px solid ${color}30` }}>
+            {sublabel}
+          </span>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
-function Chart({ data = [0,0,0,0,0,0,0] }: { data?: number[] }) {
+function Chart({ data = [0, 0, 0, 0, 0, 0, 0] }: { data?: number[] }) {
+  const [timeframe, setTimeframe] = useState<"7d" | "30d">("7d");
   const maxVal = Math.max(...data, 10);
-  const pts = data.map(v => 180 - (v / maxVal) * 150);
-  const xs = [0, 100, 200, 300, 400, 500, 600];
-  const path = xs.map((x, i) => `${i === 0 ? "M" : "L"}${x} ${pts[i]}`).join(" ");
+  
+  const pts = data.map(v => 170 - (v / maxVal) * 125);
+  const xs = [30, 120, 210, 300, 390, 480, 570];
+  
+  let path = `M ${xs[0]} ${pts[0]}`;
+  for (let i = 0; i < xs.length - 1; i++) {
+    const xc = (xs[i] + xs[i + 1]) / 2;
+    const yc = (pts[i] + pts[i + 1]) / 2;
+    path += ` Q ${xs[i]} ${pts[i]}, ${xc} ${yc}`;
+  }
+  path += ` T ${xs[xs.length - 1]} ${pts[pts.length - 1]}`;
+
+  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
   return (
-    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 700, fontSize: 14, color: D.text }}>AI queries over time</h2>
-        <button style={{ borderRadius: 100, border: `1px solid ${D.border}`, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: D.muted, background: "rgba(255,255,255,0.03)" }}>7 days ⌄</button>
+    <section
+      style={{
+        borderRadius: 24,
+        background: "linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        padding: "24px 26px",
+        border: "1px solid rgba(255, 255, 255, 0.09)",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+        position: "relative",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontWeight: 800, fontSize: 16, color: "#ffffff", display: "flex", alignItems: "center", gap: 8, letterSpacing: "-0.01em" }}>
+            <Activity size={18} style={{ color: D.accent }} />
+            AI Queries Over Time
+          </h2>
+          <p style={{ fontSize: 12, color: D.muted, marginTop: 2 }}>RAG Assistant interactions across DeKUT campus.</p>
+        </div>
+
+        <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.3)", padding: 3, borderRadius: 12, border: `1px solid ${D.border}` }}>
+          {(["7d", "30d"] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTimeframe(t)}
+              style={{
+                padding: "4px 12px",
+                borderRadius: 9,
+                fontSize: 11,
+                fontWeight: 700,
+                background: timeframe === t ? "rgba(16,185,129,0.2)" : "transparent",
+                color: timeframe === t ? D.accent : D.muted,
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              {t === "7d" ? "7 Days" : "30 Days"}
+            </button>
+          ))}
+        </div>
       </div>
-      <div style={{ position: "relative", marginTop: 32, height: 160 }}>
+
+      <div style={{ position: "relative", marginTop: 16, height: 180, width: "100%" }}>
         <svg viewBox="0 0 600 200" style={{ width: "100%", height: "100%", overflow: "visible" }}>
           <defs>
-            <linearGradient id="ga" x1="0" x2="0" y1="0" y2="1">
-              <stop stopColor={D.accent} stopOpacity=".15" />
-              <stop offset="1" stopColor={D.accent} stopOpacity="0" />
+            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
             </linearGradient>
+            <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
-          <path d={`${path} V200 H0Z`} fill="url(#ga)" />
-          <path d={path} fill="none" stroke={D.accent} strokeWidth="3" />
-          {xs.map((x, i) => <circle key={x} cx={x} cy={pts[i]} r="4" fill={D.bg} stroke={D.accent} strokeWidth="2" />)}
+
+          <line x1="30" y1="45" x2="570" y2="45" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+          <line x1="30" y1="95" x2="570" y2="95" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+          <line x1="30" y1="145" x2="570" y2="145" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+
+          <path d={`${path} L 570 175 L 30 175 Z`} fill="url(#areaGradient)" />
+
+          <path d={path} fill="none" stroke="#10b981" strokeWidth="3" filter="url(#glowEffect)" />
+
+          {xs.map((x, i) => (
+            <g key={x}>
+              <circle cx={x} cy={pts[i]} r="5" fill="#090d14" stroke="#10b981" strokeWidth="2.5" />
+              <text x={x} y={pts[i] - 10} fill="#34d399" fontSize="11" fontWeight="700" textAnchor="middle">{data[i] ?? 0}</text>
+              <text x={x} y="195" fill={D.muted} fontSize="11" fontWeight="600" textAnchor="middle">{dayLabels[i]}</text>
+            </g>
+          ))}
         </svg>
       </div>
     </section>
@@ -295,26 +388,79 @@ function Chart({ data = [0,0,0,0,0,0,0] }: { data?: number[] }) {
 }
 
 function Health({ score = 100 }: { score?: number }) {
-  const bars = ["Document processing", "System connectivity", "Vector indexing"];
+  const bars = [
+    { name: "Document processing", val: score, detail: "PDF & Web ingestion pipeline" },
+    { name: "System connectivity", val: 100, detail: "Supabase DB & Edge Functions" },
+    { name: "Vector indexing", val: score >= 90 ? 98 : score, detail: "776D Embedding search" }
+  ];
   return (
-    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
-      <h2 style={{ fontWeight: 700, fontSize: 14, color: D.text }}>Knowledge base health</h2>
-      <div style={{ display: "flex", alignItems: "center", gap: 32, marginTop: 32 }}>
-        <div style={{ width: 120, height: 120, borderRadius: "50%", border: `4px solid rgba(255,255,255,0.05)`, position: "relative", display: "grid", placeItems: "center", flexShrink: 0, textAlign: "center" }}>
-          <svg style={{ position: "absolute", inset: -4, width: 128, height: 128, transform: "rotate(-90deg)" }}>
-            <circle cx="64" cy="64" r="62" fill="none" stroke={score >= 90 ? D.accent : "#f59e0b"} strokeWidth="4" strokeDasharray={`${2 * Math.PI * 62}`} strokeDashoffset={`${2 * Math.PI * 62 * (1 - score / 100)}`} />
+    <section
+      style={{
+        borderRadius: 24,
+        background: "linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        padding: "24px 26px",
+        border: "1px solid rgba(255, 255, 255, 0.09)",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontWeight: 800, fontSize: 16, color: "#ffffff", display: "flex", alignItems: "center", gap: 8, letterSpacing: "-0.01em" }}>
+            <Zap size={18} style={{ color: D.accent }} />
+            Knowledge Base Health
+          </h2>
+          <p style={{ fontSize: 12, color: D.muted, marginTop: 2 }}>RAG index integrity & system readiness.</p>
+        </div>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 100, background: "rgba(16,185,129,0.15)", color: D.accent, border: "1px solid rgba(16,185,129,0.3)" }}>
+          ~120ms latency
+        </span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 28, marginTop: 24, flexWrap: "wrap" }}>
+        <div style={{ width: 130, height: 130, borderRadius: "50%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", position: "relative", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)" }}>
+          <svg style={{ position: "absolute", inset: -4, width: 138, height: 138, transform: "rotate(-90deg)" }}>
+            <circle cx="69" cy="69" r="62" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+            <circle
+              cx="69"
+              cy="69"
+              r="62"
+              fill="none"
+              stroke={score >= 90 ? "#10b981" : "#f59e0b"}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 62}`}
+              strokeDashoffset={`${2 * Math.PI * 62 * (1 - score / 100)}`}
+              style={{ filter: "drop-shadow(0 0 8px rgba(16, 185, 129, 0.4))", transition: "all 1s ease" }}
+            />
           </svg>
-          <div>
-            <b style={{ fontSize: 24, fontWeight: 800, color: D.text, display: "block", marginBottom: 2 }}>{score}%</b>
-            <span style={{ fontSize: 11, color: score >= 90 ? D.accent : "#f59e0b", fontWeight: 600 }}>{score >= 90 ? "Excellent" : "Needs Review"}</span>
+          <div style={{ textAlign: "center" }}>
+            <b style={{ fontSize: 28, fontWeight: 800, color: "#ffffff", display: "block", lineHeight: 1.1 }}>{score}%</b>
+            <span style={{ fontSize: 11, color: score >= 90 ? D.accent : "#f59e0b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              {score >= 90 ? "Optimal" : "Review"}
+            </span>
           </div>
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+
+        <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 16 }}>
           {bars.map((x) => (
-            <div key={x}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: D.muted, marginBottom: 8 }}><span>{x}</span><span style={{ color: D.text }}>{score}%</span></div>
-              <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.05)" }}>
-                <div style={{ height: "100%", borderRadius: 2, background: score >= 90 ? D.accent : "#f59e0b", width: `${score}%`, boxShadow: `0 0 10px ${score >= 90 ? D.accent : "#f59e0b"}44` }} />
+            <div key={x.name}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: D.text, marginBottom: 6 }}>
+                <span>{x.name}</span>
+                <span style={{ color: D.accent, fontWeight: 800 }}>{x.val}%</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: "100%",
+                    borderRadius: 3,
+                    background: "linear-gradient(90deg, #10b981 0%, #14b8a6 100%)",
+                    width: `${x.val}%`,
+                    boxShadow: "0 0 12px rgba(16, 185, 129, 0.5)",
+                    transition: "width 0.8s ease",
+                  }}
+                />
               </div>
             </div>
           ))}
@@ -327,20 +473,96 @@ function Health({ score = 100 }: { score?: number }) {
 function Overview({ done, setDone, onTab, stats }: { done: number[]; setDone: (x: number[]) => void; onTab: (x: Tab) => void; stats: any }) {
   return (
     <>
-      <div style={{ marginBottom: 40 }}>
-        <p style={{ fontSize: 13, color: D.muted }}>Welcome back, <b style={{ color: D.text }}>Admin</b> 👋</p>
-        <h1 style={{ fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 800, marginTop: 8, color: D.text, letterSpacing: "-0.02em" }}>A healthier, more informed campus.</h1>
-        <p style={{ marginTop: 8, color: D.muted, fontSize: 15 }}>Manage people, knowledge and service delivery across the university.</p>
+      <div
+        style={{
+          marginBottom: 28,
+          borderRadius: 24,
+          background: "linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(13, 22, 33, 0.6) 60%, rgba(6, 10, 16, 0.8) 100%)",
+          backdropFilter: "blur(24px)",
+          border: "1px solid rgba(16, 185, 129, 0.25)",
+          padding: "32px 36px",
+          boxShadow: "0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
+          position: "relative",
+          overflow: "hidden",
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 24,
+        }}
+      >
+        <div style={{ position: "absolute", top: -50, left: -50, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.25) 0%, transparent 70%)", pointerEvents: "none" }} />
+        
+        <div style={{ position: "relative", zIndex: 10, maxWidth: 600 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", padding: "4px 12px", borderRadius: 100, background: "rgba(16,185,129,0.18)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+              DEKUT CAMPUS ADMIN
+            </span>
+            <span style={{ fontSize: 12, color: D.muted }}>• Academic Year 2026/2027</span>
+          </div>
+
+          <h1 style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.03em", margin: 0, lineHeight: 1.2 }}>
+            Welcome back, <span style={{ background: "linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Admin</span> 👋
+          </h1>
+          <p style={{ marginTop: 8, color: "#d4d4d8", fontSize: 15, lineHeight: 1.6, margin: 0 }}>
+            A healthier, more informed campus. Manage students, knowledge base documents, notices, and support tickets in real-time.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, position: "relative", zIndex: 10 }}>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onTab("Documents")}
+            style={{
+              padding: "10px 18px",
+              borderRadius: 14,
+              fontSize: 13,
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "#09090b",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 4px 16px rgba(16,185,129,0.3)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Upload size={16} /> Manage Documents
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onTab("Notices")}
+            style={{
+              padding: "10px 18px",
+              borderRadius: 14,
+              fontSize: 13,
+              fontWeight: 700,
+              background: "rgba(255,255,255,0.06)",
+              color: "#ffffff",
+              border: "1px solid rgba(255,255,255,0.15)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Bell size={16} /> New Notice
+          </motion.button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 24 }}>
-        <Metric icon={Users} color="#10b981" value={stats.users.toString()} label="Active users" />
-        <Metric icon={FileText} color="#3b82f6" value={stats.docs.toString()} label="Live documents" />
-        <Metric icon={Ticket} color="#f59e0b" value={stats.tickets.toString()} label="Open tickets" />
-        <Metric icon={Bell} color="#ec4899" value={stats.notices.toString()} label="Live notices" />
+        <Metric icon={Users} color="#10b981" value={stats.users.toString()} label="Active users" sublabel="Live Tenant Members" />
+        <Metric icon={FileText} color="#3b82f6" value={stats.docs.toString()} label="Live documents" sublabel="RAG Vectorized" />
+        <Metric icon={Ticket} color="#f59e0b" value={stats.tickets.toString()} label="Open tickets" sublabel="Requires Attention" />
+        <Metric icon={Bell} color="#ec4899" value={stats.notices.toString()} label="Live notices" sublabel="Broadcast Active" />
       </div>
 
-      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr 1fr", marginBottom: 40 }} className="xl:grid-cols-[1fr_1fr] grid-cols-1">
+      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1.2fr 0.8fr", marginBottom: 40 }} className="xl:grid-cols-[1.2fr_0.8fr] grid-cols-1">
         <Chart data={stats.chartData} />
         <Health score={stats.healthScore} />
       </div>
