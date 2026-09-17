@@ -670,35 +670,38 @@ export function StudentWorkspace() {
 
       <section style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", position: "relative", zIndex: 10 }}>
         
-        <header className="desktop-only" style={{ margin: "20px 28px 0", padding: "12px 24px", height: 68, display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(11, 15, 20, 0.75)", backdropFilter: "blur(24px)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", flexShrink: 0, zIndex: 30 }}>
+        <header className="desktop-only" style={{ margin: "20px 28px 0", padding: "12px 24px", height: 70, display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(135deg, rgba(20, 26, 36, 0.85) 0%, rgba(12, 17, 24, 0.75) 100%)", backdropFilter: "blur(28px) saturate(190%)", WebkitBackdropFilter: "blur(28px) saturate(190%)", borderRadius: 22, border: "1px solid rgba(255, 255, 255, 0.12)", boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 30px rgba(16, 185, 129, 0.04)", flexShrink: 0, zIndex: 30 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"} style={{ padding: 10, borderRadius: 12, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", transition: "all 0.2s" }}>
+            <motion.button whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.08)" }} whileTap={{ scale: 0.95 }} onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"} style={{ padding: 10, borderRadius: 14, color: "#e4e4e7", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
-            </button>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", fontSize: 13, fontWeight: 600, color: "#d4d4d8" }}>
-              <Sparkles size={14} style={{ color: "#10b981" }} />
+            </motion.button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 14, background: "linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)", fontSize: 13, fontWeight: 600, color: "#f4f4f5", letterSpacing: "-0.01em" }}>
+              <Sparkles size={15} style={{ color: "#34d399" }} />
               <span>{tab} Workspace</span>
             </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 99, background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.25)", fontSize: 11, fontWeight: 600, color: "#10b981" }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.06) 100%)", border: "1px solid rgba(52, 211, 153, 0.3)", boxShadow: "0 0 20px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)", fontSize: 12, fontWeight: 600, color: "#34d399", letterSpacing: "-0.01em" }}>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+              </span>
               DeKUT AI Online
             </div>
 
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 12, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", cursor: "pointer" }}>
-              <Sparkles size={14} /> <span>Ask KiliGuide</span>
+            <motion.button whileHover={{ scale: 1.03, boxShadow: "0 0 25px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255,255,255,0.3)" }} whileTap={{ scale: 0.97 }} onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 14, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(20, 184, 166, 0.14) 100%)", color: "#34d399", border: "1px solid rgba(52, 211, 153, 0.4)", boxShadow: "0 0 18px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+              <Sparkles size={15} style={{ color: "#34d399" }} /> <span>Ask KiliGuide</span>
             </motion.button>
 
-            <button onClick={()=>switchTab("Notices")} title="Notices" style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#a1a1aa", cursor: "pointer", position: "relative" }}>
+            <motion.button whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.08)" }} whileTap={{ scale: 0.95 }} onClick={()=>switchTab("Notices")} title="Notices" style={{ padding: 10, borderRadius: 14, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "#e4e4e7", cursor: "pointer", position: "relative", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Bell size={18} />
-              {notices.length > 0 && <span style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: "50%", background: "#fbbf24" }} />}
-            </button>
+              {notices.length > 0 && <span style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", boxShadow: "0 0 10px #fbbf24" }} />}
+            </motion.button>
 
-            <button onClick={()=>switchTab("Settings")} title="Settings" style={{ padding: 10, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#a1a1aa", cursor: "pointer" }}>
+            <motion.button whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.08)" }} whileTap={{ scale: 0.95 }} onClick={()=>switchTab("Settings")} title="Settings" style={{ padding: 10, borderRadius: 14, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "#e4e4e7", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Settings size={18} />
-            </button>
+            </motion.button>
           </div>
         </header>
 

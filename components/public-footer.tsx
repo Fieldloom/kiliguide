@@ -16,6 +16,9 @@ export function PublicFooter() {
         <Link href="/terms" className="text-zinc-400 hover:text-white no-underline transition-colors">
           Terms of Use
         </Link>
+        <Link href="/cookies" className="text-zinc-400 hover:text-white no-underline transition-colors">
+          Cookie Policy
+        </Link>
       </div>
     </footer>
   );
