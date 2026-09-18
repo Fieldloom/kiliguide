@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Plus, Paperclip, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Paperclip, Pencil, Plus, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 
@@ -78,6 +78,46 @@ export function StudentWorkspace() {
   const [ticketDesc, setTicketDesc] = useState("");
   const [creatingTicket, setCreatingTicket] = useState(false);
   const [ticketDeptId, setTicketDeptId] = useState("");
+  const [editingTicket, setEditingTicket] = useState<any | null>(null);
+  const [editSubject, setEditSubject] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editingBusy, setEditingBusy] = useState(false);
+  const [deletingTicketId, setDeletingTicketId] = useState<string | null>(null);
+
+  const startEditTicket = (t: any) => {
+    setEditingTicket(t);
+    setEditSubject(t.subject || "");
+    setEditDesc(t.description || "");
+  };
+
+  const handleUpdateTicket = async () => {
+    if (!supabase || !editingTicket || !editSubject.trim() || !editDesc.trim()) return;
+    setEditingBusy(true);
+    const { error } = await supabase.from("tickets").update({
+      subject: editSubject,
+      description: editDesc,
+    }).eq("id", editingTicket.id);
+
+    if (!error) {
+      setTickets(tickets.map(t => t.id === editingTicket.id ? { ...t, subject: editSubject, description: editDesc } : t));
+      setEditingTicket(null);
+    } else {
+      console.error("Failed to update ticket:", error);
+    }
+    setEditingBusy(false);
+  };
+
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (!supabase) return;
+    setDeletingTicketId(ticketId);
+    const { error } = await supabase.from("tickets").delete().eq("id", ticketId);
+    if (!error) {
+      setTickets(tickets.filter(t => t.id !== ticketId));
+    } else {
+      console.error("Failed to delete ticket:", error);
+    }
+    setDeletingTicketId(null);
+  };
   const [uploading, setUploading] = useState(false);
   const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
@@ -1396,7 +1436,7 @@ export function StudentWorkspace() {
                   
                   <div className="flex flex-col gap-3">
                     {tickets.map(ticket => (
-                      <div key={ticket.id} className="glass-panel p-4 rounded-2xl border border-white/10 bg-white/5">
+                      <div key={ticket.id} className="glass-panel p-4 rounded-2xl border border-white/10 bg-white/5 relative group">
                         <div className="flex justify-between items-start gap-2 mb-2">
                           <span className="font-semibold text-xs sm:text-sm text-white flex-1">{ticket.subject}</span>
                           <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
@@ -1410,7 +1450,25 @@ export function StudentWorkspace() {
                         <p className="text-xs text-zinc-400 m-0 line-clamp-2 leading-relaxed">{ticket.description}</p>
                         <div className="mt-3 pt-2.5 border-t border-white/5 flex justify-between items-center text-[10px] text-zinc-500">
                           <span>Ref ID: #{ticket.id.slice(0, 8)}</span>
-                          <span>Priority: Standard SLA</span>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => startEditTicket(ticket)}
+                              className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center gap-1"
+                              title="Edit ticket"
+                            >
+                              <Pencil size={13} />
+                              <span className="text-[10px]">Edit</span>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTicket(ticket.id)}
+                              disabled={deletingTicketId === ticket.id}
+                              className="text-rose-400 hover:text-rose-300 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer border-none bg-transparent disabled:opacity-50 flex items-center gap-1"
+                              title="Delete ticket"
+                            >
+                              {deletingTicketId === ticket.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                              <span className="text-[10px]">Delete</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1420,6 +1478,59 @@ export function StudentWorkspace() {
                         <CheckCircle2 size={32} className="text-[#10b981] mx-auto mb-2 opacity-50" />
                         <h4 className="text-xs sm:text-sm font-semibold text-white m-0">No Active Tickets</h4>
                         <p className="text-xs text-zinc-400 m-0 mt-1">Submit a ticket if you encounter any system, academic, or facility issues.</p>
+                      </div>
+                    )}
+
+                    {/* Edit Ticket Modal */}
+                    {editingTicket && (
+                      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 max-w-lg w-full bg-zinc-950/95 shadow-2xl">
+                          <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-base sm:text-lg font-bold text-white m-0 flex items-center gap-2">
+                              <Pencil size={18} className="text-[#10b981]" /> Edit Support Ticket
+                            </h3>
+                            <button onClick={() => setEditingTicket(null)} className="text-zinc-400 hover:text-white bg-transparent border-none cursor-pointer p-1">
+                              <X size={20} />
+                            </button>
+                          </div>
+                          <div className="flex flex-col gap-4">
+                            <div>
+                              <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Issue Subject</label>
+                              <input 
+                                type="text" 
+                                value={editSubject} 
+                                onChange={e => setEditSubject(e.target.value)} 
+                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#10b981]" 
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Detailed Description</label>
+                              <textarea 
+                                rows={4} 
+                                value={editDesc} 
+                                onChange={e => setEditDesc(e.target.value)} 
+                                className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-[#10b981] resize-none" 
+                              />
+                            </div>
+                            <div className="flex justify-end gap-3 mt-2">
+                              <button 
+                                type="button" 
+                                onClick={() => setEditingTicket(null)} 
+                                className="px-4 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-zinc-300 hover:bg-white/5 cursor-pointer bg-transparent"
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                type="button" 
+                                onClick={handleUpdateTicket} 
+                                disabled={editingBusy || !editSubject.trim() || !editDesc.trim()} 
+                                className="px-5 py-2.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-black text-xs font-bold cursor-pointer disabled:opacity-50 flex items-center gap-2 border-none"
+                              >
+                                {editingBusy ? <Loader2 size={15} className="animate-spin" /> : "Save Changes"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
