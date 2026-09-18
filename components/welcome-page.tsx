@@ -100,7 +100,7 @@ export function TrustedBy() {
         </div>
         
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 backdrop-blur-md shadow-lg">
-          <img src="/think_logo.svg" alt="THiNK Tech Innovators Network" className="w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-xl p-1 shadow-md" />
+          <img src="/think_logo.png" alt="THiNK Tech Innovators Network" className="w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-xl p-1 shadow-md" />
           <div className="text-left">
             <b className="text-sm sm:text-base text-zinc-200 tracking-tight block">THiNK</b>
             <span className="text-[10px] sm:text-xs text-purple-400 font-semibold tracking-wider block">TECH INNOVATORS NETWORK</span>

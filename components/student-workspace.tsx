@@ -739,7 +739,7 @@ export function StudentWorkspace() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#a855f7", display: "flex", alignItems: "center", gap: 8 }}>
-                    <img src="/think_logo.svg" alt="THiNK" style={{ width: 18, height: 18, objectFit: "contain", background: "#fff", borderRadius: "50%", padding: 1 }} />
+                    <img src="/think_logo.png" alt="THiNK" style={{ width: 18, height: 18, objectFit: "contain", background: "#fff", borderRadius: "50%", padding: 1 }} />
                     THiNK AI Framework Aligned
                   </div>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#10b981", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1084,7 +1084,7 @@ export function StudentWorkspace() {
 
                           <div className="flex items-center flex-wrap gap-2.5 mt-2.5">
                             <span className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full px-2.5 py-1 text-purple-300 text-[11px] font-medium" title="Enforced by THiNK Safety & Ethical Framework">
-                              <img src="/think_logo.svg" alt="THiNK" className="w-3.5 h-3.5 object-contain bg-white rounded-full p-0.5" />
+                              <img src="/think_logo.png" alt="THiNK" className="w-3.5 h-3.5 object-contain bg-white rounded-full p-0.5" />
                               THiNK Safety Guardrails
                             </span>
                             <button onClick={() => toggleReadAloud(m.id, m.content)} title={readingMsgId === m.id ? "Stop reading" : "Read aloud"} className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-white/10 cursor-pointer transition-colors ${readingMsgId === m.id ? "bg-rose-500/20 text-rose-400 border-rose-500/30" : "bg-white/5 text-zinc-400 hover:text-white"}`}>
