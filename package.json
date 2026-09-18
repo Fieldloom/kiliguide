@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:push": "supabase db push",
+    "functions:deploy": "supabase functions deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

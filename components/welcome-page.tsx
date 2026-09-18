@@ -89,10 +89,23 @@ export function TrustedBy() {
       transition={{ duration: 1, delay: 0.6 }}
       className="mt-12 sm:mt-20 pb-12 sm:pb-16 flex flex-col items-center gap-4 sm:gap-6 text-center"
     >
-      <span className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-widest font-semibold">Supporters</span>
-      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 px-4">
-        <img src="/dekut_logo.png" alt="DeKUT" className="w-10 h-10 sm:w-12 sm:h-12 object-contain bg-white rounded-full p-1 shadow-md" />
-        <b className="text-base sm:text-lg text-zinc-200 tracking-tight leading-tight">Dedan Kimathi University of Technology</b>
+      <span className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-widest font-semibold">Supporters & Ecosystem Partners</span>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 px-4">
+        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 backdrop-blur-md shadow-lg">
+          <img src="/dekut_logo.png" alt="DeKUT" className="w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-xl p-1 shadow-md" />
+          <div className="text-left">
+            <b className="text-sm sm:text-base text-zinc-200 tracking-tight block">Dedan Kimathi University</b>
+            <span className="text-[10px] sm:text-xs text-zinc-400">Institutional Partner</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 backdrop-blur-md shadow-lg">
+          <img src="/think_logo.svg" alt="THiNK Tech Innovators Network" className="w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-xl p-1 shadow-md" />
+          <div className="text-left">
+            <b className="text-sm sm:text-base text-zinc-200 tracking-tight block">THiNK</b>
+            <span className="text-[10px] sm:text-xs text-purple-400 font-semibold tracking-wider block">TECH INNOVATORS NETWORK</span>
+          </div>
+        </div>
       </div>
     </motion.section>
   );

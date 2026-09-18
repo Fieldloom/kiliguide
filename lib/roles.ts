@@ -10,7 +10,7 @@ export const roleHome: Record<AppRole, string> = {
   lecturer: "/portal/lecturer",
   student: "/portal/student",
   parent: "/portal/parent",
-  visitor: "/onboarding",
+  visitor: "/portal/student",
 };
 
 export function isAppRole(value: string): value is AppRole { return appRoles.includes(value as AppRole); }
