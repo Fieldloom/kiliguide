@@ -990,7 +990,7 @@ function OfficialSourceImport() {
     const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
     const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
     if (se) { setBusy(false); setStatus(se.message); return; }
-    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "DeKUT Webpage", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, institution_id: profile?.institution_id, metadata: { processing_status: "processing" } }).select("id").single();
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "DeKUT Webpage", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", metadata: { processing_status: "processing" } }).select("id").single();
     if (de) { setBusy(false); setStatus(de.message); return; }
     setStatus("Creating embeddings...");
     const { error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });
@@ -1008,7 +1008,7 @@ function OfficialSourceImport() {
     const path = `admin/${user.id}/${crypto.randomUUID()}.${ext}`;
     const { error: se } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type || "application/octet-stream" });
     if (se) { setBusy(false); setStatus(se.message); return; }
-    const { data: doc, error: de } = await supabase.from("documents").insert({ title: file.name.replace(/\.[^.]+$/, ""), category: "Administration", storage_path: path, file_type: ext, uploaded_by: user.id, institution_id: profile?.institution_id, metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } }).select("id,title").single();
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: file.name.replace(/\.[^.]+$/, ""), category: "Administration", storage_path: path, file_type: ext, uploaded_by: user.id, institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } }).select("id,title").single();
     if (de) { setBusy(false); setStatus(de.message); return; }
     if (ext === "txt") {
       const text = await file.text();
@@ -1437,7 +1437,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
         storage_path: path, 
         file_type: ext, 
         uploaded_by: user.id, 
-        institution_id: profile?.institution_id, 
+        institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", 
         metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } 
       }).select("id,title").single();
       
@@ -1477,7 +1477,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
         storage_path: path, 
         file_type: "txt", 
         uploaded_by: user.id, 
-        institution_id: profile?.institution_id, 
+        institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", 
         metadata: { processing_status: "processing" } 
       }).select("id").single();
       
@@ -1682,7 +1682,7 @@ function Compose({ onClose }: { onClose: () => void }) {
       body,
       summary: body.substring(0, 100),
       author_id: user.id,
-      institution_id: profile?.institution_id,
+      institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001",
       category: "General"
     }).select("id").single();
     

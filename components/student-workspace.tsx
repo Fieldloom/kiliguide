@@ -264,7 +264,7 @@ export function StudentWorkspace() {
       description: ticketDesc,
       created_by: profile?.id,
       department_id: ticketDeptId || null,
-      institution_id: institutionId || null
+      institution_id: institutionId || "00000000-0000-0000-0000-000000000001"
     }).select();
     if (!error && data) {
       setTickets([data[0], ...tickets]);
