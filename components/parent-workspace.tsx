@@ -44,6 +44,10 @@ export function ParentWorkspace() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Parent");
+  const [institutionName, setInstitutionName] = useState<string>("Dedan Kimathi University of Technology");
+  const instShortName = institutionName.includes("Dedan Kimathi")
+    ? "DeKUT"
+    : institutionName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 6) || "University";
   const [showDocuments, setShowDocuments] = useState(false);
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -81,8 +85,12 @@ export function ParentWorkspace() {
       setProfile(user);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Parent");
       if (user && supabase) {
-        const { data: prof } = await supabase.from("profiles").select("preferred_language").eq("id", user.id).single();
+        const { data: prof } = await supabase.from("profiles").select("preferred_language, institution_id, institutions(name)").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
+        if (prof?.institutions) {
+          const instName = (prof.institutions as any).name;
+          if (instName) setInstitutionName(instName);
+        }
         
         const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
         if (settings && settings.value === 'true') setShowDocuments(true);
@@ -472,7 +480,7 @@ export function ParentWorkspace() {
                   <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
                     Welcome, <span style={{ color: "#f97316" }}>{name.split(" ")[0]}</span> 🏡
                   </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Parent & Guardian Portal • Academic Year 2026/2027</p>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>{instShortName} Parent & Guardian Portal • Academic Year 2026/2027</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#f97316", display: "flex", alignItems: "center", gap: 8 }}>
@@ -496,7 +504,7 @@ export function ParentWorkspace() {
                         <Sparkles size={20} style={{ color: "#f97316" }} />
                         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Parent AI Assistant & Information Hub</h2>
                       </div>
-                      <span style={{ fontSize: 11, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: 6 }}>Official DeKUT Portal</span>
+                      <span style={{ fontSize: 11, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: 6 }}>Official {instShortName} Portal</span>
                     </div>
                     
                     <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>Instant guidance on tuition fee payment steps, bank account details, hostel safety, and academic semester calendars.</p>
@@ -513,7 +521,7 @@ export function ParentWorkspace() {
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
                       {[
                         "How do I clear student fees?",
-                        "DeKUT official bank accounts?",
+                        `${instShortName} official bank accounts?`,
                         "Semester exam dates & calendar",
                         "Hostel booking guidelines"
                       ].map((promptText, pIdx) => (
@@ -617,7 +625,7 @@ export function ParentWorkspace() {
                     <div style={{ padding: "12px", borderRadius: 12, background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.2)", marginBottom: 14 }}>
                       <span style={{ fontSize: 11, color: "#f97316", fontWeight: 700, textTransform: "uppercase" }}>Payment Verification</span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: "#fff", display: "block", marginTop: 2 }}>
-                        Verified DeKUT Account Channels
+                        Verified {instShortName} Account Channels
                       </span>
                     </div>
 
@@ -639,7 +647,7 @@ export function ParentWorkspace() {
 
               <div style={{ position: "relative", zIndex: 10 }}>
                 <h1 style={{ fontSize: "clamp(22px, 5.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, color: "#fff", marginBottom: 10, letterSpacing: "-0.03em" }}>
-                  Find Official DeKUT <br className="hidden sm:inline" />
+                  Find Official {instShortName} <br className="hidden sm:inline" />
                   <span style={{ color: "#f97316" }}>Information Instantly</span>
                 </h1>
                 <p style={{ color: "#a1a1aa", fontSize: 15, marginBottom: 32 }}>Accurate answers. Verified sources. Trusted by all.</p>
@@ -726,7 +734,7 @@ export function ParentWorkspace() {
                   <FileText size={24} style={{ color: "#f97316", flexShrink: 0, position: "relative", zIndex: 10 }} />
                   <div style={{ position: "relative", zIndex: 10 }}>
                     <b style={{ display: "block", fontSize: 13, color: "#fff", marginBottom: 4 }}>Powered by Official University Documents</b>
-                    <span style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.4 }}>Answers generated from verified DeKUT regulations, policies, notices and official resources.</span>
+                    <span style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.4 }}>Answers generated from verified {instShortName} regulations, policies, notices and official resources.</span>
                   </div>
                 </div>
 
@@ -783,7 +791,7 @@ export function ParentWorkspace() {
             <div style={{ position: "absolute", bottom: 80, left: 0, right: 0, padding: "0 20px", background: "transparent" }}>
               <div style={{ maxWidth: 760, margin: "0 auto" }}>
                 <div className="glass-panel" style={{ display: "flex", alignItems: "flex-end", gap: 12, borderRadius: 24, padding: "12px 14px" }}>
-                  <textarea value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } }} placeholder="Ask anything about DeKUT…" rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200 }} />
+                  <textarea value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } }} placeholder={`Ask anything about ${instShortName}…`} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 16, color: "#fff", minHeight: 32, maxHeight: 200 }} />
                   <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() ? "#f97316" : "rgba(255,255,255,0.1)", border: "none" }}><Send size={18} color="#fff" /></motion.button>
                 </div>
               </div>

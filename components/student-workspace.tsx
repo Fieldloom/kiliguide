@@ -72,6 +72,9 @@ export function StudentWorkspace() {
   const [profile, setProfile] = useState<any>(null);
   const [institutionId, setInstitutionId] = useState<string>("00000000-0000-0000-0000-000000000001");
   const [institutionName, setInstitutionName] = useState<string>("Dedan Kimathi University of Technology");
+  const instShortName = institutionName.includes("Dedan Kimathi")
+    ? "DeKUT"
+    : (institutionName.split(" ").filter(w => w.length > 0).map(w => w[0]).join("").toUpperCase().slice(0, 6) || institutionName);
   const [language, setLanguage] = useState("en");
   const [docQuery, setDocQuery] = useState("");
   const [ticketSubject, setTicketSubject] = useState("");
@@ -543,7 +546,7 @@ export function StudentWorkspace() {
             </span>
             <div>
               <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>KiliGuide</span>
-              <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", marginTop: 1 }}>DeKUT Campus AI</span>
+              <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", marginTop: 1 }}>{instShortName} Campus AI</span>
             </div>
           </div>
           {mobileSidebar && (
@@ -727,7 +730,7 @@ export function StudentWorkspace() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
               </span>
-              DeKUT AI Online
+              {instShortName} AI Online
             </div>
 
             <motion.button whileHover={{ scale: 1.03, boxShadow: "0 0 25px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255,255,255,0.3)" }} whileTap={{ scale: 0.97 }} onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 14, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(20, 184, 166, 0.14) 100%)", color: "#34d399", border: "1px solid rgba(52, 211, 153, 0.4)", boxShadow: "0 0 18px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }}>
@@ -775,7 +778,7 @@ export function StudentWorkspace() {
                   <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
                     Welcome back, {name.split(" ")[0]} 👋
                   </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>DeKUT Intelligent Campus Companion • Academic Year 2026/2027</p>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>{institutionName} Intelligent Campus Companion • Academic Year 2026/2027</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#a855f7", display: "flex", alignItems: "center", gap: 8 }}>
@@ -803,7 +806,7 @@ export function StudentWorkspace() {
                         <Sparkles size={20} style={{ color: "#10b981" }} />
                         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Ask KiliGuide AI Assistant</h2>
                       </div>
-                      <span style={{ fontSize: 11, color: "#71717a", background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: 6 }}>RAG-indexed DeKUT Docs</span>
+                      <span style={{ fontSize: 11, color: "#71717a", background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: 6 }}>RAG-indexed {instShortName} Docs</span>
                     </div>
                     
                     <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>Ask anything about unit registration, fee payment, exam timetables, or hostel booking.</p>
@@ -815,7 +818,7 @@ export function StudentWorkspace() {
                       style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px 10px 20px" }}
                     >
                       <Search size={18} style={{ color: "#10b981" }} />
-                      <input disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !asking) ask(); }} placeholder={asking ? "Searching DeKUT knowledge base..." : "Search university guidelines, fee statements, course units..."} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", opacity: asking ? 0.7 : 1 }} />
+                      <input disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !asking) ask(); }} placeholder={asking ? `Searching ${instShortName} knowledge base...` : "Search university guidelines, fee statements, course units..."} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", opacity: asking ? 0.7 : 1 }} />
                       <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 38, height: 38, borderRadius: 12, display: "grid", placeItems: "center", border: "none", background: query.trim() || asking ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "rgba(255,255,255,0.08)", color: "#fff", cursor: query.trim() && !asking ? "pointer" : "not-allowed", transition: "0.2s" }}>
                         {asking ? (
                           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "grid", placeItems: "center" }}>
@@ -947,7 +950,7 @@ export function StudentWorkspace() {
                         <div key={nIdx} onClick={() => switchTab("Notices")} style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
                           <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4, lineHeight: 1.3 }}>{notice.title}</span>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                            <span style={{ fontSize: 10, color: "#a1a1aa" }}>DeKUT Administration</span>
+                            <span style={{ fontSize: 10, color: "#a1a1aa" }}>{instShortName} Administration</span>
                             <span style={{ fontSize: 10, color: "#10b981", marginLeft: "auto" }}>Read notice →</span>
                           </div>
                         </div>
@@ -982,7 +985,7 @@ export function StudentWorkspace() {
                   <div className="glazed-widget" style={{ padding: 22, border: "none" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                       <HeadphonesIcon size={18} style={{ color: "#10b981" }} />
-                      <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>DeKUT IT Helpdesk</h3>
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{instShortName} IT Helpdesk</h3>
                     </div>
 
                     <div style={{ padding: "12px", borderRadius: 12, background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", marginBottom: 14 }}>
@@ -1012,7 +1015,7 @@ export function StudentWorkspace() {
                 <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-1">
                   How can I help you today? 👋
                 </h1>
-                <p className="text-xs sm:text-sm text-zinc-400 mb-4">Official DeKUT campus guide powered by AI.</p>
+                <p className="text-xs sm:text-sm text-zinc-400 mb-4">Official {institutionName} campus guide powered by AI.</p>
 
                 {/* ChatGPT-style Search Bar */}
                 <div className="flex items-center gap-3 rounded-full px-4 py-2.5 border border-[#10b981]/50 bg-black/40 shadow-lg backdrop-blur-md">
@@ -1157,7 +1160,7 @@ export function StudentWorkspace() {
                           transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                           style={{ fontSize: 14, color: "#ececec", fontWeight: 500, letterSpacing: "0.01em" }}
                         >
-                          Analyzing DeKUT knowledge base...
+                          Analyzing {instShortName} knowledge base...
                         </motion.span>
                       </div>
                       <motion.span 
@@ -1233,7 +1236,7 @@ export function StudentWorkspace() {
                     <Paperclip size={18} />
                   </button>
 
-                  <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Processing..." : isListening ? "Listening to voice input... Speak now..." : "Ask anything about DeKUT…"} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 14, lineHeight: "1.4", color: "#fff", padding: "6px 0", minHeight: 24, maxHeight: 160, opacity: asking ? 0.7 : 1, overflowY: "auto" }} />
+                  <textarea disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !asking) { e.preventDefault(); ask(); } }} placeholder={asking ? "Processing..." : isListening ? "Listening to voice input... Speak now..." : `Ask anything about ${instShortName}…`} rows={1} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", fontSize: 14, lineHeight: "1.4", color: "#fff", padding: "6px 0", minHeight: 24, maxHeight: 160, opacity: asking ? 0.7 : 1, overflowY: "auto" }} />
                   <button onClick={toggleListening} style={{ background: "none", border: "none", color: isListening ? "#19c37d" : "#a1a1aa", cursor: "pointer", padding: 4, transition: "color 0.2s", flexShrink: 0 }}>
                     {isListening ? (
                       <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
@@ -1339,12 +1342,12 @@ export function StudentWorkspace() {
                     <HeadphonesIcon size={20} />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-white m-0">DeKUT Official IT & Campus Helpdesk</h2>
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-white m-0">{institutionName} Official IT & Campus Helpdesk</h2>
                     <span className="text-xs text-[#10b981] font-semibold">Priority SLA: 24 – 48 Hours Response Guarantee</span>
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-zinc-300 m-0 mt-3 leading-relaxed">
-                  Submit official support tickets directly to DeKUT Directorate of ICT, Academic Registrar, and Student Affairs. Track ticket progress, receive real-time resolution alerts, or escalate unresolved issues.
+                  Submit official support tickets directly to {institutionName} Directorate of ICT, Academic Registrar, and Student Affairs. Track ticket progress, receive real-time resolution alerts, or escalate unresolved issues.
                 </p>
               </div>
 
@@ -1421,7 +1424,7 @@ export function StudentWorkspace() {
                         className="w-full bg-[#10b981] hover:bg-[#059669] text-black font-bold py-3 rounded-xl text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg mt-1 border-none"
                       >
                         {creatingTicket ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                        <span>Submit Ticket to DeKUT Helpdesk</span>
+                        <span>Submit Ticket to {instShortName} Helpdesk</span>
                       </button>
                     </div>
                   </div>
@@ -1548,7 +1551,7 @@ export function StudentWorkspace() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 pb-6 border-b border-white/5">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-white m-0">My Timetable</h2>
-                  <p className="text-xs sm:text-sm text-zinc-400 mt-1 m-0">Upload & AI-schedule your DeKUT classes.</p>
+                  <p className="text-xs sm:text-sm text-zinc-400 mt-1 m-0">Upload & AI-schedule your {instShortName} classes.</p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                     <label className="flex flex-col gap-1 text-xs text-zinc-400">

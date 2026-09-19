@@ -327,7 +327,7 @@ function Chart({ data = [0, 0, 0, 0, 0, 0, 0] }: { data?: number[] }) {
             <Activity size={18} style={{ color: D.accent }} />
             AI Queries Over Time
           </h2>
-          <p style={{ fontSize: 12, color: D.muted, marginTop: 2 }}>RAG Assistant interactions across DeKUT campus.</p>
+          <p style={{ fontSize: 12, color: D.muted, marginTop: 2 }}>RAG Assistant interactions across campus.</p>
         </div>
 
         <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.3)", padding: 3, borderRadius: 12, border: `1px solid ${D.border}` }}>
@@ -496,7 +496,7 @@ function Overview({ done, setDone, onTab, stats }: { done: number[]; setDone: (x
         <div style={{ position: "relative", zIndex: 10, maxWidth: 600 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", padding: "4px 12px", borderRadius: 100, background: "rgba(16,185,129,0.18)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-              DEKUT CAMPUS ADMIN
+              CAMPUS ADMIN
             </span>
             <span style={{ fontSize: 12, color: D.muted }}>• Academic Year 2026/2027</span>
           </div>
@@ -990,7 +990,7 @@ function OfficialSourceImport() {
     const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
     const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
     if (se) { setBusy(false); setStatus(se.message); return; }
-    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "DeKUT Webpage", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", metadata: { processing_status: "processing" } }).select("id").single();
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "Webpage Document", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", metadata: { processing_status: "processing" } }).select("id").single();
     if (de) { setBusy(false); setStatus(de.message); return; }
     setStatus("Creating embeddings...");
     const { error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });

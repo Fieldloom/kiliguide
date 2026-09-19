@@ -43,7 +43,7 @@ export function CookieConsentBanner() {
         </div>
 
         <p className="text-xs text-zinc-300 leading-relaxed mb-4">
-          KiliGuide uses essential cookies and local storage to keep you authenticated, store your theme preferences, and deliver seamless AI guidance for DeKUT students. Learn more in our{" "}
+          KiliGuide uses essential cookies and local storage to keep you authenticated, store your theme preferences, and deliver seamless AI guidance for students. Learn more in our{" "}
           <Link href="/cookies" className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300">
             Cookie Policy
           </Link>.
