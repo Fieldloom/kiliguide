@@ -18,10 +18,15 @@ export async function geminiFetch(url: string, init: RequestInit): Promise<Respo
   const keys = availableKeys();
   if (!keys.length) throw new Error("No Gemini API key is configured in Supabase environment.");
   
+  const isEmbed = url.includes(":embedContent");
+  const models = isEmbed 
+    ? ["gemini-embedding-2", "text-embedding-004", "embedding-001"]
+    : modelsToTry;
+
   const errors: string[] = [];
   let lastResponse: Response | undefined;
 
-  for (const model of modelsToTry) {
+  for (const model of models) {
     const currentUrl = url.replace(/\/models\/[^:]+:/, `/models/${model}:`);
 
     for (let index = 0; index < keys.length; index++) {

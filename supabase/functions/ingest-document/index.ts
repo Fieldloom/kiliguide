@@ -56,7 +56,7 @@ async function embed(text: string): Promise<number[]> {
   const keys = availableKeys();
   if (!keys.length) throw new Error("No Gemini API key is configured.");
   
-  const embeddingModels = ["text-embedding-004", "embedding-001"];
+  const embeddingModels = ["gemini-embedding-2", "text-embedding-004", "embedding-001"];
   const errors: string[] = [];
 
   for (const model of embeddingModels) {
