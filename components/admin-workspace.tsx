@@ -1013,11 +1013,15 @@ function OfficialSourceImport() {
     if (ext === "txt") {
       const text = await file.text();
       const { data, error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text } });
-      setStatus(error ? `Uploaded but indexing failed: ${error.message}` : `✓ ${doc.title} indexed into ${data?.chunks || 0} chunks.`);
+      const failed = error || (data && data.success === false) || data?.error;
+      const errMsg = error?.message || data?.error || "Unknown error";
+      setStatus(failed ? `Uploaded but indexing failed: ${errMsg}` : `✓ ${doc.title} indexed into ${data?.chunks || 0} chunks.`);
     } else {
       setStatus(`Extracting text from ${ext.toUpperCase()}...`);
       const { data, error } = await supabase.functions.invoke("process-document", { body: { documentId: doc.id, storagePath: path, extension: ext } });
-      setStatus(error ? `Extraction failed: ${error.message}` : `✓ ${doc.title} indexed into ${data?.chunks || 0} chunks.`);
+      const failed = error || (data && data.success === false) || data?.error;
+      const errMsg = error?.message || data?.error || "Unknown error";
+      setStatus(failed ? `Extraction failed: ${errMsg}` : `✓ ${doc.title} indexed into ${data?.chunks || 0} chunks.`);
     }
     setBusy(false);
   };
