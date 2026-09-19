@@ -1,4 +1,6 @@
+// @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+declare const Deno: any;
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
@@ -91,7 +93,7 @@ async function embed(text: string): Promise<number[]> {
   throw new Error(`All embedding model attempts failed: ${errors.join(" | ")}`);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const { documentId, text, pageNumber } = await req.json();
