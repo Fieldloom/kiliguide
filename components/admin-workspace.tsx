@@ -12,13 +12,14 @@ import { scrapeDeKut } from "../app/actions";
 import { AdminChat } from "./admin-chat";
 import { InstallButton } from "./install-button";
 
-type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Users" | "Analytics" | "System Health" | "Institutions" | "Web Crawler";
+type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Departments" | "Users" | "Analytics" | "System Health" | "Institutions" | "Web Crawler";
 const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "AI Assistant", icon: MessageSquareText },
   { label: "Documents", icon: FileText },
   { label: "Notices", icon: Bell },
   { label: "Tickets", icon: Ticket },
+  { label: "Departments", icon: Building2 },
   { label: "Users", icon: Users },
   { label: "Analytics", icon: BarChart3 },
   { label: "System Health", icon: Settings },
@@ -590,6 +591,8 @@ function WorkspaceTab({ tab, onCompose, onUpload }: { tab: Tab; onCompose: () =>
         <><OfficialSourceImport /><DocumentLibrary /></>
       ) : tab === "Tickets" ? (
         <TicketsWorkspace />
+      ) : tab === "Departments" ? (
+        <DepartmentsWorkspace />
       ) : tab === "Notices" ? (
         <NoticesWorkspace />
       ) : tab === "Users" ? (
@@ -611,6 +614,251 @@ function WorkspaceTab({ tab, onCompose, onUpload }: { tab: Tab; onCompose: () =>
           </p>
         </div>
       )}
+    </section>
+  );
+}
+
+// ── DEPARTMENTS & ESCALATION EMAILS ──────────────────────────────────────────
+function DepartmentsWorkspace() {
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [userInstId, setUserInstId] = useState<string | null>(null);
+  const [msg, setMsg] = useState("");
+
+  const loadDepts = async () => {
+    if (!supabase) return;
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: prof } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+      if (prof?.institution_id) setUserInstId(prof.institution_id);
+    }
+    const { data } = await supabase.from("departments").select("*").order("name");
+    setDepartments(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadDepts();
+  }, []);
+
+  const handleCreate = async () => {
+    if (!supabase || !name.trim() || !email.trim()) return;
+    setSaving(true);
+    setMsg("");
+    let instId = userInstId;
+    if (!instId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: prof } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+        instId = prof?.institution_id || "00000000-0000-0000-0000-000000000001";
+      }
+    }
+    const { error } = await supabase.from("departments").insert({
+      name: name.trim(),
+      email: email.trim(),
+      institution_id: instId || "00000000-0000-0000-0000-000000000001"
+    });
+
+    setSaving(false);
+    if (error) {
+      setMsg(`Error: ${error.message}`);
+    } else {
+      setName("");
+      setEmail("");
+      setMsg("Department contact email added successfully!");
+      loadDepts();
+    }
+  };
+
+  const handleUpdate = async (id: string) => {
+    if (!supabase || !editName.trim() || !editEmail.trim()) return;
+    const { error } = await supabase.from("departments").update({
+      name: editName.trim(),
+      email: editEmail.trim()
+    }).eq("id", id);
+
+    if (error) {
+      alert(`Error updating department: ${error.message}`);
+    } else {
+      setEditingId(null);
+      loadDepts();
+    }
+  };
+
+  const handleDelete = async (id: string, deptName: string) => {
+    if (!supabase || !confirm(`Delete department channel "${deptName}"?`)) return;
+    const { error } = await supabase.from("departments").delete().eq("id", id);
+    if (error) {
+      alert(`Failed to delete: ${error.message}`);
+    } else {
+      loadDepts();
+    }
+  };
+
+  const presets = [
+    { n: "Registrar Academic Affairs", e: "registrar@university.ac.ke" },
+    { n: "Admissions Office", e: "admissions@university.ac.ke" },
+    { n: "Finance & Fees Office", e: "finance@university.ac.ke" },
+    { n: "Dean of Students", e: "deanofstudents@university.ac.ke" },
+    { n: "ICT & Student Portal Support", e: "ict@university.ac.ke" },
+    { n: "Vice Chancellor Executive Office", e: "vc@university.ac.ke" },
+  ];
+
+  return (
+    <section style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ padding: 24, borderRadius: 16, background: "linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(0,0,0,0.4) 100%)", border: `1px solid ${D.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(16,185,129,0.15)", display: "grid", placeItems: "center", color: D.accent }}>
+            <Building2 size={22} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Department & Escalation Contacts</h2>
+            <p style={{ fontSize: 13, color: D.muted, marginTop: 2 }}>
+              Configure official department channels and contact emails for your institution. These emails are used when students/staff create tickets or click "Escalate to Human".
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: 24, borderRadius: 16, background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}` }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: D.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <Plus size={18} style={{ color: D.accent }} /> Add New Department Contact Email
+        </h3>
+
+        {msg && <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, fontSize: 13, background: msg.startsWith("Error") ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)", color: msg.startsWith("Error") ? "#ef4444" : "#10b981", border: `1px solid ${msg.startsWith("Error") ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.3)"}` }}>{msg}</div>}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "end" }}>
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: D.muted, marginBottom: 6 }}>Department / Office Name</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Finance & Fee Office"
+              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${D.border}`, borderRadius: 8, padding: "10px 14px", color: D.text, fontSize: 14, outline: "none" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: D.muted, marginBottom: 6 }}>Official Contact Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="e.g. finance@university.ac.ke"
+              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${D.border}`, borderRadius: 8, padding: "10px 14px", color: D.text, fontSize: 14, outline: "none" }}
+            />
+          </div>
+          <button
+            onClick={handleCreate}
+            disabled={saving || !name.trim() || !email.trim()}
+            style={{ padding: "10px 20px", borderRadius: 8, background: D.accent, color: "#fff", fontWeight: 700, fontSize: 13, border: "none", cursor: (saving || !name.trim() || !email.trim()) ? "not-allowed" : "pointer", opacity: (saving || !name.trim() || !email.trim()) ? 0.6 : 1 }}
+          >
+            {saving ? "Saving..." : "Add Department"}
+          </button>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <span style={{ fontSize: 11, color: D.muted, fontWeight: 600, textTransform: "uppercase", display: "block", marginBottom: 8 }}>Quick Add Common Offices:</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {presets.map((p, idx) => (
+              <button
+                key={idx}
+                onClick={() => { setName(p.n); setEmail(p.e); }}
+                style={{ fontSize: 12, padding: "4px 10px", borderRadius: 16, background: "rgba(255,255,255,0.04)", border: `1px solid ${D.border}`, color: D.text, cursor: "pointer" }}
+                className="hover:border-emerald-500/50"
+              >
+                + {p.n}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, overflow: "hidden" }}>
+        <div style={{ padding: "16px 24px", borderBottom: `1px solid ${D.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: D.text }}>Configured Department Channels ({departments.length})</h3>
+          <button onClick={loadDepts} style={{ background: "transparent", border: "none", color: D.accent, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 48, textAlign: "center", color: D.muted }}>Loading institution department contacts...</div>
+        ) : departments.length === 0 ? (
+          <div style={{ padding: 48, textAlign: "center", color: D.muted }}>
+            <Building2 size={36} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
+            <p style={{ fontSize: 14, fontWeight: 600, color: D.text }}>No Department Contact Emails Configured Yet</p>
+            <p style={{ fontSize: 12, marginTop: 4 }}>Add contact emails above so tickets & human escalations reach the appropriate offices.</p>
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: "rgba(0,0,0,0.2)", borderBottom: `1px solid ${D.border}` }}>
+                <th style={{ padding: "12px 20px", color: D.muted, fontWeight: 600, fontSize: 12 }}>DEPARTMENT NAME</th>
+                <th style={{ padding: "12px 20px", color: D.muted, fontWeight: 600, fontSize: 12 }}>CONTACT EMAIL</th>
+                <th style={{ padding: "12px 20px", color: D.muted, fontWeight: 600, fontSize: 12, textAlign: "right" }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {departments.map(d => (
+                <tr key={d.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+                  <td style={{ padding: "14px 20px", fontWeight: 600, color: D.text }}>
+                    {editingId === d.id ? (
+                      <input
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, borderRadius: 6, padding: "4px 8px", color: "#fff", fontSize: 13, width: "100%" }}
+                      />
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Building2 size={16} style={{ color: D.accent }} />
+                        {d.name}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ padding: "14px 20px", color: "#a1a1aa" }}>
+                    {editingId === d.id ? (
+                      <input
+                        value={editEmail}
+                        onChange={e => setEditEmail(e.target.value)}
+                        style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, borderRadius: 6, padding: "4px 8px", color: "#fff", fontSize: 13, width: "100%" }}
+                      />
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <Mail size={14} style={{ color: D.muted }} />
+                        {d.email || <span style={{ color: D.muted, fontStyle: "italic" }}>No email set</span>}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ padding: "14px 20px", textAlign: "right" }}>
+                    {editingId === d.id ? (
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                        <button onClick={() => handleUpdate(d.id)} style={{ padding: "4px 10px", borderRadius: 6, background: D.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save</button>
+                        <button onClick={() => setEditingId(null)} style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                        <button onClick={() => { setEditingId(d.id); setEditName(d.name); setEditEmail(d.email || ""); }} style={{ padding: "6px 10px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, color: D.text, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                          <Pencil size={12} /> Edit
+                        </button>
+                        <button onClick={() => handleDelete(d.id, d.name)} style={{ padding: "6px 10px", borderRadius: 6, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </section>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, X } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 export function EscalateModal({ 
   payload, 
@@ -9,17 +11,34 @@ export function EscalateModal({
   payload: { subject: string, body: string } | null, 
   onClose: () => void 
 }) {
-  if (!payload) return null;
+  const [departments, setDepartments] = useState<{ id?: string, name: string, email: string }[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const departments = [
-    { name: "Vice Chancellor", email: "vc@dkut.ac.ke" },
-    { name: "Registrar Academic Affairs", email: "registraraa@dkut.ac.ke" },
-    { name: "Admissions Office", email: "admissionsoffice@dkut.ac.ke" },
-    { name: "Public Relations", email: "pro@dkut.ac.ke" },
-    { name: "Data Protection", email: "dataprotection@dkut.ac.ke" },
-    { name: "Marketing", email: "marketing@dkut.ac.ke" },
-    { name: "IT / Webmaster", email: "webmaster@dkut.ac.ke" }
-  ];
+  useEffect(() => {
+    if (!payload || !supabase) return;
+    setLoading(true);
+    supabase
+      .from("departments")
+      .select("id, name, email")
+      .order("name")
+      .then(({ data }) => {
+        const validDepts = (data || []).filter(d => d.email && d.email.trim().length > 0);
+        if (validDepts.length > 0) {
+          setDepartments(validDepts);
+        } else {
+          setDepartments([
+            { name: "Vice Chancellor / Executive Office", email: "admin@university.ac.ke" },
+            { name: "Registrar Academic Affairs", email: "registrar@university.ac.ke" },
+            { name: "Admissions & Enrolment", email: "admissions@university.ac.ke" },
+            { name: "Finance & Fee Enquiries", email: "finance@university.ac.ke" },
+            { name: "IT & Student Portal Support", email: "support@university.ac.ke" }
+          ]);
+        }
+        setLoading(false);
+      });
+  }, [payload]);
+
+  if (!payload) return null;
 
   /** Strip markdown formatting so the email reads as clean plain text */
   const stripMarkdown = (md: string): string =>
