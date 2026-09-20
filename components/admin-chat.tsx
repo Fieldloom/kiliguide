@@ -5,8 +5,9 @@ import { MarkdownRender as MarkdownMessage } from "./markdown-render";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mic, Send, Loader2, Bot, Sparkles, Trash2, ShieldCheck, X, Paperclip, 
-  PanelLeft, History, Plus, MessageSquare, ChevronRight, CornerDownLeft
+  PanelLeft, History, Plus, MessageSquare, ChevronRight, CornerDownLeft, FileText, ExternalLink
 } from "lucide-react";
+import { DocumentViewerModal } from "./document-viewer-modal";
 
 type Source = { title: string; page?: number | null };
 type Message = { id: string; role: "user" | "assistant"; content: string; sources?: Source[]; confidence?: number; escalate?: boolean; };
@@ -15,6 +16,7 @@ type Conversation = { id: string; title: string; messages: Message[]; createdAt:
 export function AdminChat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [activeSourceModal, setActiveSourceModal] = useState<any | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [query, setQuery] = useState("");
   const [asking, setAsking] = useState(false);
@@ -374,7 +376,16 @@ export function AdminChat() {
                         <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                           <span style={{ fontSize: 11, color: "#71717a", fontWeight: 700 }}>SOURCES:</span>
                           {m.sources.map((s, idx) => (
-                            <span key={idx} style={{ fontSize: 11, background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.25)", color: "#10b981", padding: "3px 10px", borderRadius: 100, fontWeight: 600 }}>{s.title}</span>
+                            <button
+                              key={idx}
+                              onClick={() => setActiveSourceModal(s)}
+                              style={{ background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.25)", color: "#10b981", padding: "3px 10px", borderRadius: 100, fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}
+                              title="Click to view document source"
+                            >
+                              <FileText size={11} />
+                              <span>{s.title} {s.page ? `(Pg. ${s.page})` : ""}</span>
+                              <ExternalLink size={10} />
+                            </button>
                           ))}
                         </div>
                       )}
@@ -480,6 +491,7 @@ export function AdminChat() {
           </div>
         </div>
       </div>
+      <DocumentViewerModal source={activeSourceModal} onClose={() => setActiveSourceModal(null)} />
     </div>
   );
 }

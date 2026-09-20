@@ -3,9 +3,10 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Paperclip, Pencil, Plus, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, ExternalLink, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Paperclip, Pencil, Plus, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
+import { DocumentViewerModal } from "./document-viewer-modal";
 
 type Tab = "Home" | "Chats" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
 const navigation: [Tab, any][] = [
@@ -56,6 +57,7 @@ export function StudentWorkspace() {
   const [documents, setDocuments] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [notices, setNotices] = useState<any[]>([]);
+  const [activeSourceModal, setActiveSourceModal] = useState<any | null>(null);
   const [studentDeptId, setStudentDeptId] = useState<string>("");
   const [savingDept, setSavingDept] = useState(false);
   const [deptSavedStatus, setDeptSavedStatus] = useState<string>("");
@@ -1158,13 +1160,20 @@ export function StudentWorkspace() {
                           {m.sources && m.sources.length > 0 && (
                             <details className="mt-2.5">
                               <summary className="text-xs text-zinc-400 cursor-pointer inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full outline-none user-select-none border border-white/5 transition-colors">
-                                <ShieldCheck size={13} className="text-[#10b981]" /> Sources
+                                <ShieldCheck size={13} className="text-[#10b981]" /> Sources ({m.sources.length})
                               </summary>
                               <div className="flex flex-wrap gap-1.5 mt-2 pl-2">
                                 {Array.from(new Map(m.sources.map((s: any) => [`${s.title}-${s.page}`, s])).values()).map((s: any, idx) => (
-                                  <span key={idx} className="bg-[#10b981]/10 border border-[#10b981]/20 rounded-md px-2.5 py-1 text-[11px] text-[#10b981] flex items-center gap-1.5">
-                                    <FileText size={11} /> {s.title} {s.page ? `(Pg. ${s.page})` : ""}
-                                  </span>
+                                  <button
+                                    key={idx}
+                                    onClick={() => setActiveSourceModal(s)}
+                                    className="bg-[#10b981]/10 border border-[#10b981]/20 hover:bg-[#10b981]/25 hover:border-[#10b981]/40 rounded-md px-2.5 py-1 text-[11px] text-[#10b981] flex items-center gap-1.5 font-medium cursor-pointer transition-all group"
+                                    title="Click to view official document source"
+                                  >
+                                    <FileText size={11} className="group-hover:scale-110 transition-transform" />
+                                    <span>{s.title} {s.page ? `(Pg. ${s.page})` : ""}</span>
+                                    <ExternalLink size={10} className="opacity-70 group-hover:opacity-100" />
+                                  </button>
                                 ))}
                               </div>
                             </details>
@@ -2213,6 +2222,7 @@ export function StudentWorkspace() {
       </section>
 
       <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} />
+      <DocumentViewerModal source={activeSourceModal} onClose={() => setActiveSourceModal(null)} />
     </main>
   );
 }
