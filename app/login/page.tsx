@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [role, setRole] = useState("student");
   const [regNum, setRegNum] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [institutionId, setInstitutionId] = useState("00000000-0000-0000-0000-000000000001");
+  const [institutionId, setInstitutionId] = useState("");
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [detectedInstitution, setDetectedInstitution] = useState<string | null>(null);
 
@@ -31,7 +31,6 @@ export default function LoginPage() {
     supabase.from("system_settings").select("value").eq("key", "allow_institution_registration").single().then(({ data }) => {
       if (data && data.value === 'false') {
         setAllowRegistration(false);
-        setInstitutionId("00000000-0000-0000-0000-000000000001");
       }
     });
   }, []);
@@ -232,8 +231,8 @@ export default function LoginPage() {
                   onFocus={loadInstitutions}
                   className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]"
                 >
-                  <option value="00000000-0000-0000-0000-000000000001" className="bg-zinc-900">Dedan Kimathi University of Technology</option>
-                  {institutions.filter(inst => inst.id !== "00000000-0000-0000-0000-000000000001").map(inst => (
+                  <option value="" className="bg-zinc-900">Select your university / institution...</option>
+                  {institutions.map(inst => (
                     <option key={inst.id} value={inst.id} className="bg-zinc-900">{inst.name}</option>
                   ))}
                 </select>

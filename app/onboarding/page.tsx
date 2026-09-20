@@ -38,7 +38,6 @@ export default function Onboarding() {
       const { data: settings } = await supabase!.from("system_settings").select("value").eq("key", "allow_institution_registration").single();
       if (settings && settings.value === 'false') {
         setAllowRegistration(false);
-        setInstitutionId("00000000-0000-0000-0000-000000000001");
       }
     });
   }, []);
@@ -133,8 +132,8 @@ export default function Onboarding() {
           <div style={{ marginBottom: 32, animation: "fadeIn 0.3s ease" }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ececec", marginBottom: 8 }}>Your University</label>
             <select value={institutionId} onChange={e => setInstitutionId(e.target.value)} style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none", appearance: "none" }}>
-              <option value="00000000-0000-0000-0000-000000000001">Dedan Kimathi University of Technology</option>
-              {institutions.filter(inst => inst.id !== "00000000-0000-0000-0000-000000000001").map(inst => (
+              <option value="">Select your university / institution...</option>
+              {institutions.map(inst => (
                 <option key={inst.id} value={inst.id}>{inst.name}</option>
               ))}
             </select>
