@@ -62,9 +62,13 @@ export function StudentWorkspace() {
   const [savingDept, setSavingDept] = useState(false);
   const [deptSavedStatus, setDeptSavedStatus] = useState<string>("");
 
-  const fetchStudentNotices = async (deptId?: string) => {
+  const fetchStudentNotices = async (deptId?: string, instId?: string) => {
     if (!supabase) return;
-    let query = supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(20);
+    let query = supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(30);
+    const targetInst = instId || institutionId;
+    if (targetInst) {
+      query = query.eq("institution_id", targetInst);
+    }
     if (deptId && deptId.trim()) {
       query = query.or(`department_id.is.null,department_id.eq.${deptId}`);
     }
@@ -231,6 +235,7 @@ export function StudentWorkspace() {
       setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('.ac.ke') || id.identity_data?.email?.endsWith('.edu')) || false);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
       let initialDeptId = "";
+      let effectiveInstId = "";
       if (user && supabase) {
         const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions,institution_id,department_id").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
@@ -240,7 +245,7 @@ export function StudentWorkspace() {
           setStudentDeptId(prof.department_id);
         }
         
-        const effectiveInstId = prof?.institution_id || user?.user_metadata?.institution_id;
+        effectiveInstId = prof?.institution_id || user?.user_metadata?.institution_id || "";
         if (effectiveInstId) {
           setInstitutionId(effectiveInstId);
           const { data: inst } = await supabase.from("institutions").select("name").eq("id", effectiveInstId).single();
@@ -250,7 +255,7 @@ export function StudentWorkspace() {
         const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
         if (settings && settings.value === 'true') setShowDocuments(true);
       }
-      fetchStudentNotices(initialDeptId);
+      fetchStudentNotices(initialDeptId, effectiveInstId);
       setDocuments(docs.data ?? []);
       setTickets(tcks.data ?? []);
       setDepartments(depts.data ?? []);
