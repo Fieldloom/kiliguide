@@ -1235,14 +1235,33 @@ function AILiveFeed() {
 
 // ── Official Source Import ─────────────────────────────────────────────────
 function OfficialSourceImport() {
-  const [url, setUrl] = useState("https://www.dkut.ac.ke/");
+  const [url, setUrl] = useState("");
+  const [instDomain, setInstDomain] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  useEffect(() => {
+    if (!supabase) return;
+    const client = supabase;
+    client.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: prof } = await client.from("profiles").select("institution_id").eq("id", user.id).single();
+      const instId = prof?.institution_id || user.user_metadata?.institution_id;
+      if (instId) {
+        const { data: inst } = await client.from("institutions").select("domain").eq("id", instId).single();
+        if (inst?.domain) {
+          setInstDomain(inst.domain);
+          setUrl(`https://www.${inst.domain}/`);
+        }
+      }
+    });
+  }, []);
+
   const ingest = async () => {
     if (!supabase) { setStatus("Supabase is not configured."); return; }
+    if (!url.trim()) { setStatus("Please enter a valid webpage URL."); return; }
     setBusy(true); setStatus("Fetching the official page...");
     const result = await scrapeDeKut(url);
     if (result.error) { setBusy(false); setStatus(`Failed: ${result.error}`); return; }
@@ -1250,10 +1269,11 @@ function OfficialSourceImport() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
     const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+    const targetInstId = profile?.institution_id || user.user_metadata?.institution_id;
     const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
     const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
     if (se) { setBusy(false); setStatus(se.message); return; }
-    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "Webpage Document", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", metadata: { processing_status: "processing" } }).select("id").single();
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: result.title || "Webpage Document", category: "Administration", source_url: url, storage_path: path, file_type: "txt", uploaded_by: user.id, institution_id: targetInstId, metadata: { processing_status: "processing" } }).select("id").single();
     if (de) { setBusy(false); setStatus(de.message); return; }
     setStatus("Creating embeddings...");
     const { error } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });
@@ -1267,11 +1287,12 @@ function OfficialSourceImport() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
     const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+    const targetInstId = profile?.institution_id || user.user_metadata?.institution_id;
     const ext = file.name.split(".").pop()?.toLowerCase() || "file";
     const path = `admin/${user.id}/${crypto.randomUUID()}.${ext}`;
     const { error: se } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type || "application/octet-stream" });
     if (se) { setBusy(false); setStatus(se.message); return; }
-    const { data: doc, error: de } = await supabase.from("documents").insert({ title: file.name.replace(/\.[^.]+$/, ""), category: "Administration", storage_path: path, file_type: ext, uploaded_by: user.id, institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } }).select("id,title").single();
+    const { data: doc, error: de } = await supabase.from("documents").insert({ title: file.name.replace(/\.[^.]+$/, ""), category: "Administration", storage_path: path, file_type: ext, uploaded_by: user.id, institution_id: targetInstId, metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } }).select("id,title").single();
     if (de) { setBusy(false); setStatus(de.message); return; }
     if (ext === "txt") {
       const text = await file.text();
@@ -1288,12 +1309,6 @@ function OfficialSourceImport() {
     }
     setBusy(false);
   };
-
-  const suggestions: [string, string][] = [
-    ["Registration rules", "registration.dkut.ac.ke/index.php/international/admission/rules"],
-    ["University home", "www.dkut.ac.ke/index.php"],
-    ["Admissions portal", "admissions.dkut.ac.ke"],
-  ];
 
   return (
     <div style={{ marginBottom: 32 }}>
@@ -1383,7 +1398,7 @@ function OfficialSourceImport() {
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text }}>Scrape Webpage URL</h3>
                 </div>
                 <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.6, marginBottom: 16 }}>
-                  Scrape any official <b style={{ color: D.text }}>dkut.ac.ke</b> page directly into the knowledge base.
+                  Scrape any official <b style={{ color: D.text }}>{instDomain || "university"}</b> page directly into the knowledge base.
                 </p>
 
                 <label style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: D.muted, marginBottom: 8 }}>
@@ -1394,7 +1409,7 @@ function OfficialSourceImport() {
                     value={url} 
                     onChange={e => setUrl(e.target.value)} 
                     style={{ flex: 1, borderRadius: 14, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", color: D.text, padding: "12px 14px", fontSize: 13, outline: "none" }}
-                    placeholder="https://www.dkut.ac.ke/..."
+                    placeholder={instDomain ? `https://www.${instDomain}/...` : "https://university.ac.ke/..."}
                   />
                 </div>
 
@@ -1416,20 +1431,33 @@ function OfficialSourceImport() {
                 </button>
 
                 {/* Suggestions Pills */}
-                <div style={{ marginTop: 16 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: D.muted, display: "block", marginBottom: 8 }}>Quick Suggested Portals:</span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {suggestions.map(([label, link]) => (
-                      <button 
-                        key={link} 
-                        onClick={() => setUrl(`https://${link}`)}
-                        style={{ fontSize: 11, fontWeight: 600, padding: "6px 10px", borderRadius: 100, background: "rgba(255,255,255,0.04)", border: `1px solid ${D.border}`, color: D.text, cursor: "pointer" }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {(() => {
+                  const suggestions: [string, string][] = instDomain ? [
+                    ["Registration rules", `www.${instDomain}/rules`],
+                    ["University home", `www.${instDomain}/`],
+                    ["Admissions portal", `admissions.${instDomain}`],
+                  ] : [
+                    ["Registration rules", "university.ac.ke/rules"],
+                    ["University home", "university.ac.ke/"],
+                    ["Admissions portal", "admissions.university.ac.ke"],
+                  ];
+                  return (
+                    <div style={{ marginTop: 16 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: D.muted, display: "block", marginBottom: 8 }}>Quick Suggested Portals:</span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {suggestions.map(([label, link]) => (
+                          <button 
+                            key={link} 
+                            onClick={() => setUrl(`https://${link}`)}
+                            style={{ fontSize: 11, fontWeight: 600, padding: "6px 10px", borderRadius: 100, background: "rgba(255,255,255,0.04)", border: `1px solid ${D.border}`, color: D.text, cursor: "pointer" }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </section>
             </div>
 
@@ -1680,9 +1708,27 @@ function DocumentLibrary() {
 function UploadDocumentModal({ onClose }: { onClose: () => void }) {
   const [activeMode, setActiveMode] = useState<"file" | "url">("file");
   const [file, setFile] = useState<File | null>(null);
-  const [url, setUrl] = useState("https://www.dkut.ac.ke/");
+  const [url, setUrl] = useState("");
+  const [instDomain, setInstDomain] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    if (!supabase) return;
+    const client = supabase;
+    client.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: prof } = await client.from("profiles").select("institution_id").eq("id", user.id).single();
+      const instId = prof?.institution_id || user.user_metadata?.institution_id;
+      if (instId) {
+        const { data: inst } = await client.from("institutions").select("domain").eq("id", instId).single();
+        if (inst?.domain) {
+          setInstDomain(inst.domain);
+          setUrl(`https://www.${inst.domain}/`);
+        }
+      }
+    });
+  }, []);
 
   const handleUpload = async () => {
     if (!supabase) return;
@@ -1692,6 +1738,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setBusy(false); setStatus("Session expired. Sign in again."); return; }
       const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+      const targetInstId = profile?.institution_id || user.user_metadata?.institution_id;
       const ext = file.name.split(".").pop()?.toLowerCase() || "file";
       const path = `admin/${user.id}/${crypto.randomUUID()}.${ext}`;
       const { error: se } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type || "application/octet-stream" });
@@ -1704,7 +1751,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
         storage_path: path, 
         file_type: ext, 
         uploaded_by: user.id, 
-        institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", 
+        institution_id: targetInstId, 
         metadata: { processing_status: ext === "txt" ? "processing" : "uploaded_pending_extraction", original_name: file.name } 
       }).select("id,title").single();
       
@@ -1732,6 +1779,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setBusy(false); setStatus("Session expired."); return; }
       const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+      const targetInstId = profile?.institution_id || user.user_metadata?.institution_id;
       const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
       
       const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
@@ -1744,7 +1792,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
         storage_path: path, 
         file_type: "txt", 
         uploaded_by: user.id, 
-        institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001", 
+        institution_id: targetInstId, 
         metadata: { processing_status: "processing" } 
       }).select("id").single();
       
@@ -1818,7 +1866,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
               value={url} 
               onChange={e => setUrl(e.target.value)} 
               style={{ width: "100%", borderRadius: 14, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.4)", color: D.text, padding: "12px 14px", fontSize: 13, outline: "none" }}
-              placeholder="https://www.dkut.ac.ke/..."
+              placeholder={instDomain ? `https://www.${instDomain}/...` : "https://university.ac.ke/..."}
             />
           </div>
         )}

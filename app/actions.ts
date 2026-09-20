@@ -3,14 +3,12 @@
 import https from "node:https";
 import * as cheerio from "cheerio";
 
-export async function scrapeDeKut(url: string) {
+export async function scrapeWebpage(url: string) {
   if (!url) {
     return { error: "No URL provided." };
   }
 
-
   try {
-    // Custom HTTPS agent to bypass missing intermediate certs on DeKUT's server
     const agent = new https.Agent({
       rejectUnauthorized: false
     });
@@ -40,13 +38,12 @@ export async function scrapeDeKut(url: string) {
     };
 
     const html = await fetchUrl(url);
-
     const $ = cheerio.load(html);
     
     // Remove unwanted elements
     $("nav, footer, script, style, noscript, header, .navbar, .footer").remove();
     
-    const title = $("title").text().trim() || "DeKUT Page";
+    const title = $("title").text().trim() || "Webpage Document";
     const text = $("body").text().replace(/\s+/g, " ").trim();
 
     if (!text || text.length < 50) {
@@ -59,3 +56,5 @@ export async function scrapeDeKut(url: string) {
     return { error: err.message || "Failed to scrape the website." };
   }
 }
+
+export const scrapeDeKut = scrapeWebpage;
