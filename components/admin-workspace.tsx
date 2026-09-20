@@ -2644,6 +2644,7 @@ function InstitutionsWorkspace() {
   const [busy, setBusy] = useState(false);
   const [allowRegistration, setAllowRegistration] = useState(true);
   const [showDocuments, setShowDocuments] = useState(false);
+  const [strictTenantIsolation, setStrictTenantIsolation] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "active" | "suspended">("all");
 
@@ -2657,7 +2658,7 @@ function InstitutionsWorkspace() {
     const [reqRes, instRes, settingsRes] = await Promise.all([
       supabase.from("institution_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("institutions").select("*").order("name", { ascending: true }),
-      supabase.from("system_settings").select("*").in("key", ["allow_institution_registration", "show_documents_to_users"])
+      supabase.from("system_settings").select("*").in("key", ["allow_institution_registration", "show_documents_to_users", "strict_tenant_document_isolation"])
     ]);
     setRequests(reqRes.data || []);
     setApprovedList(instRes.data || []);
@@ -2667,6 +2668,8 @@ function InstitutionsWorkspace() {
       if (reg) setAllowRegistration(reg.value === 'true');
       const doc = settingsRes.data.find(s => s.key === "show_documents_to_users");
       if (doc) setShowDocuments(doc.value === 'true');
+      const iso = settingsRes.data.find(s => s.key === "strict_tenant_document_isolation");
+      if (iso) setStrictTenantIsolation(iso.value !== 'false');
     }
     setBusy(false);
   };
@@ -2685,6 +2688,13 @@ function InstitutionsWorkspace() {
     const newValue = !showDocuments;
     setShowDocuments(newValue);
     await supabase.from("system_settings").upsert({ key: "show_documents_to_users", value: newValue ? 'true' : 'false' });
+  };
+
+  const toggleStrictTenantIsolation = async () => {
+    if (!supabase) return;
+    const newValue = !strictTenantIsolation;
+    setStrictTenantIsolation(newValue);
+    await supabase.from("system_settings").upsert({ key: "strict_tenant_document_isolation", value: newValue ? 'true' : 'false' });
   };
 
   const handleApprove = async (id: string, name: string) => {
@@ -2790,6 +2800,16 @@ function InstitutionsWorkspace() {
           </span>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }} title="When enabled, AI search will only use documents belonging to the user's institution (e.g. DeKUT users only get DeKUT documents)">
+              <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Strict Tenant Isolation</span>
+              <div 
+                onClick={toggleStrictTenantIsolation}
+                style={{ width: 40, height: 22, borderRadius: 11, background: strictTenantIsolation ? D.accent : "#3a3a3a", position: "relative", transition: "all 0.2s" }}
+              >
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: strictTenantIsolation ? 20 : 2, transition: "all 0.2s" }} />
+              </div>
+            </label>
+
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Show Documents Tab</span>
               <div 
