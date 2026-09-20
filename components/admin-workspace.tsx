@@ -1203,12 +1203,19 @@ function DepartmentsWorkspace() {
       }
     }
 
-    const { error } = await supabase.from("departments").insert({
+    const insertPayload: any = {
       name: item.name,
       email: item.contact_email,
       code: item.code,
       institution_id: instId || "00000000-0000-0000-0000-000000000001"
-    });
+    };
+
+    let { error } = await supabase.from("departments").insert(insertPayload);
+    if (error && error.message?.includes("'code' column")) {
+      delete insertPayload.code;
+      const retryRes = await supabase.from("departments").insert(insertPayload);
+      error = retryRes.error;
+    }
 
     if (error) {
       alert(`Error saving contact: ${error.message}`);

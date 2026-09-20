@@ -144,6 +144,101 @@ export async function discoverPages(url: string) {
   }
 }
 
+function deriveOfficialTitleFromEmail(email: string, scrapedLabel?: string): string {
+  const genericWords = [
+    "address", "email", "tel", "tel no", "phone", "telephone", "contact", "contacts",
+    "fax", "n/a", "info", "details", "location", "po box", "p.o. box", "p o box",
+    "website", "mobile", "cell", "reg", "link", "click here", "webmaster"
+  ];
+
+  const cleanLabel = (scrapedLabel || "").trim().replace(/\s+/g, " ");
+  const labelLower = cleanLabel.toLowerCase();
+
+  // If scraped label is valid and NOT generic, return it!
+  if (
+    cleanLabel.length >= 4 &&
+    cleanLabel.length <= 80 &&
+    !genericWords.some(w => labelLower === w || labelLower.startsWith(w + " ") || labelLower.endsWith(" " + w)) &&
+    !/^\d+$/.test(cleanLabel)
+  ) {
+    return cleanLabel;
+  }
+
+  // Derive title from email address prefix
+  const prefix = email.split("@")[0].toLowerCase().trim();
+
+  // Dictionary of known university email prefixes
+  const knownDict: Record<string, string> = {
+    "execdean-arts": "Executive Dean, Faculty of Arts",
+    "execdean-business": "Executive Dean, Faculty of Business",
+    "execdean-fagric": "Executive Dean, Faculty of Agriculture",
+    "execdean-fbe": "Executive Dean, Faculty of Built Environment",
+    "execdean-fed": "Executive Dean, Faculty of Education",
+    "execdean-feng": "Executive Dean, Faculty of Engineering",
+    "execdean-fhs": "Executive Dean, Faculty of Health Sciences",
+    "execdean-fss": "Executive Dean, Faculty of Social Sciences",
+    "execdean-fst": "Executive Dean, Faculty of Science & Technology",
+    "execdean-law": "Executive Dean, Faculty of Law",
+    "execdean-vet": "Executive Dean, Faculty of Veterinary Medicine",
+    "reg-academic": "Academic Registrar's Office",
+    "reg-admin": "Administration & HR Registrar",
+    "admissions": "Admissions Department",
+    "pg-admissions": "Postgraduate Admissions Office",
+    "pg": "Postgraduate Studies Department",
+    "pr": "Public Relations & Corporate Communications",
+    "ict": "ICT & Digital Services",
+    "vc": "Office of the Vice-Chancellor",
+    "dvc-academic": "Deputy Vice-Chancellor (Academic Affairs)",
+    "dvc-rio": "Deputy Vice-Chancellor (Research, Innovation & Extension)",
+    "dvc-afd": "Deputy Vice-Chancellor (Administration, Finance & Development)",
+    "finance": "Finance & Accounts Office",
+    "deanofstudents": "Dean of Students Office",
+    "library": "University Library Services",
+    "accommodation": "Student Accommodation & Hostels Office",
+    "sports": "Sports & Games Department",
+    "security": "Campus Security & Safety Office",
+    "health": "University Health Services & Clinic",
+  };
+
+  if (knownDict[prefix]) {
+    return knownDict[prefix];
+  }
+
+  // Smart regex / string expansion for email prefixes
+  let derived = prefix
+    .replace(/^execdean[-_]/, "Executive Dean, ")
+    .replace(/^dean[-_]/, "Dean, ")
+    .replace(/^reg[-_]/, "Registrar, ")
+    .replace(/^dvc[-_]/, "Deputy Vice Chancellor, ")
+    .replace(/^vc[-_]/, "Vice Chancellor, ")
+    .replace(/^hod[-_]/, "Head of Department, ")
+    .replace(/^dept[-_]/, "Department of ")
+    .replace(/[-_]fagric$/, " (Faculty of Agriculture)")
+    .replace(/[-_]fbe$/, " (Faculty of Built Environment)")
+    .replace(/[-_]fed$/, " (Faculty of Education)")
+    .replace(/[-_]feng$/, " (Faculty of Engineering)")
+    .replace(/[-_]fhs$/, " (Faculty of Health Sciences)")
+    .replace(/[-_]fss$/, " (Faculty of Social Sciences)")
+    .replace(/[-_]fst$/, " (Faculty of Science & Technology)")
+    .replace(/[-_]vet$/, " (Faculty of Veterinary Medicine)")
+    .replace(/[-_]arts$/, " (Faculty of Arts)")
+    .replace(/[-_]law$/, " (Faculty of Law)")
+    .replace(/[-_]/g, " ");
+
+  // Title case words
+  derived = derived
+    .split(" ")
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+  if (derived.length < 3) {
+    derived = email.split("@")[0].toUpperCase() + " Department";
+  }
+
+  return derived;
+}
+
 export async function discoverDepartmentContacts(urlOrDomain: string) {
   if (!urlOrDomain || !urlOrDomain.trim()) {
     return { error: "No URL or domain provided." };
@@ -201,16 +296,15 @@ export async function discoverDepartmentContacts(urlOrDomain: string) {
         if (email && email.includes("@") && !contactsMap.has(email)) {
           let label = $(el).text().replace(/\s+/g, " ").trim();
           if (!label || label.toLowerCase().includes(email) || label.length < 3) {
-            // Find parent heading or cell
-            label = $(el).closest("tr, li, div, p").text().replace(/\s+/g, " ").trim();
-            label = label.split(/[:\n|-]/)[0].trim();
+            label = $(el).closest("tr, li, div, p").find("h1, h2, h3, h4, h5, th, strong, b").first().text().replace(/\s+/g, " ").trim();
+            if (!label) {
+              label = $(el).closest("tr, li, div, p").text().replace(/\s+/g, " ").trim();
+              label = label.split(/[:\n|-]/)[0].trim();
+            }
           }
-          if (!label || label.length > 60) {
-            const prefix = email.split("@")[0].replace(/[._-]/g, " ");
-            label = prefix.charAt(0).toUpperCase() + prefix.slice(1) + " Department";
-          }
-          const code = label.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "DEPT";
-          contactsMap.set(email, { name: label, code, contact_email: email, source_url: currentUrl });
+          const officialName = deriveOfficialTitleFromEmail(email, label);
+          const code = officialName.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "DEPT";
+          contactsMap.set(email, { name: officialName, code, contact_email: email, source_url: currentUrl });
         }
       });
 
@@ -219,13 +313,11 @@ export async function discoverDepartmentContacts(urlOrDomain: string) {
       const emailMatches = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
       emailMatches.forEach(email => {
         const cleanEmail = email.toLowerCase().trim();
-        // Ignore static assets disguised as emails (e.g. png@2x)
         if (cleanEmail.endsWith(".png") || cleanEmail.endsWith(".jpg") || cleanEmail.endsWith(".js") || cleanEmail.endsWith(".css")) return;
         if (!contactsMap.has(cleanEmail)) {
-          const prefix = cleanEmail.split("@")[0].replace(/[._-]/g, " ");
-          const label = prefix.charAt(0).toUpperCase() + prefix.slice(1) + " Office";
-          const code = prefix.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "GEN";
-          contactsMap.set(cleanEmail, { name: label, code, contact_email: cleanEmail, source_url: currentUrl });
+          const officialName = deriveOfficialTitleFromEmail(cleanEmail);
+          const code = officialName.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "GEN";
+          contactsMap.set(cleanEmail, { name: officialName, code, contact_email: cleanEmail, source_url: currentUrl });
         }
       });
     });
