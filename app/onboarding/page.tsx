@@ -14,7 +14,10 @@ export default function Onboarding() {
   
   // Form fields
   const [regNum, setRegNum] = useState("");
-  const [department, setDepartment] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [departmentsList, setDepartmentsList] = useState<any[]>([]);
+  const [isRequestingNewDept, setIsRequestingNewDept] = useState(false);
+  const [customDeptName, setCustomDeptName] = useState("");
   const [linkedReg, setLinkedReg] = useState("");
   const [institutionId, setInstitutionId] = useState("");
   const [institutions, setInstitutions] = useState<any[]>([]);
@@ -28,11 +31,21 @@ export default function Onboarding() {
       // Load institutions for the dropdown
       const { data: insts } = await supabase!.from("institutions").select("id, name").order("name");
       if (insts) setInstitutions(insts);
+      
+      // Load departments
+      const { data: depts } = await supabase!.from("departments").select("id, name").order("name");
+      if (depts) setDepartmentsList(depts);
+
       // Check if institution already set (e.g. from signup metadata)
       const uid = data.user?.id;
       if (uid) {
-        const { data: prof } = await supabase!.from("profiles").select("institution_id").eq("id", uid).single();
+        const { data: prof } = await supabase!.from("profiles").select("institution_id, department_id, pending_department_name").eq("id", uid).single();
         if (prof?.institution_id) setAlreadyHasInstitution(true);
+        if (prof?.department_id) setDepartmentId(prof.department_id);
+        if (prof?.pending_department_name) {
+          setIsRequestingNewDept(true);
+          setCustomDeptName(prof.pending_department_name);
+        }
       }
       
       const { data: settings } = await supabase!.from("system_settings").select("value").eq("key", "allow_institution_registration").single();
@@ -52,9 +65,25 @@ export default function Onboarding() {
       if (role === "student" && regNum) updates.registration_number = regNum;
       if (role === "parent") updates.registration_number = linkedReg;
       if (institutionId) updates.institution_id = institutionId;
+      if (role === "staff") {
+        if (isRequestingNewDept && customDeptName.trim()) {
+          updates.pending_department_name = customDeptName.trim();
+          updates.department_id = null;
+        } else if (departmentId) {
+          updates.department_id = departmentId;
+          updates.pending_department_name = null;
+        }
+      }
       
       await supabase.from("profiles").update(updates).eq("id", user.id);
-      await supabase.auth.updateUser({ data: { role, institution_id: institutionId } });
+      await supabase.auth.updateUser({ 
+        data: { 
+          role, 
+          institution_id: institutionId,
+          department_id: updates.department_id,
+          pending_department_name: updates.pending_department_name
+        } 
+      });
 
       // 2. Update Role
       await supabase.from("user_roles").delete().eq("user_id", user.id);
@@ -109,13 +138,50 @@ export default function Onboarding() {
         {role === "staff" && (
           <div style={{ marginBottom: 32, animation: "fadeIn 0.3s ease" }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#ececec", marginBottom: 8 }}>Department</label>
-            <select value={department} onChange={e => setDepartment(e.target.value)} style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none", appearance: "none" }}>
-              <option value="">Select your department (Optional)...</option>
-              <option value="cs">Computer Science</option>
-              <option value="eng">Engineering</option>
-              <option value="finance">Finance Office</option>
-              <option value="registry">Registry</option>
-            </select>
+            
+            {!isRequestingNewDept ? (
+              <>
+                <select 
+                  value={departmentId} 
+                  onChange={e => setDepartmentId(e.target.value)} 
+                  style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 12, padding: "14px 16px", color: "#fff", fontSize: 15, outline: "none", appearance: "none" }}
+                >
+                  <option value="">Select your department (Optional)...</option>
+                  {departmentsList.map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+
+                <button 
+                  type="button" 
+                  onClick={() => { setIsRequestingNewDept(true); setDepartmentId(""); }}
+                  style={{ background: "transparent", border: "none", color: "#19c37d", fontSize: 12, fontWeight: 600, marginTop: 8, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                >
+                  ➕ Can't find your department? Request missing department
+                </button>
+              </>
+            ) : (
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1A2A20", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#19c37d" }}>📝 Request Missing Department</span>
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsRequestingNewDept(false); setCustomDeptName(""); }}
+                    style={{ background: "transparent", border: "none", color: "#8e8ea0", fontSize: 11, cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    Select from dropdown instead
+                  </button>
+                </div>
+                <input 
+                  type="text"
+                  placeholder="Type missing department name (e.g. Mechanical Engineering)..."
+                  value={customDeptName}
+                  onChange={e => setCustomDeptName(e.target.value)}
+                  style={{ width: "100%", background: "#0B0F14", border: "1px solid #1A2A20", borderRadius: 8, padding: "12px", color: "#fff", fontSize: 14, outline: "none" }}
+                />
+                <p style={{ fontSize: 11, color: "#8e8ea0", margin: 0 }}>Your institution admin will check, confirm, and add this department upon profile review.</p>
+              </div>
+            )}
           </div>
         )}
 

@@ -25,6 +25,8 @@ export default function LoginPage() {
   const [allowRegistration, setAllowRegistration] = useState(true);
 
   const [departments, setDepartments] = useState<any[]>([]);
+  const [isRequestingNewDept, setIsRequestingNewDept] = useState(false);
+  const [customDeptName, setCustomDeptName] = useState("");
 
   useEffect(() => {
     if (!supabase) return;
@@ -46,18 +48,23 @@ export default function LoginPage() {
   };
 
   // Load departments if available
-  const loadDepartments = async () => {
-    if (!supabase || departments.length > 0) return;
-    const { data } = await supabase.from("departments").select("id, name").order("name");
-    if (data && data.length > 0) setDepartments(data);
+  const loadDepartments = async (targetInstId?: string) => {
+    if (!supabase) return;
+    const instId = targetInstId || institutionId;
+    let query = supabase.from("departments").select("id, name").order("name");
+    if (instId) {
+      query = query.eq("institution_id", instId);
+    }
+    const { data } = await query;
+    setDepartments(data || []);
   };
 
   useEffect(() => {
     if (mode === "signup") {
       loadInstitutions();
-      if (role === "staff") loadDepartments();
+      if (role === "staff") loadDepartments(institutionId);
     }
-  }, [mode, role]);
+  }, [mode, role, institutionId]);
 
   // On email blur: detect institution from domain (for sign-in awareness)
   const handleEmailBlur = async () => {
@@ -102,7 +109,8 @@ export default function LoginPage() {
               full_name: email.split("@")[0],
               role,
               registration_number: role === "student" ? regNum : null,
-              department_id: (role === "staff" && isUuid(departmentId)) ? departmentId : null,
+              department_id: (role === "staff" && !isRequestingNewDept && isUuid(departmentId)) ? departmentId : null,
+              pending_department_name: (role === "staff" && isRequestingNewDept && customDeptName.trim()) ? customDeptName.trim() : null,
               institution_id: (institutionId && isUuid(institutionId)) ? institutionId : null,
             } 
           } 
@@ -241,14 +249,60 @@ export default function LoginPage() {
             )}
 
             {mode === "signup" && role === "staff" && (
-              <div className="animate-fadeIn">
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5 pl-1">Department</label>
-                <select value={departmentId} onChange={e => setDepartmentId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]">
-                  <option value="" className="bg-zinc-900">Select Department (Optional)...</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id} className="bg-zinc-900">{dept.name}</option>
-                  ))}
-                </select>
+              <div className="animate-fadeIn space-y-2">
+                <label className="block text-xs font-semibold text-zinc-400 pl-1">Department</label>
+                
+                {!isRequestingNewDept ? (
+                  <>
+                    <select 
+                      value={departmentId} 
+                      onChange={e => setDepartmentId(e.target.value)} 
+                      className="w-full bg-black/40 border border-white/10 rounded-xl text-white p-3.5 sm:p-4 text-sm outline-none transition-all focus:border-[#19c37d]"
+                    >
+                      <option value="" className="bg-zinc-900">Select your Department...</option>
+                      {departments.map(dept => (
+                        <option key={dept.id} value={dept.id} className="bg-zinc-900">{dept.name}</option>
+                      ))}
+                    </select>
+                    
+                    <div className="flex justify-between items-center pl-1 pt-1">
+                      <button 
+                        type="button" 
+                        onClick={() => { setIsRequestingNewDept(true); setDepartmentId(""); }} 
+                        className="text-xs text-[#19c37d] font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer flex items-center gap-1"
+                      >
+                        <span>➕ Can&apos;t find your department? Request missing department</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-[#19c37d] flex items-center gap-1">
+                        <span>📝 Request Missing Department</span>
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={() => { setIsRequestingNewDept(false); setCustomDeptName(""); }} 
+                        className="text-[11px] text-zinc-400 hover:text-white bg-transparent border-none cursor-pointer underline"
+                      >
+                        Select from list instead
+                      </button>
+                    </div>
+                    
+                    <input 
+                      type="text" 
+                      placeholder="Type missing department name (e.g. Mechanical Engineering)..." 
+                      value={customDeptName} 
+                      onChange={e => setCustomDeptName(e.target.value)} 
+                      className="w-full bg-black/40 border border-white/10 rounded-lg text-white p-3 text-xs outline-none focus:border-[#19c37d]"
+                    />
+                    
+                    <p className="text-[11px] text-zinc-400 leading-normal m-0">
+                      Your institution administrator will check, confirm, and create this department when setting up your account roles.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             

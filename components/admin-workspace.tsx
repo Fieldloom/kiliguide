@@ -1093,6 +1093,7 @@ function SystemHealthWorkspace() {
 // ── DEPARTMENTS & ESCALATION EMAILS ──────────────────────────────────────────
 function DepartmentsWorkspace() {
   const [departments, setDepartments] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -1109,19 +1110,60 @@ function DepartmentsWorkspace() {
   const loadDepts = async () => {
     if (!supabase) return;
     setLoading(true);
+    let targetInstId: string | null = null;
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: prof } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
       const instId = prof?.institution_id || user.user_metadata?.institution_id;
       if (instId) {
         setUserInstId(instId);
+        targetInstId = instId;
         const { data: inst } = await supabase.from("institutions").select("domain").eq("id", instId).single();
         if (inst?.domain) setInstDomain(inst.domain);
       }
     }
     const { data } = await supabase.from("departments").select("*").order("name");
     setDepartments(data || []);
+
+    // Load pending requested department names from profiles
+    let pendingQuery = supabase.from("profiles").select("id, full_name, email, pending_department_name, institution_id").not("pending_department_name", "is", null);
+    if (targetInstId) {
+      pendingQuery = pendingQuery.eq("institution_id", targetInstId);
+    }
+    const { data: pendingData } = await pendingQuery;
+    setPendingRequests(pendingData || []);
     setLoading(false);
+  };
+
+  const handleConfirmPendingDeptFromWorkspace = async (p: any) => {
+    if (!supabase || !p.pending_department_name) return;
+    const deptName = p.pending_department_name.trim();
+    const instId = p.institution_id || userInstId || "00000000-0000-0000-0000-000000000001";
+
+    let deptId = null;
+    const { data: existing } = await supabase.from("departments").select("id").eq("name", deptName).limit(1);
+    if (existing && existing.length > 0) {
+      deptId = existing[0].id;
+    } else {
+      const { data: newDept, error } = await supabase.from("departments").insert({
+        name: deptName,
+        institution_id: instId
+      }).select("id").single();
+
+      if (error) {
+        alert(`Error adding department: ${error.message}`);
+        return;
+      }
+      deptId = newDept.id;
+    }
+
+    await supabase.from("profiles").update({
+      department_id: deptId,
+      pending_department_name: null
+    }).eq("id", p.id);
+
+    setMsg(`✓ Department "${deptName}" confirmed and added to active departments!`);
+    loadDepts();
   };
 
   useEffect(() => {
@@ -1284,6 +1326,44 @@ function DepartmentsWorkspace() {
           </button>
         </div>
       </div>
+
+      {/* Pending Staff Department Requests Panel */}
+      {pendingRequests.length > 0 && (
+        <div style={{ padding: 24, borderRadius: 20, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", boxShadow: "0 8px 32px rgba(245,158,11,0.1)", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(245,158,11,0.2)", display: "grid", placeItems: "center", color: "#f59e0b" }}>
+              <Building2 size={20} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: D.text, margin: 0 }}>
+                Pending Staff Department Requests ({pendingRequests.length})
+              </h3>
+              <p style={{ fontSize: 12, color: D.muted, marginTop: 2, margin: 0 }}>
+                Staff members requested these departments during registration. Confirm and create them to add them to your active departments list.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            {pendingRequests.map(p => (
+              <div key={p.id} style={{ background: "rgba(0,0,0,0.4)", padding: 16, borderRadius: 14, border: "1px solid rgba(245,158,11,0.25)", display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <b style={{ color: "#f59e0b", fontSize: 14, display: "block" }}>{p.pending_department_name}</b>
+                  <span style={{ fontSize: 12, color: D.muted, display: "block", marginTop: 2 }}>
+                    Requested by: <b>{p.full_name || p.email}</b>
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleConfirmPendingDeptFromWorkspace(p)}
+                  style={{ background: "#f59e0b", color: "#000", border: "none", padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxShadow: "0 4px 14px rgba(245,158,11,0.3)" }}
+                >
+                  <CheckCircle2 size={14} /> Confirm & Add Department
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Discovered Website Contacts Panel */}
       {discoveredContacts.length > 0 && (
@@ -1688,6 +1768,7 @@ function UsersWorkspace() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [currentInstId, setCurrentInstId] = useState<string | null>(null);
 
   const loadUsers = async () => {
     if (!supabase) { setLoading(false); return; }
@@ -1702,8 +1783,9 @@ function UsersWorkspace() {
     setIsSuperAdmin(superAdmin);
 
     const instId = prof?.institution_id || user?.user_metadata?.institution_id;
+    setCurrentInstId(instId);
 
-    let query = client.from("profiles").select(`*, user_roles(role), institutions(name)`).order("created_at", { ascending: false });
+    let query = client.from("profiles").select(`*, user_roles(role), institutions(name), departments(name)`).order("created_at", { ascending: false });
 
     if (!superAdmin && instId) {
       query = query.eq("institution_id", instId);
@@ -1725,55 +1807,152 @@ function UsersWorkspace() {
     setUsers(users.map(u => u.id === userId ? { ...u, user_roles: [{ role: newRole }] } : u));
   };
 
+  const handleConfirmPendingDept = async (u: any) => {
+    if (!supabase || !u.pending_department_name) return;
+    const deptName = u.pending_department_name.trim();
+    const instId = u.institution_id || currentInstId || "00000000-0000-0000-0000-000000000001";
+
+    let deptId = null;
+    const { data: existing } = await supabase.from("departments").select("id").eq("name", deptName).limit(1);
+    if (existing && existing.length > 0) {
+      deptId = existing[0].id;
+    } else {
+      const { data: newDept, error } = await supabase.from("departments").insert({
+        name: deptName,
+        institution_id: instId
+      }).select("id").single();
+
+      if (error) {
+        alert(`Error adding department: ${error.message}`);
+        return;
+      }
+      deptId = newDept.id;
+    }
+
+    await supabase.from("profiles").update({
+      department_id: deptId,
+      pending_department_name: null
+    }).eq("id", u.id);
+
+    if (confirm(`✓ Department "${deptName}" confirmed and added! Elevate ${u.full_name || 'staff member'} to Department Head (dept_admin)?`)) {
+      await updateRole(u.id, "dept_admin");
+    }
+
+    loadUsers();
+  };
+
   const deleteUser = async (userId: string, name: string) => {
     if (!supabase || !confirm(`Permanently delete user ${name}?`)) return;
-    // Calling an admin function to delete user or deleting profile triggers cascade
     await supabase.from("profiles").delete().eq("id", userId);
     setUsers(users.filter(u => u.id !== userId));
   };
 
   return (
     <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
-      <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 14 }}>
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${D.border}` }}>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>USER</th>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>INSTITUTION</th>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>ROLE</th>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>JOINED</th>
-            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(u => (
-            <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}` }}>
-              <td style={{ padding: "20px 16px 20px 0" }}>
-                <b style={{ display: "block", color: D.text }}>{u.full_name || "Unknown"}</b>
-              </td>
-              <td style={{ padding: "20px 16px 20px 0", color: D.muted, fontSize: 13 }}>
-                {u.institutions?.name || "Global / Unassigned"}
-              </td>
-              <td style={{ padding: "20px 16px 20px 0" }}>
-                <span style={{ borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, background: "#6366f122", color: "#6366f1", textTransform: "uppercase" }}>
-                  {u.user_roles?.[0]?.role || "student"}
-                </span>
-              </td>
-              <td style={{ padding: "20px 16px 20px 0", color: D.muted }}>{new Date(u.created_at).toLocaleDateString()}</td>
-              <td style={{ padding: "20px 0", textAlign: "right" }}>
-                <select value={u.user_roles?.[0]?.role || "student"} onChange={e => updateRole(u.id, e.target.value)} style={{ background: "transparent", border: `1px solid ${D.border}`, color: D.text, padding: "6px 10px", borderRadius: 6, outline: "none", marginRight: 12, fontSize: 12 }}>
-                  <option value="student">Student</option>
-                  <option value="parent">Parent</option>
-                  <option value="lecturer">Lecturer</option>
-                  <option value="dept_admin">Dept Admin</option>
-                  <option value="administrator">Admin</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
-                <button onClick={() => deleteUser(u.id, u.full_name)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Delete</button>
-              </td>
+      {loading ? (
+        <div style={{ padding: 48, textAlign: "center", color: D.muted }}>Loading institution users & staff...</div>
+      ) : (
+        <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${D.border}` }}>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>USER & DEPARTMENT</th>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>INSTITUTION</th>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>ROLE</th>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>JOINED</th>
+              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map(u => {
+              const currentRole = u.user_roles?.[0]?.role || "student";
+              const isStaffOrLecturer = currentRole === "staff" || currentRole === "lecturer" || currentRole === "department";
+
+              return (
+                <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+                  <td style={{ padding: "20px 16px 20px 0" }}>
+                    <b style={{ display: "block", color: D.text, fontSize: 14 }}>{u.full_name || "Unknown User"}</b>
+                    {u.departments?.name && (
+                      <span style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: D.accent, fontWeight: 600 }}>
+                        🏛️ {u.departments.name}
+                      </span>
+                    )}
+
+                    {u.pending_department_name && (
+                      <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b" }}>
+                          📌 Requested Dept: "{u.pending_department_name}"
+                        </span>
+                        <button
+                          onClick={() => handleConfirmPendingDept(u)}
+                          style={{ background: "#f59e0b", color: "#000", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
+                        >
+                          Confirm & Create
+                        </button>
+                      </div>
+                    )}
+                  </td>
+
+                  <td style={{ padding: "20px 16px 20px 0", color: D.muted, fontSize: 13 }}>
+                    {u.institutions?.name || "Global / Unassigned"}
+                  </td>
+
+                  <td style={{ padding: "20px 16px 20px 0" }}>
+                    <span style={{ 
+                      borderRadius: 6, 
+                      padding: "4px 10px", 
+                      fontSize: 11, 
+                      fontWeight: 800, 
+                      background: currentRole === "dept_admin" ? "rgba(16,185,129,0.2)" : "#6366f122", 
+                      color: currentRole === "dept_admin" ? D.accent : "#6366f1", 
+                      textTransform: "uppercase" 
+                    }}>
+                      {currentRole === "dept_admin" ? "Department Head" : currentRole}
+                    </span>
+                  </td>
+
+                  <td style={{ padding: "20px 16px 20px 0", color: D.muted, fontSize: 13 }}>
+                    {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+
+                  <td style={{ padding: "20px 0", textAlign: "right" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+                      {isStaffOrLecturer && (
+                        <button 
+                          onClick={async () => {
+                            await updateRole(u.id, "dept_admin");
+                            alert(`✓ ${u.full_name || 'Staff member'} has been elevated to Department Head!`);
+                          }}
+                          title="Elevate staff member to Head of Department"
+                          style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: D.accent, padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}
+                        >
+                          <ShieldCheck size={14} /> Elevate to Dept Head
+                        </button>
+                      )}
+
+                      <select 
+                        value={currentRole} 
+                        onChange={e => updateRole(u.id, e.target.value)} 
+                        style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, color: D.text, padding: "6px 10px", borderRadius: 8, outline: "none", fontSize: 12 }}
+                      >
+                        <option value="student">Student</option>
+                        <option value="staff">Staff</option>
+                        <option value="lecturer">Lecturer</option>
+                        <option value="dept_admin">Dept Head / Admin</option>
+                        <option value="administrator">Admin</option>
+                        <option value="parent">Parent</option>
+                        <option value="visitor">Visitor</option>
+                        {isSuperAdmin && <option value="super_admin">Super Admin</option>}
+                      </select>
+
+                      <button onClick={() => deleteUser(u.id, u.full_name)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </section>
   );
 }
