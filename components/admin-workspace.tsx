@@ -1802,6 +1802,10 @@ function UsersWorkspace() {
 
   const updateRole = async (userId: string, newRole: string) => {
     if (!supabase) return;
+    if (!isSuperAdmin && (newRole === "administrator" || newRole === "super_admin")) {
+      alert("Institution administrators can only assign Dept Head, Lecturer, Staff, Student, Parent, or Visitor roles.");
+      return;
+    }
     await supabase.from("user_roles").delete().eq("user_id", userId);
     await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
     setUsers(users.map(u => u.id === userId ? { ...u, user_roles: [{ role: newRole }] } : u));
@@ -1937,10 +1941,10 @@ function UsersWorkspace() {
                         <option value="student">Student</option>
                         <option value="staff">Staff</option>
                         <option value="lecturer">Lecturer</option>
-                        <option value="dept_admin">Dept Head / Admin</option>
-                        <option value="administrator">Admin</option>
+                        <option value="dept_admin">Dept Head</option>
                         <option value="parent">Parent</option>
                         <option value="visitor">Visitor</option>
+                        {isSuperAdmin && <option value="administrator">Admin</option>}
                         {isSuperAdmin && <option value="super_admin">Super Admin</option>}
                       </select>
 
