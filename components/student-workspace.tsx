@@ -2074,7 +2074,7 @@ export function StudentWorkspace() {
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-sm sm:text-base font-bold text-white m-0">Push Notifications</h3>
                   <button onClick={handleTogglePush} className={`w-11 h-6 rounded-full relative cursor-pointer border-none transition-colors ${pushEnabled ? "bg-[#10b981]" : "bg-white/20"}`}>
-                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${pushEnabled ? "left-5.5" : "left-0.5"}`} />
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 left-0.5 transition-transform duration-200 ease-in-out ${pushEnabled ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
                 </div>
                 <p className="text-zinc-400 text-xs sm:text-sm mb-4">Get real-time alerts for classes, resolved tickets, and notices.</p>
@@ -2172,7 +2172,7 @@ export function StudentWorkspace() {
                     <span className="text-xs text-zinc-400">Disable background animations and heavy blurs.</span>
                   </div>
                   <button onClick={handleToggleReduceMotion} className={`w-11 h-6 rounded-full relative cursor-pointer border-none transition-colors ${reduceMotion ? "bg-[#10b981]" : "bg-white/20"}`}>
-                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${reduceMotion ? "left-5.5" : "left-0.5"}`} />
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 left-0.5 transition-transform duration-200 ease-in-out ${reduceMotion ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
                 </div>
                 
@@ -2182,7 +2182,7 @@ export function StudentWorkspace() {
                     <span className="text-xs text-zinc-400">Automatically speak out KiliGuide's responses.</span>
                   </div>
                   <button onClick={handleToggleAutoRead} className={`w-11 h-6 rounded-full relative cursor-pointer border-none transition-colors ${autoRead ? "bg-[#10b981]" : "bg-white/20"}`}>
-                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${autoRead ? "left-5.5" : "left-0.5"}`} />
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 left-0.5 transition-transform duration-200 ease-in-out ${autoRead ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
                 </div>
               </div>
