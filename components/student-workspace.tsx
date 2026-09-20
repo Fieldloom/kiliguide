@@ -56,6 +56,21 @@ export function StudentWorkspace() {
   const [documents, setDocuments] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [notices, setNotices] = useState<any[]>([]);
+  const [studentDeptId, setStudentDeptId] = useState<string>("");
+  const [savingDept, setSavingDept] = useState(false);
+  const [deptSavedStatus, setDeptSavedStatus] = useState<string>("");
+
+  const fetchStudentNotices = async (deptId?: string) => {
+    if (!supabase) return;
+    let query = supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(20);
+    if (deptId && deptId.trim()) {
+      query = query.or(`department_id.is.null,department_id.eq.${deptId}`);
+    }
+    const { data, error } = await query;
+    if (!error) {
+      setNotices(data ?? []);
+    }
+  };
   const [tickets, setTickets] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [timetables, setTimetables] = useState<any[]>([]);
@@ -204,20 +219,24 @@ export function StudentWorkspace() {
     Promise.all([
       supabase.auth.getUser(),
       supabase.from("documents").select("id,title,category,file_type,created_at").eq("status", "active").order("created_at", { ascending: false }).limit(20),
-      supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(20),
       supabase.from("tickets").select("*").order("created_at", { ascending: false }).limit(20),
       supabase.from("personal_resources").select("*").eq("resource_type", "timetable").order("created_at", { ascending: false }),
       supabase.from("departments").select("id,name").order("name"),
       supabase.from("calendar_events").select("*").order("starts_at", { ascending: true })
-    ]).then(async ([auth, docs, nots, tcks, times, depts, calEvents]) => {
+    ]).then(async ([auth, docs, tcks, times, depts, calEvents]) => {
       const user = auth.data.user;
       setProfile(user);
       setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('.ac.ke') || id.identity_data?.email?.endsWith('.edu')) || false);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
+      let initialDeptId = "";
       if (user && supabase) {
-        const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions,institution_id").eq("id", user.id).single();
+        const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions,institution_id,department_id").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
         if (prof?.custom_instructions) setCustomInstructions(prof.custom_instructions);
+        if (prof?.department_id) {
+          initialDeptId = prof.department_id;
+          setStudentDeptId(prof.department_id);
+        }
         
         const effectiveInstId = prof?.institution_id || user?.user_metadata?.institution_id;
         if (effectiveInstId) {
@@ -229,8 +248,8 @@ export function StudentWorkspace() {
         const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
         if (settings && settings.value === 'true') setShowDocuments(true);
       }
+      fetchStudentNotices(initialDeptId);
       setDocuments(docs.data ?? []);
-      setNotices(nots.data ?? []);
       setTickets(tcks.data ?? []);
       setDepartments(depts.data ?? []);
       setTimetables(times.data ?? []);
@@ -395,6 +414,25 @@ export function StudentWorkspace() {
     if (!supabase || !profile) return;
     await supabase.from("profiles").update({ custom_instructions: customInstructions }).eq("id", profile.id);
     alert("AI Personalization saved securely.");
+  };
+
+  const handleSaveDepartment = async (deptId: string) => {
+    setStudentDeptId(deptId);
+    setSavingDept(true);
+    setDeptSavedStatus("");
+    if (supabase && profile) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ department_id: deptId || null })
+        .eq("id", profile.id);
+      if (error) {
+        setDeptSavedStatus("Error saving department: " + error.message);
+      } else {
+        setDeptSavedStatus("Department preference saved! Notice feed updated.");
+        fetchStudentNotices(deptId);
+      }
+    }
+    setSavingDept(false);
   };
 
   const handleLinkUniversity = async () => {
@@ -2068,6 +2106,36 @@ export function StudentWorkspace() {
                   <button onClick={handleLinkUniversity} className="bg-white text-black border-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center gap-2 hover:bg-zinc-100 transition-colors">
                     Link Student Email
                   </button>
+                )}
+              </div>
+
+              <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 size={18} className="text-[#10b981]" />
+                  <h3 className="text-sm sm:text-base font-bold text-white m-0">My Academic Department</h3>
+                </div>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">
+                  Select your department so that targeted notices from your department head and campus administrators reach your feed. If unselected, you will receive all campus notices.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                  <select
+                    value={studentDeptId}
+                    onChange={(e) => handleSaveDepartment(e.target.value)}
+                    disabled={savingDept}
+                    className="flex-1 px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs sm:text-sm outline-none cursor-pointer"
+                  >
+                    <option value="" className="bg-zinc-900">🌐 All Departments (Receive All Campus Notices)</option>
+                    {departments.map((d: any) => (
+                      <option key={d.id} value={d.id} className="bg-zinc-900">
+                        🏛️ {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {deptSavedStatus && (
+                  <p className={`text-xs mt-2.5 font-semibold ${deptSavedStatus.startsWith("Error") ? "text-rose-400" : "text-[#10b981]"}`}>
+                    {deptSavedStatus}
+                  </p>
                 )}
               </div>
 

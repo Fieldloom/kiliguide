@@ -2586,25 +2586,47 @@ function EditNoticeModal({ notice, onClose, onUpdated }: { notice: any; onClose:
 function Compose({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [selectedDeptId, setSelectedDeptId] = useState<string>("all");
+  const [departments, setDepartments] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
 
+  useEffect(() => {
+    if (!supabase) return;
+    const client = supabase;
+    client.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: prof } = await client.from("profiles").select("institution_id").eq("id", user.id).single();
+      const instId = prof?.institution_id || user.user_metadata?.institution_id;
+      let query = client.from("departments").select("id, name").order("name");
+      if (instId) {
+        query = query.eq("institution_id", instId);
+      }
+      const { data } = await query;
+      setDepartments(data || []);
+    });
+  }, []);
+
   const save = async () => {
-    if(!supabase || !title.trim() || !body.trim()) return;
+    if (!supabase || !title.trim() || !body.trim()) return;
     setBusy(true);
     setStatus("Publishing notice...");
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setStatus("Session expired."); setBusy(false); return; }
 
     const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
-    
+    const targetInstId = profile?.institution_id || user.user_metadata?.institution_id || "00000000-0000-0000-0000-000000000001";
+    const targetDeptId = selectedDeptId && selectedDeptId !== "all" ? selectedDeptId : null;
+    const deptName = targetDeptId ? (departments.find(d => d.id === targetDeptId)?.name || "Department") : "General";
+
     const { data, error } = await supabase.from("notices").insert({
       title,
       body,
       summary: body.substring(0, 100),
       author_id: user.id,
-      institution_id: profile?.institution_id || "00000000-0000-0000-0000-000000000001",
-      category: "General"
+      institution_id: targetInstId,
+      department_id: targetDeptId,
+      category: deptName
     }).select("id").single();
     
     if (error) {
@@ -2615,7 +2637,7 @@ function Compose({ onClose }: { onClose: () => void }) {
 
     if (data) {
       supabase.functions.invoke("send-push", {
-        body: { recipientId: "all", title: "New Campus Notice", body: title, url: "/portal/student", tag: `notice-${data.id}` }
+        body: { recipientId: "all", title: `New Campus Notice: ${title}`, body: title, url: "/portal/student", tag: `notice-${data.id}` }
       });
     }
     setBusy(false);
@@ -2624,24 +2646,52 @@ function Compose({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.7)", padding: 16 }}>
-      <section style={{ width: "100%", maxWidth: 460, borderRadius: 14, background: D.card, padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
+      <section style={{ width: "100%", maxWidth: 480, borderRadius: 18, background: D.card, padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Create a Notice</h2>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Create & Broadcast Notice</h2>
+            <p style={{ fontSize: 12, color: D.muted, marginTop: 2 }}>Target specific departments or send to all campus members.</p>
+          </div>
           <button onClick={onClose} disabled={busy} style={{ color: D.muted, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}><X size={18} /></button>
         </div>
-        <label style={{ display: "block", marginTop: 20, fontSize: 12, fontWeight: 700, color: D.muted }}>
-          TITLE
-          <input value={title} onChange={e=>setTitle(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }} placeholder="Add a clear title"
+
+        <label style={{ display: "block", marginTop: 18, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          TARGET DEPARTMENT / AUDIENCE
+          <select 
+            value={selectedDeptId} 
+            onChange={e => setSelectedDeptId(e.target.value)} 
+            disabled={busy}
+            style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", fontWeight: 600 }}
+          >
+            <option value="all">🌐 All Departments & Campus Members (General Broadcast)</option>
+            {departments.map(d => (
+              <option key={d.id} value={d.id}>🏛️ {d.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
+          NOTICE TITLE
+          <input value={title} onChange={e=>setTitle(e.target.value)} disabled={busy} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none" }} placeholder="e.g. End of Semester Exam Timetable Released"
             onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
             onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
         </label>
         <label style={{ display: "block", marginTop: 16, fontSize: 12, fontWeight: 700, color: D.muted }}>
-          MESSAGE
-          <textarea value={body} onChange={e=>setBody(e.target.value)} disabled={busy} rows={5} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", resize: "vertical" }} placeholder="Type the notice..."
+          MESSAGE BODY
+          <textarea value={body} onChange={e=>setBody(e.target.value)} disabled={busy} rows={5} style={{ display: "block", width: "100%", marginTop: 6, borderRadius: 8, border: `1px solid ${D.border}`, background: D.bg, color: D.text, padding: "10px 12px", fontSize: 13, outline: "none", resize: "vertical" }} placeholder="Type the full notice announcement..."
             onFocus={e => (e.currentTarget.style.borderColor = "#525252")}
             onBlur={e => (e.currentTarget.style.borderColor = D.border)} />
         </label>
-        <button onClick={save} style={{ marginTop: 20, width: "100%", borderRadius: 8, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#000", cursor: "pointer", border: "none" }}>Publish Notice</button>
+
+        {status && (
+          <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13, background: status.startsWith("Error") ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)", color: status.startsWith("Error") ? "#ef4444" : D.accent, fontWeight: 600 }}>
+            {status}
+          </div>
+        )}
+
+        <button onClick={save} disabled={busy || !title.trim() || !body.trim()} style={{ marginTop: 20, width: "100%", borderRadius: 10, background: D.accent, padding: "12px 0", fontSize: 14, fontWeight: 800, color: "#000", cursor: busy || !title.trim() || !body.trim() ? "not-allowed" : "pointer", border: "none" }}>
+          {busy ? "Publishing Notice..." : "Publish Notice"}
+        </button>
       </section>
     </div>
   );
