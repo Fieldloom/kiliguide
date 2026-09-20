@@ -51,23 +51,30 @@ export function AdminWorkspace({ role }: { role?: string }) {
     if (!supabase) return;
     const client = supabase;
     client.auth.getUser().then(async ({ data: { user } }) => {
-      const { data: prof } = user ? await client.from("profiles").select("role").eq("id", user.id).single() : { data: null };
+      const { data: prof } = user ? await client.from("profiles").select("role, institution_id").eq("id", user.id).single() : { data: null };
       const { data: roles } = user ? await client.from("user_roles").select("role").eq("user_id", user.id) : { data: null };
       const isSuperAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
+      const instId = prof?.institution_id || user?.user_metadata?.institution_id;
 
+      let profilesQuery = client.from("profiles").select("*", { count: "exact", head: true });
       let docsQuery = client.from("documents").select("*", { count: "exact", head: true }).eq("status", "active");
       let healthDocsQuery = client.from("documents").select("processing_status");
+      let ticketsQuery = client.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open");
+      let noticesQuery = client.from("notices").select("*", { count: "exact", head: true });
 
-      if (!isSuperAdmin && user?.id) {
-        docsQuery = docsQuery.eq("uploaded_by", user.id);
-        healthDocsQuery = healthDocsQuery.eq("uploaded_by", user.id);
+      if (!isSuperAdmin && instId) {
+        profilesQuery = profilesQuery.eq("institution_id", instId);
+        docsQuery = docsQuery.eq("institution_id", instId);
+        healthDocsQuery = healthDocsQuery.eq("institution_id", instId);
+        ticketsQuery = ticketsQuery.eq("institution_id", instId);
+        noticesQuery = noticesQuery.eq("institution_id", instId);
       }
 
       Promise.all([
-        client.from("profiles").select("*", { count: "exact", head: true }),
+        profilesQuery,
         docsQuery,
-        client.from("tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
-        client.from("notices").select("*", { count: "exact", head: true }),
+        ticketsQuery,
+        noticesQuery,
         healthDocsQuery,
         client.from("messages").select("created_at").gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       ]).then(([u, d, t, n, healthDocs, chartMsgs]) => {
@@ -1110,6 +1117,7 @@ function NoticesWorkspace() {
 function UsersWorkspace() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const loadUsers = async () => {
     if (!supabase) { setLoading(false); return; }
@@ -1120,12 +1128,15 @@ function UsersWorkspace() {
 
     const { data: prof } = await client.from("profiles").select("role, institution_id").eq("id", user.id).single();
     const { data: roles } = await client.from("user_roles").select("role").eq("user_id", user.id);
-    const isSuperAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
+    const superAdmin = Boolean(prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin"));
+    setIsSuperAdmin(superAdmin);
+
+    const instId = prof?.institution_id || user?.user_metadata?.institution_id;
 
     let query = client.from("profiles").select(`*, user_roles(role), institutions(name)`).order("created_at", { ascending: false });
 
-    if (!isSuperAdmin && prof?.institution_id) {
-      query = query.eq("institution_id", prof.institution_id);
+    if (!superAdmin && instId) {
+      query = query.eq("institution_id", instId);
     }
 
     const { data } = await query;
@@ -1157,6 +1168,7 @@ function UsersWorkspace() {
         <thead>
           <tr style={{ borderBottom: `1px solid ${D.border}` }}>
             <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>USER</th>
+            <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>INSTITUTION</th>
             <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>ROLE</th>
             <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>JOINED</th>
             <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
@@ -1167,6 +1179,9 @@ function UsersWorkspace() {
             <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}` }}>
               <td style={{ padding: "20px 16px 20px 0" }}>
                 <b style={{ display: "block", color: D.text }}>{u.full_name || "Unknown"}</b>
+              </td>
+              <td style={{ padding: "20px 16px 20px 0", color: D.muted, fontSize: 13 }}>
+                {u.institutions?.name || "Global / Unassigned"}
               </td>
               <td style={{ padding: "20px 16px 20px 0" }}>
                 <span style={{ borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, background: "#6366f122", color: "#6366f1", textTransform: "uppercase" }}>
