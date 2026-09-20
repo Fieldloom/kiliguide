@@ -226,12 +226,14 @@ export function DeptWorkspace() {
       const { data: uploadRes } = await supabase.storage.from("documents").upload(storagePath, docFile);
       
       const category = deptName ? `Dept: ${deptName}` : "Departmental";
+      const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
       const { data: dbData, error: dbErr } = await supabase.from("documents").insert({
         title: docTitle.trim(),
         category: category,
         file_type: ext.toLowerCase(),
         status: "active",
         institution_id: instId || "00000000-0000-0000-0000-000000000001",
+        uploaded_by: userId,
         storage_path: uploadRes?.path || storagePath
       }).select();
 
