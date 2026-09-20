@@ -1904,7 +1904,7 @@ function DocumentLibrary() {
               {visible.length} items
             </span>
           </h2>
-          <p style={{ marginTop: 4, fontSize: 14, color: D.muted }}>Review, manage, hide/unhide, or delete documents institution-wise for RAG retrieval.</p>
+          <p style={{ marginTop: 4, fontSize: 14, color: D.muted }}>Review and manage indexed campus documents. Filter view by institution to declutter your Super Admin workspace.</p>
         </div>
 
         <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 100, border: `1px solid ${D.border}`, padding: "8px 16px", fontSize: 12, fontWeight: 700, color: D.muted, background: "rgba(255,255,255,0.03)", cursor: "pointer" }}>
@@ -1912,17 +1912,17 @@ function DocumentLibrary() {
         </button>
       </div>
 
-      {/* Filter, Search, and Institution Selector Bar */}
+      {/* Filter, Search, and Institution View Declutter Bar */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <label style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 10, borderRadius: 16, border: `1px solid ${D.border}`, padding: "10px 16px", background: "rgba(0,0,0,0.2)" }}>
           <Search size={16} style={{ color: D.muted, flexShrink: 0 }} />
           <input value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: D.text }} placeholder="Search title, category or URL..." />
         </label>
 
-        {/* Institution Filter for Super Admin */}
+        {/* Institution View Declutter Selector for Super Admin */}
         {isSuperAdmin && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: D.muted }}>INSTITUTION:</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.muted }}>FILTER VIEW BY CAMPUS:</span>
             <select
               value={instFilter}
               onChange={e => setInstFilter(e.target.value)}
@@ -1931,7 +1931,7 @@ function DocumentLibrary() {
                 color: D.text, padding: "10px 14px", fontSize: 13, outline: "none", cursor: "pointer", fontWeight: 700
               }}
             >
-              <option value="all">All Institutions ({documents.length})</option>
+              <option value="all">All Institutions ({documents.length} docs)</option>
               {institutionsList.map(inst => {
                 const count = documents.filter(d => d.institution_id === inst.id).length;
                 return (
