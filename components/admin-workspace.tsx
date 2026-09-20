@@ -5,7 +5,7 @@ import {
   Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight, ChevronUp,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
   ShieldCheck, Ticket, Upload, UploadCloud, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap,
-  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
+  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, EyeOff, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeWebpage, scrapeDeKut, discoverPages } from "../app/actions";
@@ -1637,14 +1637,17 @@ function OfficialSourceImport() {
   );
 }
 
-type ManagedDocument = { id: string; title: string; category: string; file_type: string; status: string; processing_status?: string; source_url?: string | null; storage_path: string; chunk_count?: number; created_at: string; processing_error?: string | null };
+type ManagedDocument = { id: string; title: string; category: string; file_type: string; status: string; processing_status?: string; source_url?: string | null; storage_path: string; chunk_count?: number; created_at: string; processing_error?: string | null; uploaded_by?: string; institution_id?: string | null };
 
 function DocumentLibrary() {
   const [documents, setDocuments] = useState<ManagedDocument[]>([]);
+  const [institutionsList, setInstitutionsList] = useState<{ id: string; name: string; domain: string }[]>([]);
+  const [instFilter, setInstFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = async () => {
@@ -1654,44 +1657,75 @@ function DocumentLibrary() {
     const { data: { user } } = await client.auth.getUser();
     const { data: prof } = user ? await client.from("profiles").select("role, institution_id").eq("id", user.id).single() : { data: null };
     const { data: roles } = user ? await client.from("user_roles").select("role").eq("user_id", user.id) : { data: null };
-    const isSuperAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
+    const superAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
+    setIsSuperAdmin(Boolean(superAdmin));
 
-    let query = client.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error,uploaded_by,institution_id").order("created_at", { ascending: false });
+    const [docsRes, instsRes] = await Promise.all([
+      (() => {
+        let query = client.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error,uploaded_by,institution_id").order("created_at", { ascending: false });
+        if (!superAdmin && user?.id) {
+          const instId = prof?.institution_id || user.user_metadata?.institution_id;
+          if (instId) {
+            query = query.eq("institution_id", instId);
+          } else {
+            query = query.eq("uploaded_by", user.id);
+          }
+        }
+        return query;
+      })(),
+      client.from("institutions").select("id, name, domain").order("name")
+    ]);
 
-    if (!isSuperAdmin && user?.id) {
-      const instId = prof?.institution_id || user.user_metadata?.institution_id;
-      if (instId) {
-        query = query.eq("institution_id", instId);
-      } else {
-        query = query.eq("uploaded_by", user.id);
-      }
-    }
-
-    const { data, error } = await query;
-    setDocuments((data ?? []) as ManagedDocument[]);
-    setNotice(error ? error.message : "");
+    setDocuments((docsRes.data ?? []) as ManagedDocument[]);
+    setInstitutionsList(instsRes.data || []);
+    setNotice(docsRes.error ? docsRes.error.message : "");
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const visible = documents.filter(d =>
-    (filter === "all" || d.processing_status === filter || d.status === filter) &&
-    `${d.title} ${d.category} ${d.source_url ?? ""}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const visible = documents.filter(d => {
+    const matchStatus = filter === "all" || d.processing_status === filter || d.status === filter;
+    const matchInst = instFilter === "all" || d.institution_id === instFilter;
+    const matchSearch = `${d.title} ${d.category} ${d.source_url ?? ""}`.toLowerCase().includes(search.toLowerCase());
+    return matchStatus && matchInst && matchSearch;
+  });
 
   const archive = async (d: ManagedDocument) => {
     if (!supabase) return;
-    const { error } = await supabase.from("documents").update({ status: d.status === "archived" ? "active" : "archived", processing_status: d.status === "archived" ? "ready" : "archived" }).eq("id", d.id);
-    setNotice(error ? error.message : `${d.title} ${d.status === "archived" ? "restored" : "archived"}.`);
+    const nextStatus = d.status === "archived" ? "active" : "archived";
+    const nextProcStatus = d.status === "archived" ? "ready" : "archived";
+    const { error } = await supabase.from("documents").update({ status: nextStatus, processing_status: nextProcStatus }).eq("id", d.id);
+    setNotice(error ? error.message : `✓ "${d.title}" is now ${nextStatus === "archived" ? "hidden from AI & users" : "visible and live"}.`);
     load();
   };
 
+  const bulkToggleInstitutionDocs = async (targetInstId: string, hide: boolean) => {
+    if (!supabase) return;
+    const inst = institutionsList.find(i => i.id === targetInstId);
+    const instName = inst ? inst.name : "selected institution";
+    if (!confirm(`${hide ? "Hide" : "Show / Restore"} ALL documents for "${instName}"?`)) return;
+
+    const nextStatus = hide ? "archived" : "active";
+    const nextProcStatus = hide ? "archived" : "ready";
+
+    const { error } = await supabase.from("documents")
+      .update({ status: nextStatus, processing_status: nextProcStatus })
+      .eq("institution_id", targetInstId);
+
+    if (error) {
+      setNotice(`Error updating ${instName} documents: ${error.message}`);
+    } else {
+      setNotice(`✓ All documents for "${instName}" have been ${hide ? "hidden from RAG retrieval & users" : "restored and set to visible"}.`);
+      load();
+    }
+  };
+
   const remove = async (d: ManagedDocument) => {
-    if (!supabase || !confirm(`Delete ${d.title}?`)) return;
+    if (!supabase || !confirm(`Permanently delete "${d.title}"?`)) return;
     const { error } = await supabase.from("documents").delete().eq("id", d.id);
     if (!error) await supabase.storage.from("documents").remove([d.storage_path]);
-    setNotice(error ? error.message : `${d.title} deleted.`);
+    setNotice(error ? error.message : `"${d.title}" deleted.`);
     load();
   };
 
@@ -1700,6 +1734,12 @@ function DocumentLibrary() {
     if (d.processing_status === "ready") return { bg: "rgba(16,185,129,0.15)", text: D.accent, border: "rgba(16,185,129,0.3)" };
     if (d.processing_status === "failed") return { bg: "rgba(239,68,68,0.15)", text: "#ef4444", border: "rgba(239,68,68,0.3)" };
     return { bg: "rgba(245,158,11,0.15)", text: "#f59e0b", border: "rgba(245,158,11,0.3)" };
+  };
+
+  const getInstName = (instId?: string | null) => {
+    if (!instId) return "Global / System";
+    const found = institutionsList.find(i => i.id === instId);
+    return found ? found.name : "Institution";
   };
 
   return (
@@ -1713,7 +1753,7 @@ function DocumentLibrary() {
               {visible.length} items
             </span>
           </h2>
-          <p style={{ marginTop: 4, fontSize: 14, color: D.muted }}>Review, manage, archive or remove documents indexed for RAG retrieval.</p>
+          <p style={{ marginTop: 4, fontSize: 14, color: D.muted }}>Review, manage, hide/unhide, or delete documents institution-wise for RAG retrieval.</p>
         </div>
 
         <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 100, border: `1px solid ${D.border}`, padding: "8px 16px", fontSize: 12, fontWeight: 700, color: D.muted, background: "rgba(255,255,255,0.03)", cursor: "pointer" }}>
@@ -1721,12 +1761,37 @@ function DocumentLibrary() {
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+      {/* Filter, Search, and Institution Selector Bar */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <label style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 10, borderRadius: 16, border: `1px solid ${D.border}`, padding: "10px 16px", background: "rgba(0,0,0,0.2)" }}>
           <Search size={16} style={{ color: D.muted, flexShrink: 0 }} />
           <input value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: D.text }} placeholder="Search title, category or URL..." />
         </label>
+
+        {/* Institution Filter for Super Admin */}
+        {isSuperAdmin && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: D.muted }}>INSTITUTION:</span>
+            <select
+              value={instFilter}
+              onChange={e => setInstFilter(e.target.value)}
+              style={{
+                borderRadius: 14, border: `1px solid ${D.border}`, background: "rgba(10,16,24,0.9)",
+                color: D.text, padding: "10px 14px", fontSize: 13, outline: "none", cursor: "pointer", fontWeight: 700
+              }}
+            >
+              <option value="all">All Institutions ({documents.length})</option>
+              {institutionsList.map(inst => {
+                const count = documents.filter(d => d.institution_id === inst.id).length;
+                return (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name} ({count} docs)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
           {["all", "ready", "processing", "failed", "archived"].map(st => (
@@ -1748,8 +1813,43 @@ function DocumentLibrary() {
         </div>
       </div>
 
+      {/* Super Admin Institution Visibility Control Action Bar */}
+      {isSuperAdmin && instFilter !== "all" && (
+        <div style={{ marginBottom: 20, padding: "14px 18px", borderRadius: 16, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Building2 size={18} style={{ color: D.accent }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: D.text }}>
+              Manage Visibility for <b style={{ color: D.accent }}>{getInstName(instFilter)}</b>
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => bulkToggleInstitutionDocs(instFilter, true)}
+              style={{
+                borderRadius: 12, border: "1px solid rgba(239,68,68,0.4)", padding: "8px 14px",
+                fontSize: 12, fontWeight: 800, color: "#f87171", background: "rgba(239,68,68,0.15)",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+              }}
+            >
+              <EyeOff size={14} /> Hide All {getInstName(instFilter)} Documents
+            </button>
+
+            <button
+              onClick={() => bulkToggleInstitutionDocs(instFilter, false)}
+              style={{
+                borderRadius: 12, border: "1px solid rgba(16,185,129,0.4)", padding: "8px 14px",
+                fontSize: 12, fontWeight: 800, color: D.accent, background: "rgba(16,185,129,0.15)",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+              }}
+            >
+              <Eye size={14} /> Restore / Make All Visible
+            </button>
+          </div>
+        </div>
+      )}
+
       {notice && (
-        <p style={{ marginBottom: 20, borderRadius: 14, padding: "12px 16px", fontSize: 13, background: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") ? D.accent : "#ef4444" }}>{notice}</p>
+        <p style={{ marginBottom: 20, borderRadius: 14, padding: "12px 16px", fontSize: 13, background: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") || notice.includes("✓") ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: notice.includes("deleted") || notice.includes("archived") || notice.includes("restored") || notice.includes("✓") ? D.accent : "#ef4444" }}>{notice}</p>
       )}
 
       {/* Mobile-Friendly Curved Card View */}
@@ -1763,13 +1863,14 @@ function DocumentLibrary() {
           visible.map(d => {
             const sc = statusColor(d);
             const isExpanded = expandedId === d.id;
+            const instName = getInstName(d.institution_id);
             return (
               <div 
                 key={d.id} 
                 style={{ 
                   borderRadius: 20, 
                   background: "rgba(255,255,255,0.02)", 
-                  border: `1px solid ${D.border}`, 
+                  border: `1px solid ${d.status === "archived" ? "rgba(239,68,68,0.3)" : D.border}`, 
                   padding: 20, 
                   transition: "all 0.2s" 
                 }}
@@ -1782,6 +1883,9 @@ function DocumentLibrary() {
                     <div>
                       <b style={{ fontSize: 15, color: D.text, display: "block", marginBottom: 4 }}>{d.title}</b>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "rgba(59,130,246,0.15)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.3)" }}>
+                          🎓 {instName}
+                        </span>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.05)", color: D.muted, textTransform: "uppercase" }}>
                           {d.file_type}
                         </span>
@@ -1789,13 +1893,13 @@ function DocumentLibrary() {
                           {d.category} · {new Date(d.created_at).toLocaleDateString()}
                         </span>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: sc.bg, color: sc.text, border: sc.border ? `1px solid ${sc.border}` : "none" }}>
-                          {d.status === "archived" ? "Archived" : d.processing_status ?? "Uploaded"}
+                          {d.status === "archived" ? "Hidden / Archived" : d.processing_status ?? "Uploaded"}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* High Visibility Buttons */}
+                  {/* High Visibility Actions: Details, Hide/Show, Delete */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <button 
                       onClick={() => setExpandedId(isExpanded ? null : d.id)}
@@ -1804,25 +1908,29 @@ function DocumentLibrary() {
                       <Eye size={14} />
                       <span>{isExpanded ? "Hide" : "Details"}</span>
                     </button>
+
                     <button 
                       onClick={() => archive(d)} 
                       style={{ 
-                        borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", 
+                        borderRadius: 12, 
+                        border: d.status === "archived" ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(239,68,68,0.3)", 
                         padding: "8px 14px", fontSize: 12, fontWeight: 700, 
-                        color: d.status === "archived" ? D.accent : D.text, 
-                        background: d.status === "archived" ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.05)", 
+                        color: d.status === "archived" ? D.accent : "#f87171", 
+                        background: d.status === "archived" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.12)", 
                         cursor: "pointer", display: "flex", alignItems: "center", gap: 6 
                       }}
+                      title={d.status === "archived" ? "Restore to active RAG retrieval" : "Hide document from AI answers & users"}
                     >
-                      <RotateCcw size={14} />
-                      <span>{d.status === "archived" ? "Restore" : "Archive"}</span>
+                      {d.status === "archived" ? <Eye size={14} /> : <EyeOff size={14} />}
+                      <span>{d.status === "archived" ? "Make Visible" : "Hide Document"}</span>
                     </button>
+
                     <button 
                       onClick={() => remove(d)} 
                       style={{ 
                         borderRadius: 12, border: "1px solid rgba(239,68,68,0.3)", 
                         padding: "8px 14px", fontSize: 12, fontWeight: 700, 
-                        color: "#f87171", background: "rgba(239,68,68,0.1)", 
+                        color: "#ef4444", background: "rgba(239,68,68,0.1)", 
                         cursor: "pointer", display: "flex", alignItems: "center", gap: 6 
                       }}
                     >
@@ -1842,6 +1950,10 @@ function DocumentLibrary() {
                       style={{ overflow: "hidden", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}
                     >
                       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", fontSize: 12 }}>
+                        <div style={{ background: "rgba(0,0,0,0.2)", padding: 12, borderRadius: 12, border: `1px solid ${D.border}` }}>
+                          <span style={{ color: D.muted, display: "block", marginBottom: 2, fontWeight: 700 }}>Institution Owner</span>
+                          <span style={{ color: D.accent, fontWeight: 800 }}>{instName}</span>
+                        </div>
                         <div style={{ background: "rgba(0,0,0,0.2)", padding: 12, borderRadius: 12, border: `1px solid ${D.border}` }}>
                           <span style={{ color: D.muted, display: "block", marginBottom: 2, fontWeight: 700 }}>Source URL / Path</span>
                           <span style={{ color: D.text, wordBreak: "break-all" }}>{d.source_url || d.storage_path}</span>
