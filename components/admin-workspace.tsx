@@ -1763,12 +1763,15 @@ function NoticesWorkspace() {
   );
 }
 
-// ── USERS ─────────────────────────────────────────────────────────────
+type RoleSegment = "all" | "staff" | "student" | "parent" | "visitor";
+
 function UsersWorkspace() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentInstId, setCurrentInstId] = useState<string | null>(null);
+  const [roleSegment, setRoleSegment] = useState<RoleSegment>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadUsers = async () => {
     if (!supabase) { setLoading(false); return; }
@@ -1851,112 +1854,288 @@ function UsersWorkspace() {
     setUsers(users.filter(u => u.id !== userId));
   };
 
+  // Segment counts
+  const allCount = users.length;
+  const staffUsers = users.filter(u => ["staff", "lecturer", "dept_admin", "department"].includes(u.user_roles?.[0]?.role || "student"));
+  const staffCount = staffUsers.length;
+  const studentCount = users.filter(u => (u.user_roles?.[0]?.role || "student") === "student").length;
+  const parentCount = users.filter(u => u.user_roles?.[0]?.role === "parent").length;
+  const visitorCount = users.filter(u => u.user_roles?.[0]?.role === "visitor").length;
+  const pendingStaffDepts = staffUsers.filter(u => Boolean(u.pending_department_name));
+
+  // Filtering
+  const filteredUsers = users.filter(u => {
+    const r = u.user_roles?.[0]?.role || "student";
+    let matchesSegment = true;
+    if (roleSegment === "staff") {
+      matchesSegment = ["staff", "lecturer", "dept_admin", "department"].includes(r);
+    } else if (roleSegment === "student") {
+      matchesSegment = r === "student";
+    } else if (roleSegment === "parent") {
+      matchesSegment = r === "parent";
+    } else if (roleSegment === "visitor") {
+      matchesSegment = r === "visitor";
+    }
+
+    if (!matchesSegment) return false;
+    if (!searchQuery.trim()) return true;
+
+    const term = searchQuery.toLowerCase();
+    const nameMatch = (u.full_name || "").toLowerCase().includes(term);
+    const emailMatch = (u.email || "").toLowerCase().includes(term);
+    const deptMatch = (u.departments?.name || u.pending_department_name || "").toLowerCase().includes(term);
+    const regMatch = (u.registration_number || "").toLowerCase().includes(term);
+
+    return nameMatch || emailMatch || deptMatch || regMatch;
+  });
+
   return (
-    <section style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
-      {loading ? (
-        <div style={{ padding: 48, textAlign: "center", color: D.muted }}>Loading institution users & staff...</div>
-      ) : (
-        <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${D.border}` }}>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>USER & DEPARTMENT</th>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>INSTITUTION</th>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>ROLE</th>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>JOINED</th>
-              <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => {
-              const currentRole = u.user_roles?.[0]?.role || "student";
-              const isStaffOrLecturer = currentRole === "staff" || currentRole === "lecturer" || currentRole === "department";
+    <section style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Header & Search */}
+      <div style={{ padding: 24, borderRadius: 20, background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}`, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              Institution Users & Staff Directory
+              <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 100, background: "rgba(16,185,129,0.2)", color: D.accent }}>{allCount} Registered</span>
+            </h2>
+            <p style={{ fontSize: 13, color: D.muted, marginTop: 4, margin: 0 }}>
+              Manage staff elevations, department assignments, students, and parent accounts.
+            </p>
+          </div>
 
-              return (
-                <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}` }}>
-                  <td style={{ padding: "20px 16px 20px 0" }}>
-                    <b style={{ display: "block", color: D.text, fontSize: 14 }}>{u.full_name || "Unknown User"}</b>
-                    {u.departments?.name && (
-                      <span style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: D.accent, fontWeight: 600 }}>
-                        🏛️ {u.departments.name}
-                      </span>
-                    )}
+          <div style={{ position: "relative", width: "100%", maxWidth: 300 }}>
+            <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: D.muted }} />
+            <input
+              type="text"
+              placeholder="Search user, email, department..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, borderRadius: 12, padding: "10px 12px 10px 36px", color: "#fff", fontSize: 13, outline: "none" }}
+            />
+          </div>
+        </div>
 
-                    {u.pending_department_name && (
-                      <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)" }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b" }}>
-                          📌 Requested Dept: "{u.pending_department_name}"
+        {/* Role Segment Tabs */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 8, borderTop: `1px solid ${D.border}` }}>
+          <button
+            onClick={() => setRoleSegment("all")}
+            style={{
+              padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none",
+              background: roleSegment === "all" ? D.accent : "rgba(255,255,255,0.05)",
+              color: roleSegment === "all" ? "#000" : D.text,
+              display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s"
+            }}
+          >
+            <span>🌐 All Users ({allCount})</span>
+          </button>
+
+          <button
+            onClick={() => setRoleSegment("staff")}
+            style={{
+              padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none",
+              background: roleSegment === "staff" ? D.accent : "rgba(255,255,255,0.05)",
+              color: roleSegment === "staff" ? "#000" : D.text,
+              display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s",
+              boxShadow: pendingStaffDepts.length > 0 ? "0 0 12px rgba(245,158,11,0.4)" : "none"
+            }}
+          >
+            <span>💼 Staff & Faculty ({staffCount})</span>
+            {pendingStaffDepts.length > 0 && (
+              <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 100, background: "#f59e0b", color: "#000" }}>
+                📌 {pendingStaffDepts.length} Req
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setRoleSegment("student")}
+            style={{
+              padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none",
+              background: roleSegment === "student" ? D.accent : "rgba(255,255,255,0.05)",
+              color: roleSegment === "student" ? "#000" : D.text,
+              display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s"
+            }}
+          >
+            <span>🎓 Students ({studentCount})</span>
+          </button>
+
+          <button
+            onClick={() => setRoleSegment("parent")}
+            style={{
+              padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none",
+              background: roleSegment === "parent" ? D.accent : "rgba(255,255,255,0.05)",
+              color: roleSegment === "parent" ? "#000" : D.text,
+              display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s"
+            }}
+          >
+            <span>👨‍👩‍👧 Parents ({parentCount})</span>
+          </button>
+
+          <button
+            onClick={() => setRoleSegment("visitor")}
+            style={{
+              padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none",
+              background: roleSegment === "visitor" ? D.accent : "rgba(255,255,255,0.05)",
+              color: roleSegment === "visitor" ? "#000" : D.text,
+              display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s"
+            }}
+          >
+            <span>👤 Visitors ({visitorCount})</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Pending Staff Department Requests Banner in Staff Segment */}
+      {(roleSegment === "staff" || roleSegment === "all") && pendingStaffDepts.length > 0 && (
+        <div style={{ padding: 20, borderRadius: 16, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Building2 size={18} style={{ color: "#f59e0b" }} />
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: D.text, margin: 0 }}>
+              Staff Missing Department Requests ({pendingStaffDepts.length})
+            </h3>
+          </div>
+          <p style={{ fontSize: 12, color: D.muted, margin: 0 }}>
+            These staff members selected a custom department during registration. Confirm below to create the department and assign them:
+          </p>
+
+          <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+            {pendingStaffDepts.map(p => (
+              <div key={p.id} style={{ background: "rgba(0,0,0,0.3)", padding: 14, borderRadius: 12, border: "1px solid rgba(245,158,11,0.2)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div>
+                  <b style={{ color: "#f59e0b", fontSize: 13, display: "block" }}>{p.pending_department_name}</b>
+                  <span style={{ fontSize: 11, color: D.muted }}>{p.full_name || p.email}</span>
+                </div>
+                <button
+                  onClick={() => handleConfirmPendingDept(p)}
+                  style={{ background: "#f59e0b", color: "#000", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  Confirm & Create
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Table */}
+      <div style={{ borderRadius: 16, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}` }}>
+        {loading ? (
+          <div style={{ padding: 48, textAlign: "center", color: D.muted }}>Loading institution users & staff...</div>
+        ) : filteredUsers.length === 0 ? (
+          <div style={{ padding: 48, textAlign: "center", color: D.muted }}>
+            No users found matching "{roleSegment !== "all" ? roleSegment : "search"}".
+          </div>
+        ) : (
+          <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${D.border}` }}>
+                <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>USER & DETAILS</th>
+                <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>INSTITUTION</th>
+                <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>ROLE</th>
+                <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "left" }}>JOINED</th>
+                <th style={{ paddingBottom: 16, fontWeight: 700, fontSize: 11, letterSpacing: "0.05em", color: D.muted, textAlign: "right" }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map(u => {
+                const currentRole = u.user_roles?.[0]?.role || "student";
+                const isStaffOrLecturer = currentRole === "staff" || currentRole === "lecturer" || currentRole === "department";
+
+                return (
+                  <tr key={u.id} style={{ borderBottom: `1px solid ${D.border}` }}>
+                    <td style={{ padding: "18px 16px 18px 0" }}>
+                      <b style={{ display: "block", color: D.text, fontSize: 14 }}>{u.full_name || "Unknown User"}</b>
+                      
+                      {u.registration_number && (
+                        <span style={{ fontSize: 11, color: D.muted, display: "block", marginTop: 2 }}>
+                          Reg No: {u.registration_number}
                         </span>
-                        <button
-                          onClick={() => handleConfirmPendingDept(u)}
-                          style={{ background: "#f59e0b", color: "#000", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
-                        >
-                          Confirm & Create
-                        </button>
-                      </div>
-                    )}
-                  </td>
-
-                  <td style={{ padding: "20px 16px 20px 0", color: D.muted, fontSize: 13 }}>
-                    {u.institutions?.name || "Global / Unassigned"}
-                  </td>
-
-                  <td style={{ padding: "20px 16px 20px 0" }}>
-                    <span style={{ 
-                      borderRadius: 6, 
-                      padding: "4px 10px", 
-                      fontSize: 11, 
-                      fontWeight: 800, 
-                      background: currentRole === "dept_admin" ? "rgba(16,185,129,0.2)" : "#6366f122", 
-                      color: currentRole === "dept_admin" ? D.accent : "#6366f1", 
-                      textTransform: "uppercase" 
-                    }}>
-                      {currentRole === "dept_admin" ? "Department Head" : currentRole}
-                    </span>
-                  </td>
-
-                  <td style={{ padding: "20px 16px 20px 0", color: D.muted, fontSize: 13 }}>
-                    {new Date(u.created_at).toLocaleDateString()}
-                  </td>
-
-                  <td style={{ padding: "20px 0", textAlign: "right" }}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
-                      {isStaffOrLecturer && (
-                        <button 
-                          onClick={async () => {
-                            await updateRole(u.id, "dept_admin");
-                            alert(`✓ ${u.full_name || 'Staff member'} has been elevated to Department Head!`);
-                          }}
-                          title="Elevate staff member to Head of Department"
-                          style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: D.accent, padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}
-                        >
-                          <ShieldCheck size={14} /> Elevate to Dept Head
-                        </button>
                       )}
 
-                      <select 
-                        value={currentRole} 
-                        onChange={e => updateRole(u.id, e.target.value)} 
-                        style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, color: D.text, padding: "6px 10px", borderRadius: 8, outline: "none", fontSize: 12 }}
-                      >
-                        <option value="student">Student</option>
-                        <option value="staff">Staff</option>
-                        <option value="lecturer">Lecturer</option>
-                        <option value="dept_admin">Dept Head</option>
-                        <option value="parent">Parent</option>
-                        <option value="visitor">Visitor</option>
-                        {isSuperAdmin && <option value="administrator">Admin</option>}
-                        {isSuperAdmin && <option value="super_admin">Super Admin</option>}
-                      </select>
+                      {u.departments?.name && (
+                        <span style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: D.accent, fontWeight: 600 }}>
+                          🏛️ {u.departments.name}
+                        </span>
+                      )}
 
-                      <button onClick={() => deleteUser(u.id, u.full_name)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+                      {u.pending_department_name && (
+                        <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 8, padding: "4px 10px", borderRadius: 8, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)" }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b" }}>
+                            📌 Requested Dept: "{u.pending_department_name}"
+                          </span>
+                          <button
+                            onClick={() => handleConfirmPendingDept(u)}
+                            style={{ background: "#f59e0b", color: "#000", border: "none", borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 800, cursor: "pointer" }}
+                          >
+                            Confirm
+                          </button>
+                        </div>
+                      )}
+                    </td>
+
+                    <td style={{ padding: "18px 16px 18px 0", color: D.muted, fontSize: 13 }}>
+                      {u.institutions?.name || "Global / Unassigned"}
+                    </td>
+
+                    <td style={{ padding: "18px 16px 18px 0" }}>
+                      <span style={{ 
+                        borderRadius: 6, 
+                        padding: "4px 10px", 
+                        fontSize: 11, 
+                        fontWeight: 800, 
+                        background: currentRole === "dept_admin" ? "rgba(16,185,129,0.2)" : "#6366f122", 
+                        color: currentRole === "dept_admin" ? D.accent : "#6366f1", 
+                        textTransform: "uppercase" 
+                      }}>
+                        {currentRole === "dept_admin" ? "Department Head" : currentRole}
+                      </span>
+                    </td>
+
+                    <td style={{ padding: "18px 16px 18px 0", color: D.muted, fontSize: 13 }}>
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </td>
+
+                    <td style={{ padding: "18px 0", textAlign: "right" }}>
+                      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+                        {isStaffOrLecturer && (
+                          <button 
+                            onClick={async () => {
+                              await updateRole(u.id, "dept_admin");
+                              alert(`✓ ${u.full_name || 'Staff member'} has been elevated to Department Head!`);
+                            }}
+                            title="Elevate staff member to Head of Department"
+                            style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: D.accent, padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}
+                          >
+                            <ShieldCheck size={14} /> Elevate to Dept Head
+                          </button>
+                        )}
+
+                        <select 
+                          value={currentRole} 
+                          onChange={e => updateRole(u.id, e.target.value)} 
+                          style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, color: D.text, padding: "6px 10px", borderRadius: 8, outline: "none", fontSize: 12 }}
+                        >
+                          <option value="student">Student</option>
+                          <option value="staff">Staff</option>
+                          <option value="lecturer">Lecturer</option>
+                          <option value="dept_admin">Dept Head</option>
+                          <option value="parent">Parent</option>
+                          <option value="visitor">Visitor</option>
+                          {isSuperAdmin && <option value="administrator">Admin</option>}
+                          {isSuperAdmin && <option value="super_admin">Super Admin</option>}
+                        </select>
+
+                        <button onClick={() => deleteUser(u.id, u.full_name)} style={{ background: "transparent", border: "1px solid #ef444444", color: "#ef4444", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
     </section>
   );
 }
