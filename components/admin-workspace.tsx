@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight, ChevronUp,
   FileText, LayoutDashboard, Menu, MessageSquareText, Search,
-  ShieldCheck, Ticket, Upload, UploadCloud, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap,
+  ShieldCheck, Ticket, Upload, UploadCloud, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap, Loader2,
   Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, EyeOff, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -1770,6 +1770,201 @@ function NoticesWorkspace() {
   );
 }
 
+function ElevateDeptHeadModal({
+  user,
+  instId,
+  onClose,
+  onElevated
+}: {
+  user: any;
+  instId: string | null;
+  onClose: () => void;
+  onElevated: () => void;
+}) {
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [selectedDeptId, setSelectedDeptId] = useState<string>(user?.department_id || "");
+  const [newDeptName, setNewDeptName] = useState<string>(user?.pending_department_name || "");
+  const [isCreatingNew, setIsCreatingNew] = useState<boolean>(!user?.department_id && Boolean(user?.pending_department_name));
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>("");
+
+  useEffect(() => {
+    if (!supabase) return;
+    const targetInst = instId || user?.institution_id;
+    let query = supabase.from("departments").select("id, name").order("name");
+    if (targetInst) {
+      query = query.eq("institution_id", targetInst);
+    }
+    query.then(({ data }) => setDepartments(data || []));
+  }, [instId, user]);
+
+  const handleElevateSubmit = async () => {
+    if (!supabase || !user) return;
+    setSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      let deptId = selectedDeptId;
+
+      if (isCreatingNew || selectedDeptId === "new") {
+        if (!newDeptName.trim()) {
+          setErrorMsg("Please enter a valid department name.");
+          setSubmitting(false);
+          return;
+        }
+
+        const { data: existing } = await supabase.from("departments").select("id").eq("name", newDeptName.trim()).limit(1);
+        if (existing && existing.length > 0) {
+          deptId = existing[0].id;
+        } else {
+          const { data: created, error: createErr } = await supabase.from("departments").insert({
+            name: newDeptName.trim(),
+            institution_id: instId || user.institution_id || "00000000-0000-0000-0000-000000000001"
+          }).select("id").single();
+
+          if (createErr) {
+            setErrorMsg(`Failed to create department: ${createErr.message}`);
+            setSubmitting(false);
+            return;
+          }
+          deptId = created.id;
+        }
+      }
+
+      if (!deptId) {
+        setErrorMsg("Please select or create a department for this Head of Department.");
+        setSubmitting(false);
+        return;
+      }
+
+      await supabase.from("user_roles").delete().eq("user_id", user.id);
+      await supabase.from("user_roles").insert({ user_id: user.id, role: "dept_admin" });
+
+      await supabase.from("profiles").update({
+        department_id: deptId,
+        pending_department_name: null
+      }).eq("id", user.id);
+
+      alert(`✓ ${user.full_name || user.email} successfully elevated to Head of Department!`);
+      onElevated();
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Error during elevation.");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ width: "100%", maxWidth: 480, background: "#0a1018", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 24, padding: 28, boxShadow: "0 24px 64px rgba(0,0,0,0.9)", display: "flex", flexDirection: "column", gap: 20 }}>
+        
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(16,185,129,0.15)", display: "grid", placeItems: "center", color: D.accent }}>
+              <ShieldCheck size={24} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: D.text, margin: 0 }}>
+                Appoint Department Head
+              </h3>
+              <p style={{ fontSize: 13, color: D.muted, marginTop: 2, margin: 0 }}>
+                Elevate <b style={{ color: D.text }}>{user.full_name || user.email}</b>
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", color: D.muted, padding: 8, borderRadius: 10, cursor: "pointer" }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", padding: 12, borderRadius: 12, color: "#f87171", fontSize: 13 }}>
+            {errorMsg}
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <label style={{ fontSize: 13, fontWeight: 700, color: D.text }}>
+            Select Department to Assign to Head:
+          </label>
+
+          {!isCreatingNew ? (
+            <>
+              <select
+                value={selectedDeptId}
+                onChange={e => {
+                  if (e.target.value === "new") {
+                    setIsCreatingNew(true);
+                    setSelectedDeptId("");
+                  } else {
+                    setSelectedDeptId(e.target.value);
+                  }
+                }}
+                style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none" }}
+              >
+                <option value="">-- Choose Department --</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id} className="bg-zinc-900">
+                    🏛️ {d.name}
+                  </option>
+                ))}
+                <option value="new" className="bg-zinc-900">➕ Create New Department...</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setIsCreatingNew(true)}
+                style={{ background: "transparent", border: "none", color: D.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", textAlign: "left", padding: 0 }}
+              >
+                + Create custom department name instead
+              </button>
+            </>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: D.accent }}>New Department Name</span>
+                {departments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingNew(false)}
+                    style={{ background: "transparent", border: "none", color: D.muted, fontSize: 11, cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    Select existing department
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. Department of Mechanical Engineering"
+                value={newDeptName}
+                onChange={e => setNewDeptName(e.target.value)}
+                style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: `1px solid ${D.border}`, borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none" }}
+              />
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+          <button
+            onClick={onClose}
+            style={{ padding: "12px 18px", borderRadius: 12, background: "rgba(255,255,255,0.06)", color: D.text, border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+          >
+            Cancel
+          </button>
+          <button
+            disabled={submitting}
+            onClick={handleElevateSubmit}
+            style={{ padding: "12px 24px", borderRadius: 12, background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", border: "none", fontSize: 13, fontWeight: 800, cursor: submitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}
+          >
+            {submitting ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+            {submitting ? "Appointing..." : "Confirm & Elevate"}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 type RoleSegment = "all" | "staff" | "student" | "parent" | "visitor";
 
 function UsersWorkspace() {
@@ -1810,12 +2005,23 @@ function UsersWorkspace() {
     loadUsers();
   }, []);
 
-  const updateRole = async (userId: string, newRole: string) => {
+  const [elevatingUser, setElevatingUser] = useState<any | null>(null);
+
+  const updateRole = async (userId: string, newRole: string, targetUser?: any) => {
     if (!supabase) return;
     if (!isSuperAdmin && (newRole === "administrator" || newRole === "super_admin")) {
       alert("Institution administrators can only assign Dept Head, Lecturer, Staff, Student, Parent, or Visitor roles.");
       return;
     }
+
+    if (newRole === "dept_admin") {
+      const u = targetUser || users.find(x => x.id === userId);
+      if (u) {
+        setElevatingUser(u);
+        return;
+      }
+    }
+
     await supabase.from("user_roles").delete().eq("user_id", userId);
     await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
     setUsers(users.map(u => u.id === userId ? { ...u, user_roles: [{ role: newRole }] } : u));
@@ -1823,36 +2029,7 @@ function UsersWorkspace() {
 
   const handleConfirmPendingDept = async (u: any) => {
     if (!supabase || !u.pending_department_name) return;
-    const deptName = u.pending_department_name.trim();
-    const instId = u.institution_id || currentInstId || "00000000-0000-0000-0000-000000000001";
-
-    let deptId = null;
-    const { data: existing } = await supabase.from("departments").select("id").eq("name", deptName).limit(1);
-    if (existing && existing.length > 0) {
-      deptId = existing[0].id;
-    } else {
-      const { data: newDept, error } = await supabase.from("departments").insert({
-        name: deptName,
-        institution_id: instId
-      }).select("id").single();
-
-      if (error) {
-        alert(`Error adding department: ${error.message}`);
-        return;
-      }
-      deptId = newDept.id;
-    }
-
-    await supabase.from("profiles").update({
-      department_id: deptId,
-      pending_department_name: null
-    }).eq("id", u.id);
-
-    if (confirm(`✓ Department "${deptName}" confirmed and added! Elevate ${u.full_name || 'staff member'} to Department Head (dept_admin)?`)) {
-      await updateRole(u.id, "dept_admin");
-    }
-
-    loadUsers();
+    setElevatingUser(u);
   };
 
   const deleteUser = async (userId: string, name: string) => {
@@ -2143,6 +2320,18 @@ function UsersWorkspace() {
           </table>
         )}
       </div>
+
+      {elevatingUser && (
+        <ElevateDeptHeadModal
+          user={elevatingUser}
+          instId={currentInstId}
+          onClose={() => setElevatingUser(null)}
+          onElevated={() => {
+            setElevatingUser(null);
+            loadUsers();
+          }}
+        />
+      )}
     </section>
   );
 }

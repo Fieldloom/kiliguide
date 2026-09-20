@@ -43,7 +43,7 @@ export function DeptWorkspace() {
   const [escalatePayload, setEscalatePayload] = useState<{subject: string, body: string} | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
-  const [name, setName] = useState("Department Admin");
+  const [name, setName] = useState("Department Head");
   const [institutionName, setInstitutionName] = useState<string>("");
   const instShortName = !institutionName
     ? "Campus"
@@ -70,37 +70,84 @@ export function DeptWorkspace() {
   const [readingMsgId, setReadingMsgId] = useState<string | null>(null);
   const [escalatingId, setEscalatingId] = useState<string | null>(null);
 
+  // Department Head specific state
+  const [deptId, setDeptId] = useState<string | null>(null);
+  const [deptName, setDeptName] = useState<string>("");
+  const [instId, setInstId] = useState<string | null>(null);
+
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState("");
+  const [noticeBody, setNoticeBody] = useState("");
+  const [noticeCategory, setNoticeCategory] = useState("");
+  const [publishingNotice, setPublishingNotice] = useState(false);
+
+  const [showDocUploadModal, setShowDocUploadModal] = useState(false);
+  const [docTitle, setDocTitle] = useState("");
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
   const messages = activeConv?.messages ?? [];
 
   useEffect(() => {
     if (!supabase) return;
-    Promise.all([
-      supabase.auth.getUser(),
-      supabase.from("documents").select("id,title,category,file_type,created_at").eq("status", "active").order("created_at", { ascending: false }).limit(20),
-      supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(20),
-      supabase.from("tickets").select("*, profiles(full_name, email), departments(name, email)").order("created_at", { ascending: false }).limit(20),
-      supabase.from("personal_resources").select("*").eq("resource_type", "timetable").order("created_at", { ascending: false })
-    ]).then(async ([auth, docs, nots, tcks, times]) => {
-      const user = auth.data.user;
+    const client = supabase;
+    client.auth.getUser().then(async ({ data: { user } }) => {
       setProfile(user);
-      setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Department Admin");
-      if (user && supabase) {
-        const { data: prof } = await supabase.from("profiles").select("preferred_language, institution_id").eq("id", user.id).single();
+      setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Department Head");
+      if (user) {
+        const { data: prof } = await client
+          .from("profiles")
+          .select("preferred_language, institution_id, department_id, departments(id, name, email, code)")
+          .eq("id", user.id)
+          .single();
+
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
         const effectiveInstId = prof?.institution_id || user?.user_metadata?.institution_id;
         if (effectiveInstId) {
-          const { data: inst } = await supabase.from("institutions").select("name").eq("id", effectiveInstId).single();
+          setInstId(effectiveInstId);
+          const { data: inst } = await client.from("institutions").select("name").eq("id", effectiveInstId).single();
           if (inst?.name) setInstitutionName(inst.name);
         }
-        
-        const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
+
+        let dId: string | null = null;
+        let dName: string = "";
+        if (prof?.department_id) {
+          dId = prof.department_id;
+          setDeptId(dId);
+          dName = (prof.departments as any)?.name || "";
+          if (dName) setDeptName(dName);
+        }
+
+        let docsQuery = client.from("documents").select("id,title,category,file_type,created_at").eq("status", "active").order("created_at", { ascending: false }).limit(30);
+        let notsQuery = client.from("notices").select("*").order("published_at", { ascending: false }).limit(30);
+        let tcksQuery = client.from("tickets").select("*, profiles(full_name, email), departments(name, email)").order("created_at", { ascending: false }).limit(30);
+
+        if (effectiveInstId) {
+          docsQuery = docsQuery.eq("institution_id", effectiveInstId);
+          notsQuery = notsQuery.eq("institution_id", effectiveInstId);
+          tcksQuery = tcksQuery.eq("institution_id", effectiveInstId);
+        }
+
+        if (dId) {
+          tcksQuery = tcksQuery.eq("department_id", dId);
+        }
+
+        const [docsRes, notsRes, tcksRes, timesRes] = await Promise.all([
+          docsQuery,
+          notsQuery,
+          tcksQuery,
+          client.from("personal_resources").select("*").eq("resource_type", "timetable").order("created_at", { ascending: false })
+        ]);
+
+        setDocuments(docsRes.data ?? []);
+        setNotices(notsRes.data ?? []);
+        setTickets(tcksRes.data ?? []);
+        setTimetables(timesRes.data ?? []);
+
+        const { data: settings } = await client.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
         if (settings && settings.value === 'true') setShowDocuments(true);
       }
-      setDocuments(docs.data ?? []);
-      setNotices(nots.data ?? []);
-      setTickets(tcks.data ?? []);
-      setTimetables(times.data ?? []);
     });
     try {
       const saved = localStorage.getItem("kiliguide_conversations");
@@ -124,7 +171,9 @@ export function DeptWorkspace() {
     const { data, error } = await supabase.from("tickets").insert({
       subject: ticketSubject,
       description: ticketDesc,
-      created_by: profile?.id
+      created_by: profile?.id,
+      department_id: deptId,
+      institution_id: instId || "00000000-0000-0000-0000-000000000001"
     }).select();
     if (!error && data) {
       setTickets([data[0], ...tickets]);
@@ -132,6 +181,82 @@ export function DeptWorkspace() {
       setTicketDesc("");
     }
     setCreatingTicket(false);
+  };
+
+  const handlePublishDeptNotice = async () => {
+    if (!supabase || !noticeTitle.trim() || !noticeBody.trim()) return;
+    setPublishingNotice(true);
+    try {
+      const category = noticeCategory.trim() || (deptName ? `Dept: ${deptName}` : "Department Notice");
+      const { data, error } = await supabase.from("notices").insert({
+        title: noticeTitle.trim(),
+        body: noticeBody.trim(),
+        summary: noticeBody.slice(0, 160),
+        category: category,
+        department_id: deptId,
+        institution_id: instId || "00000000-0000-0000-0000-000000000001",
+        author_id: profile?.id,
+        published_at: new Date().toISOString()
+      }).select();
+
+      if (error) {
+        alert(`Failed to publish notice: ${error.message}`);
+      } else if (data && data.length > 0) {
+        setNotices([data[0], ...notices]);
+        setNoticeTitle("");
+        setNoticeBody("");
+        setNoticeCategory("");
+        setShowNoticeModal(false);
+        alert("✓ Department notice published successfully!");
+      }
+    } catch (err: any) {
+      alert(`Error: ${err?.message || "Failed to publish notice"}`);
+    } finally {
+      setPublishingNotice(false);
+    }
+  };
+
+  const handleUploadDeptDocument = async () => {
+    if (!supabase || !docTitle.trim() || !docFile) return;
+    setUploadingDoc(true);
+    try {
+      const ext = docFile.name.split('.').pop() || "pdf";
+      const storagePath = `department-docs/${deptId || 'general'}/${Date.now()}_${docFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      
+      const { data: uploadRes } = await supabase.storage.from("documents").upload(storagePath, docFile);
+      
+      const category = deptName ? `Dept: ${deptName}` : "Departmental";
+      const { data: dbData, error: dbErr } = await supabase.from("documents").insert({
+        title: docTitle.trim(),
+        category: category,
+        file_type: ext.toLowerCase(),
+        status: "active",
+        institution_id: instId || "00000000-0000-0000-0000-000000000001",
+        storage_path: uploadRes?.path || storagePath
+      }).select();
+
+      if (dbErr) {
+        alert(`Error saving document record: ${dbErr.message}`);
+      } else if (dbData && dbData.length > 0) {
+        setDocuments([dbData[0], ...documents]);
+        setDocTitle("");
+        setDocFile(null);
+        setShowDocUploadModal(false);
+        alert("✓ Department document uploaded successfully!");
+      }
+    } catch (err: any) {
+      alert(`Error uploading document: ${err?.message || "Upload failed"}`);
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId: string, status: "open" | "in_progress" | "resolved") => {
+    if (!supabase) return;
+    const { error } = await supabase.from("tickets").update({ status }).eq("id", ticketId);
+    if (!error) {
+      setTickets(tickets.map(t => t.id === ticketId ? { ...t, status } : t));
+    }
   };
 
   const handleUploadTimetable = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -794,11 +919,28 @@ export function DeptWorkspace() {
         ) : tab === "Documents" ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
             <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>Official Documents</h2>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", padding: "8px 16px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <Search size={16} color="#a1a1aa" />
-                  <input value={docQuery} onChange={e => setDocQuery(e.target.value)} placeholder="Search..." style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 32 }}>
+                <div>
+                  <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0 }}>
+                    {deptName ? `${deptName} Documents` : "Official Department Documents"}
+                  </h2>
+                  <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4, margin: 0 }}>
+                    Upload & manage official departmental syllabi, exam timetables, clearance guidelines, and regulations.
+                  </p>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", padding: "8px 16px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.1)" }}>
+                    <Search size={16} color="#a1a1aa" />
+                    <input value={docQuery} onChange={e => setDocQuery(e.target.value)} placeholder="Search documents..." style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
+                  </div>
+
+                  <button
+                    onClick={() => setShowDocUploadModal(true)}
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: "#10b981", color: "#000", border: "none", padding: "10px 18px", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}
+                  >
+                    <UploadCloud size={16} /> Upload Department Document
+                  </button>
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
@@ -823,10 +965,21 @@ export function DeptWorkspace() {
         ) : tab === "Notices" ? (
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
             <div className="max-w-4xl mx-auto pb-28">
-              <div className="mb-6">
-                <span className="text-[11px] font-bold tracking-widest text-[#10b981] uppercase">DEPARTMENTAL NOTICES</span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">Campus Notices</h2>
-                <p className="text-sm text-zinc-400 mt-1">Department bulletins, clearance updates, and official communications.</p>
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                  <span className="text-[11px] font-bold tracking-widest text-[#10b981] uppercase">
+                    {deptName ? `NOTICES — ${deptName.toUpperCase()}` : "DEPARTMENTAL NOTICES"}
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">Campus & Department Circulars</h2>
+                  <p className="text-sm text-zinc-400 mt-1">Send official updates to students and staff targeted to your department.</p>
+                </div>
+
+                <button
+                  onClick={() => setShowNoticeModal(true)}
+                  className="px-4 py-2.5 rounded-xl bg-[#10b981] text-black font-extrabold text-xs flex items-center gap-2 hover:brightness-110 shadow-lg shadow-[#10b981]/20 cursor-pointer border-none"
+                >
+                  <Plus size={16} /> Publish Notice for {deptName || "Department"}
+                </button>
               </div>
 
               <div className="flex flex-col gap-4">
@@ -906,8 +1059,20 @@ export function DeptWorkspace() {
         ) : tab === "Manage Tickets" ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
             <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>Manage Department Tickets</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 24 }}>
+                <div>
+                  <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0 }}>
+                    {deptName ? `${deptName} Support Queue` : "Department Helpdesk Tickets"}
+                  </h2>
+                  <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 4, margin: 0 }}>
+                    Review student and staff inquiries routed to {deptName || "your department"}.
+                  </p>
+                </div>
+                {deptName && (
+                  <span style={{ fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 100, background: "rgba(16,185,129,0.15)", color: "#10b981", border: "1px solid rgba(16,185,129,0.3)" }}>
+                    🏛️ Targeted Queue: {deptName}
+                  </span>
+                )}
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -921,11 +1086,11 @@ export function DeptWorkspace() {
                         </div>
                         <div style={{ fontSize: 13, color: "#a1a1aa", display: "flex", gap: 16 }}>
                           <span>From: {t.profiles?.full_name || "Unknown"}</span>
-                          <span>Dept: {t.departments?.name || "Unassigned"}</span>
+                          <span>Dept: {t.departments?.name || deptName || "Unassigned"}</span>
                           <span>{new Date(t.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <span style={{ padding: "4px 12px", borderRadius: 100, fontSize: 11, fontWeight: 700, textTransform: "uppercase", background: t.status === "open" ? "rgba(245, 158, 11, 0.1)" : "rgba(16, 185, 129, 0.1)", color: t.status === "open" ? "#f59e0b" : "#10b981" }}>
+                      <span style={{ padding: "4px 12px", borderRadius: 100, fontSize: 11, fontWeight: 700, textTransform: "uppercase", background: t.status === "open" ? "rgba(245, 158, 11, 0.1)" : t.status === "resolved" ? "rgba(16, 185, 129, 0.1)" : "rgba(59, 130, 246, 0.1)", color: t.status === "open" ? "#f59e0b" : t.status === "resolved" ? "#10b981" : "#3b82f6" }}>
                         {t.status}
                       </span>
                     </div>
@@ -934,7 +1099,34 @@ export function DeptWorkspace() {
                       <p style={{ fontSize: 14, color: "#ececec", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{t.description}</p>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+                      {t.status !== "in_progress" && (
+                        <button
+                          onClick={() => handleUpdateTicketStatus(t.id, "in_progress")}
+                          style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)", padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Mark In Progress
+                        </button>
+                      )}
+
+                      {t.status !== "resolved" && (
+                        <button
+                          onClick={() => handleUpdateTicketStatus(t.id, "resolved")}
+                          style={{ background: "rgba(16,185,129,0.15)", color: "#10b981", border: "1px solid rgba(16,185,129,0.3)", padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Mark Resolved ✓
+                        </button>
+                      )}
+
+                      {t.status === "resolved" && (
+                        <button
+                          onClick={() => handleUpdateTicketStatus(t.id, "open")}
+                          style={{ background: "rgba(255,255,255,0.06)", color: "#a1a1aa", border: "1px solid rgba(255,255,255,0.1)", padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                        >
+                          Re-open Ticket
+                        </button>
+                      )}
+
                       <button onClick={() => handleEscalate(t)} disabled={escalatingId === t.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: "1px solid rgba(139, 92, 246, 0.2)", cursor: "pointer", opacity: escalatingId === t.id ? 0.5 : 1 }}>
                         <Sparkles size={16} /> {escalatingId === t.id ? "Drafting..." : "Auto-Escalate with AI"}
                       </button>
@@ -998,6 +1190,136 @@ export function DeptWorkspace() {
       </section>
 
       <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} />
+
+      {/* Publish Notice Modal */}
+      {showNoticeModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 520, background: "#0a1018", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 24, padding: 28, boxShadow: "0 24px 64px rgba(0,0,0,0.9)", display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Bell size={20} color="#10b981" />
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: 0 }}>
+                  Publish Department Notice
+                </h3>
+              </div>
+              <button onClick={() => setShowNoticeModal(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", color: "#a1a1aa", padding: 8, borderRadius: 10, cursor: "pointer" }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Notice Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. End of Semester Exam Clearance Guidelines"
+                  value={noticeTitle}
+                  onChange={e => setNoticeTitle(e.target.value)}
+                  style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Category / Target Audience</label>
+                <input
+                  type="text"
+                  placeholder={`e.g. Dept: ${deptName || "Computer Science"}`}
+                  value={noticeCategory}
+                  onChange={e => setNoticeCategory(e.target.value)}
+                  style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Notice Content / Body</label>
+                <textarea
+                  rows={5}
+                  placeholder="Write the notice details here..."
+                  value={noticeBody}
+                  onChange={e => setNoticeBody(e.target.value)}
+                  style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none", resize: "none" }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+              <button
+                onClick={() => setShowNoticeModal(false)}
+                style={{ padding: "12px 18px", borderRadius: 12, background: "rgba(255,255,255,0.06)", color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={publishingNotice || !noticeTitle.trim() || !noticeBody.trim()}
+                onClick={handlePublishDeptNotice}
+                style={{ padding: "12px 24px", borderRadius: 12, background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", border: "none", fontSize: 13, fontWeight: 800, cursor: (publishingNotice || !noticeTitle.trim() || !noticeBody.trim()) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}
+              >
+                {publishingNotice ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                {publishingNotice ? "Publishing..." : "Publish Notice"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Document Modal */}
+      {showDocUploadModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 500, background: "#0a1018", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 24, padding: 28, boxShadow: "0 24px 64px rgba(0,0,0,0.9)", display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <UploadCloud size={20} color="#10b981" />
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: 0 }}>
+                  Upload Departmental Document
+                </h3>
+              </div>
+              <button onClick={() => setShowDocUploadModal(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", color: "#a1a1aa", padding: 8, borderRadius: 10, cursor: "pointer" }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Document Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 2026 Academic Calendar & Unit Outline"
+                  value={docTitle}
+                  onChange={e => setDocTitle(e.target.value)}
+                  style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Select File (PDF, DOCX, TXT)</label>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt"
+                  onChange={e => setDocFile(e.target.files?.[0] || null)}
+                  style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none" }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+              <button
+                onClick={() => setShowDocUploadModal(false)}
+                style={{ padding: "12px 18px", borderRadius: 12, background: "rgba(255,255,255,0.06)", color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={uploadingDoc || !docTitle.trim() || !docFile}
+                onClick={handleUploadDeptDocument}
+                style={{ padding: "12px 24px", borderRadius: 12, background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", border: "none", fontSize: 13, fontWeight: 800, cursor: (uploadingDoc || !docTitle.trim() || !docFile) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}
+              >
+                {uploadingDoc ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                {uploadingDoc ? "Uploading..." : "Upload Document"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
