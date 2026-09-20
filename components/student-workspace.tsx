@@ -70,9 +70,11 @@ export function StudentWorkspace() {
   const [courseSearchFilters, setCourseSearchFilters] = useState<Record<string, string>>({});
   const [extractingMetadataId, setExtractingMetadataId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [institutionId, setInstitutionId] = useState<string>("00000000-0000-0000-0000-000000000001");
-  const [institutionName, setInstitutionName] = useState<string>("Dedan Kimathi University of Technology");
-  const instShortName = institutionName.includes("Dedan Kimathi")
+  const [institutionId, setInstitutionId] = useState<string>("");
+  const [institutionName, setInstitutionName] = useState<string>("");
+  const instShortName = !institutionName
+    ? "Campus"
+    : institutionName.includes("Dedan Kimathi")
     ? "DeKUT"
     : (institutionName.split(" ").filter(w => w.length > 0).map(w => w[0]).join("").toUpperCase().slice(0, 6) || institutionName);
   const [language, setLanguage] = useState("en");
@@ -210,14 +212,19 @@ export function StudentWorkspace() {
     ]).then(async ([auth, docs, nots, tcks, times, depts, calEvents]) => {
       const user = auth.data.user;
       setProfile(user);
-      setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('@students.dkut.ac.ke')) || false);
+      setIsLinked(user?.identities?.some((id: any) => id.identity_data?.email?.endsWith('.ac.ke') || id.identity_data?.email?.endsWith('.edu')) || false);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student");
       if (user && supabase) {
-        const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions,institution_id,institutions(name)").eq("id", user.id).single();
+        const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions,institution_id").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
         if (prof?.custom_instructions) setCustomInstructions(prof.custom_instructions);
-        if (prof?.institution_id) setInstitutionId(prof.institution_id);
-        if ((prof as any)?.institutions?.name) setInstitutionName((prof as any).institutions.name);
+        
+        const effectiveInstId = prof?.institution_id || user?.user_metadata?.institution_id;
+        if (effectiveInstId) {
+          setInstitutionId(effectiveInstId);
+          const { data: inst } = await supabase.from("institutions").select("name").eq("id", effectiveInstId).single();
+          if (inst?.name) setInstitutionName(inst.name);
+        }
 
         const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();
         if (settings && settings.value === 'true') setShowDocuments(true);
@@ -2056,10 +2063,10 @@ export function StudentWorkspace() {
                     </span>
                   ) : null}
                 </div>
-                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Link your official @students.dkut.ac.ke email to securely access your live university grades and fee balances via KiliGuide AI.</p>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Link your official student email to securely access your live university grades and fee balances via KiliGuide AI.</p>
                 {!isLinked && (
                   <button onClick={handleLinkUniversity} className="bg-white text-black border-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center gap-2 hover:bg-zinc-100 transition-colors">
-                    Link @students.dkut.ac.ke Email
+                    Link Student Email
                   </button>
                 )}
               </div>

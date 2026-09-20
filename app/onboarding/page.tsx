@@ -48,13 +48,14 @@ export default function Onboarding() {
     setLoading(true);
 
     try {
-      // 1. Update Profile (include institution_id if not already set)
+      // 1. Update Profile (include institution_id if selected)
       const updates: any = {};
       if (role === "student" && regNum) updates.registration_number = regNum;
       if (role === "parent") updates.registration_number = linkedReg;
-      if (!alreadyHasInstitution && institutionId) updates.institution_id = institutionId;
+      if (institutionId) updates.institution_id = institutionId;
       
       await supabase.from("profiles").update(updates).eq("id", user.id);
+      await supabase.auth.updateUser({ data: { role, institution_id: institutionId } });
 
       // 2. Update Role
       await supabase.from("user_roles").delete().eq("user_id", user.id);

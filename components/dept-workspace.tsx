@@ -44,10 +44,12 @@ export function DeptWorkspace() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Department Admin");
-  const [institutionName, setInstitutionName] = useState<string>("Dedan Kimathi University of Technology");
-  const instShortName = institutionName.includes("Dedan Kimathi")
+  const [institutionName, setInstitutionName] = useState<string>("");
+  const instShortName = !institutionName
+    ? "Campus"
+    : institutionName.includes("Dedan Kimathi")
     ? "DeKUT"
-    : institutionName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 6) || "University";
+    : institutionName.split(" ").filter(w => w.length > 0).map(w => w[0]).join("").toUpperCase().slice(0, 6) || "University";
   const [showDocuments, setShowDocuments] = useState(false);
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -84,11 +86,12 @@ export function DeptWorkspace() {
       setProfile(user);
       setName(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Department Admin");
       if (user && supabase) {
-        const { data: prof } = await supabase.from("profiles").select("preferred_language, institution_id, institutions(name)").eq("id", user.id).single();
+        const { data: prof } = await supabase.from("profiles").select("preferred_language, institution_id").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
-        if (prof?.institutions) {
-          const instName = (prof.institutions as any).name;
-          if (instName) setInstitutionName(instName);
+        const effectiveInstId = prof?.institution_id || user?.user_metadata?.institution_id;
+        if (effectiveInstId) {
+          const { data: inst } = await supabase.from("institutions").select("name").eq("id", effectiveInstId).single();
+          if (inst?.name) setInstitutionName(inst.name);
         }
         
         const { data: settings } = await supabase.from("system_settings").select("value").eq("key", "show_documents_to_users").single();

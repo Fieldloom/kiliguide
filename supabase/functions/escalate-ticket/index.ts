@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const { ticket, departments } = await req.json();
     if (!ticket || !departments) return Response.json({ error: "Missing payload" }, { status: 400, headers: CORS });
 
-    const instruction = `You are KiliGuide's intelligent ticket escalation system for Dedan Kimathi University of Technology.
+    const instruction = `You are KiliGuide's intelligent ticket escalation system for university student support.
 Your job is to read a student support ticket and output exactly two things:
 1. The most appropriate department to escalate this issue to (from the provided list of official departments).
 2. A highly professional, well-written email body that the Super Admin will send to that department. The email should concisely summarize the student's issue, provide any necessary context, and request assistance. Start directly with the body (e.g. "We have received a ticket from a student regarding..."). Do not include greeting/salutations like "Dear X" or sign-offs like "Sincerely," because the Admin's mail client will handle that.
