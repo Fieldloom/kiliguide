@@ -8,7 +8,7 @@ import {
   Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, EyeOff, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { scrapeWebpage, scrapeDeKut, discoverPages } from "../app/actions";
+import { scrapeWebpage, scrapeDeKut, discoverPages, discoverDepartmentContacts } from "../app/actions";
 import { AdminChat } from "./admin-chat";
 import { InstallButton } from "./install-button";
 
@@ -636,6 +636,9 @@ function DepartmentsWorkspace() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [userInstId, setUserInstId] = useState<string | null>(null);
+  const [instDomain, setInstDomain] = useState<string>("");
+  const [discoveringContacts, setDiscoveringContacts] = useState(false);
+  const [discoveredContacts, setDiscoveredContacts] = useState<{ name: string; code: string; contact_email: string; source_url: string; status?: 'idle' | 'saving' | 'saved' }[]>([]);
   const [msg, setMsg] = useState("");
 
   const loadDepts = async () => {
@@ -644,7 +647,12 @@ function DepartmentsWorkspace() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: prof } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
-      if (prof?.institution_id) setUserInstId(prof.institution_id);
+      const instId = prof?.institution_id || user.user_metadata?.institution_id;
+      if (instId) {
+        setUserInstId(instId);
+        const { data: inst } = await supabase.from("institutions").select("domain").eq("id", instId).single();
+        if (inst?.domain) setInstDomain(inst.domain);
+      }
     }
     const { data } = await supabase.from("departments").select("*").order("name");
     setDepartments(data || []);
@@ -654,6 +662,63 @@ function DepartmentsWorkspace() {
   useEffect(() => {
     loadDepts();
   }, []);
+
+  const handleDiscoverContacts = async () => {
+    const domainToScan = instDomain || prompt("Enter target campus domain (e.g. uonbi.ac.ke, strathmore.edu, dkut.ac.ke):") || "";
+    if (!domainToScan.trim()) return;
+
+    setDiscoveringContacts(true);
+    setMsg("Scanning university website for official department emails & escalation contacts...");
+    const res = await discoverDepartmentContacts(domainToScan);
+    setDiscoveringContacts(false);
+
+    if (res.error) {
+      setMsg(`Contact discovery error: ${res.error}`);
+    } else if (res.contacts && res.contacts.length > 0) {
+      setDiscoveredContacts(res.contacts.map(c => ({ ...c, status: "idle" })));
+      setMsg(`✓ Discovered ${res.contacts.length} official department email contacts from ${domainToScan}!`);
+    } else {
+      setMsg(`No contact email addresses discovered on ${domainToScan}.`);
+    }
+  };
+
+  const handleSaveDiscoveredContact = async (idx: number) => {
+    const item = discoveredContacts[idx];
+    if (!item || !supabase) return;
+
+    setDiscoveredContacts(prev => prev.map((c, i) => i === idx ? { ...c, status: "saving" } : c));
+    let instId = userInstId;
+    if (!instId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: prof } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+        instId = prof?.institution_id || "00000000-0000-0000-0000-000000000001";
+      }
+    }
+
+    const { error } = await supabase.from("departments").insert({
+      name: item.name,
+      email: item.contact_email,
+      code: item.code,
+      institution_id: instId || "00000000-0000-0000-0000-000000000001"
+    });
+
+    if (error) {
+      alert(`Error saving contact: ${error.message}`);
+      setDiscoveredContacts(prev => prev.map((c, i) => i === idx ? { ...c, status: "idle" } : c));
+    } else {
+      setDiscoveredContacts(prev => prev.map((c, i) => i === idx ? { ...c, status: "saved" } : c));
+      loadDepts();
+    }
+  };
+
+  const handleSaveAllDiscoveredContacts = async () => {
+    for (let i = 0; i < discoveredContacts.length; i++) {
+      if (discoveredContacts[i].status !== "saved") {
+        await handleSaveDiscoveredContact(i);
+      }
+    }
+  };
 
   const handleCreate = async () => {
     if (!supabase || !name.trim() || !email.trim()) return;
@@ -720,23 +785,109 @@ function DepartmentsWorkspace() {
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ padding: 24, borderRadius: 16, background: "linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(0,0,0,0.4) 100%)", border: `1px solid ${D.border}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(16,185,129,0.15)", display: "grid", placeItems: "center", color: D.accent }}>
-            <Building2 size={22} />
+      {/* Top Banner Card with Discovery Action */}
+      <div style={{ padding: 24, borderRadius: 20, background: "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(6,10,14,0.7) 100%)", border: "1px solid rgba(16,185,129,0.25)", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 16, background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", color: "#000", flexShrink: 0, boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}>
+              <Building2 size={24} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text, display: "flex", alignItems: "center", gap: 8 }}>
+                Department & Escalation Contacts
+                <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 100, background: "rgba(16,185,129,0.2)", color: D.accent, border: "1px solid rgba(16,185,129,0.4)" }}>Multi-Tenant</span>
+              </h2>
+              <p style={{ fontSize: 13, color: D.muted, marginTop: 4 }}>
+                Configure official department channels for <b style={{ color: D.text }}>{instDomain || "your institution"}</b>. Discovered emails will be used during ticketing & human escalation.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: D.text }}>Department & Escalation Contacts</h2>
-            <p style={{ fontSize: 13, color: D.muted, marginTop: 2 }}>
-              Configure official department channels and contact emails for your institution. These emails are used when students/staff create tickets or click "Escalate to Human".
-            </p>
-          </div>
+
+          <button
+            disabled={discoveringContacts}
+            onClick={handleDiscoverContacts}
+            style={{
+              background: discoveringContacts ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #10b981, #059669)",
+              color: discoveringContacts ? D.muted : "#000",
+              padding: "12px 20px", borderRadius: 14, fontSize: 13, fontWeight: 800,
+              border: "none", cursor: discoveringContacts ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(16,185,129,0.3)"
+            }}
+          >
+            <Search size={16} />
+            {discoveringContacts ? "Scanning Website Contacts..." : `Discover Contacts from ${instDomain || "Website"}`}
+          </button>
         </div>
       </div>
 
+      {/* Discovered Website Contacts Panel */}
+      {discoveredContacts.length > 0 && (
+        <div style={{ padding: 24, borderRadius: 20, background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.3)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Globe size={18} style={{ color: D.accent }} />
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: D.text }}>
+                Discovered Website Contacts ({discoveredContacts.length})
+              </h3>
+            </div>
+
+            <button
+              onClick={handleSaveAllDiscoveredContacts}
+              style={{
+                fontSize: 12, fontWeight: 800, padding: "8px 16px", borderRadius: 100,
+                background: "linear-gradient(135deg, #10b981, #059669)", color: "#000",
+                border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                boxShadow: "0 4px 14px rgba(16,185,129,0.3)"
+              }}
+            >
+              <Zap size={14} /> Save All Discovered Contacts
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+            {discoveredContacts.map((item, idx) => (
+              <div key={item.contact_email} style={{ borderRadius: 14, background: "rgba(0,0,0,0.3)", border: `1px solid ${D.border}`, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div style={{ overflow: "hidden" }}>
+                  <b style={{ display: "block", fontSize: 13, color: D.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {item.name}
+                  </b>
+                  <span style={{ display: "block", fontSize: 12, color: D.accent, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+                    {item.contact_email}
+                  </span>
+                </div>
+
+                <div style={{ flexShrink: 0 }}>
+                  {item.status === "saved" ? (
+                    <span style={{ fontSize: 11, fontWeight: 800, color: D.accent, background: "rgba(16,185,129,0.2)", padding: "5px 10px", borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Check size={12} /> Saved
+                    </span>
+                  ) : item.status === "saving" ? (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa", background: "rgba(59,130,246,0.15)", padding: "5px 10px", borderRadius: 8 }}>
+                      Saving...
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleSaveDiscoveredContact(idx)}
+                      style={{
+                        fontSize: 12, fontWeight: 800, padding: "6px 12px", borderRadius: 8,
+                        background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)",
+                        color: D.accent, cursor: "pointer", transition: "all 0.2s"
+                      }}
+                    >
+                      + Save Contact
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manual Contact Creation Panel */}
       <div style={{ padding: 24, borderRadius: 16, background: "rgba(255,255,255,0.02)", border: `1px solid ${D.border}` }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, color: D.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <Plus size={18} style={{ color: D.accent }} /> Add New Department Contact Email
+          <Plus size={18} style={{ color: D.accent }} /> Add Department Contact Email Manually
         </h3>
 
         {msg && <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, fontSize: 13, background: msg.startsWith("Error") ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)", color: msg.startsWith("Error") ? "#ef4444" : "#10b981", border: `1px solid ${msg.startsWith("Error") ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.3)"}` }}>{msg}</div>}

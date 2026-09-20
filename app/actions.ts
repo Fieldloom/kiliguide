@@ -143,3 +143,97 @@ export async function discoverPages(url: string) {
     return { error: err.message || "Failed to discover website pages." };
   }
 }
+
+export async function discoverDepartmentContacts(urlOrDomain: string) {
+  if (!urlOrDomain || !urlOrDomain.trim()) {
+    return { error: "No URL or domain provided." };
+  }
+
+  try {
+    let clean = urlOrDomain.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const baseDomain = clean.replace(/^www\./, "");
+    const targetUrl = `https://www.${baseDomain}/`;
+
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const fetchHtml = (tUrl: string, depth = 0): Promise<string> => {
+      if (depth > 4) return Promise.reject(new Error("Too many redirects"));
+      const parsed = new URL(tUrl);
+      const isHttps = parsed.protocol === "https:";
+      const lib = isHttps ? https : require("node:http");
+
+      return new Promise((resolve) => {
+        const req = lib.get(tUrl, { agent: isHttps ? agent : undefined, timeout: 7000 }, (res: any) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            let nextUrl = res.headers.location;
+            if (!nextUrl.startsWith("http")) nextUrl = new URL(nextUrl, tUrl).href;
+            return resolve(fetchHtml(nextUrl, depth + 1));
+          }
+          if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 400)) {
+            return resolve("");
+          }
+          let data = "";
+          res.on("data", (chunk: any) => data += chunk);
+          res.on("end", () => resolve(data));
+        });
+        req.on("error", () => resolve(""));
+        req.on("timeout", () => { req.destroy(); resolve(""); });
+      });
+    };
+
+    // Scrape homepage and standard contact paths
+    const candidatePaths = ["", "contacts", "contact-us", "departments", "directory", "about-us"];
+    const htmlPromises = candidatePaths.map(p => fetchHtml(p ? `https://www.${baseDomain}/${p}` : targetUrl));
+    const rawHtmlResults = await Promise.all(htmlPromises);
+
+    const contactsMap = new Map<string, { name: string; code: string; contact_email: string; contact_phone?: string; source_url: string }>();
+
+    candidatePaths.forEach((path, idx) => {
+      const html = rawHtmlResults[idx];
+      if (!html) return;
+      const currentUrl = path ? `https://www.${baseDomain}/${path}` : targetUrl;
+      const $ = cheerio.load(html);
+
+      // 1. Extract mailto: links
+      $("a[href^='mailto:']").each((_, el) => {
+        const mailtoHref = $(el).attr("href") || "";
+        const email = mailtoHref.replace(/^mailto:/i, "").split("?")[0].trim().toLowerCase();
+        if (email && email.includes("@") && !contactsMap.has(email)) {
+          let label = $(el).text().replace(/\s+/g, " ").trim();
+          if (!label || label.toLowerCase().includes(email) || label.length < 3) {
+            // Find parent heading or cell
+            label = $(el).closest("tr, li, div, p").text().replace(/\s+/g, " ").trim();
+            label = label.split(/[:\n|-]/)[0].trim();
+          }
+          if (!label || label.length > 60) {
+            const prefix = email.split("@")[0].replace(/[._-]/g, " ");
+            label = prefix.charAt(0).toUpperCase() + prefix.slice(1) + " Department";
+          }
+          const code = label.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "DEPT";
+          contactsMap.set(email, { name: label, code, contact_email: email, source_url: currentUrl });
+        }
+      });
+
+      // 2. Extract emails from text via regex
+      const text = $("body").text();
+      const emailMatches = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+      emailMatches.forEach(email => {
+        const cleanEmail = email.toLowerCase().trim();
+        // Ignore static assets disguised as emails (e.g. png@2x)
+        if (cleanEmail.endsWith(".png") || cleanEmail.endsWith(".jpg") || cleanEmail.endsWith(".js") || cleanEmail.endsWith(".css")) return;
+        if (!contactsMap.has(cleanEmail)) {
+          const prefix = cleanEmail.split("@")[0].replace(/[._-]/g, " ");
+          const label = prefix.charAt(0).toUpperCase() + prefix.slice(1) + " Office";
+          const code = prefix.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "GEN";
+          contactsMap.set(cleanEmail, { name: label, code, contact_email: cleanEmail, source_url: currentUrl });
+        }
+      });
+    });
+
+    const contacts = Array.from(contactsMap.values()).slice(0, 20);
+    return { contacts };
+  } catch (err: any) {
+    console.error("Discover contacts error:", err);
+    return { error: err.message || "Failed to discover department contacts." };
+  }
+}
