@@ -1652,14 +1652,19 @@ function DocumentLibrary() {
     const client = supabase;
     setLoading(true);
     const { data: { user } } = await client.auth.getUser();
-    const { data: prof } = user ? await client.from("profiles").select("role").eq("id", user.id).single() : { data: null };
+    const { data: prof } = user ? await client.from("profiles").select("role, institution_id").eq("id", user.id).single() : { data: null };
     const { data: roles } = user ? await client.from("user_roles").select("role").eq("user_id", user.id) : { data: null };
     const isSuperAdmin = prof?.role === "super_admin" || roles?.some(r => r.role === "super_admin");
 
-    let query = client.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error,uploaded_by").order("created_at", { ascending: false });
+    let query = client.from("documents").select("id,title,category,file_type,status,processing_status,source_url,storage_path,chunk_count,created_at,processing_error,uploaded_by,institution_id").order("created_at", { ascending: false });
 
     if (!isSuperAdmin && user?.id) {
-      query = query.eq("uploaded_by", user.id);
+      const instId = prof?.institution_id || user.user_metadata?.institution_id;
+      if (instId) {
+        query = query.eq("institution_id", instId);
+      } else {
+        query = query.eq("uploaded_by", user.id);
+      }
     }
 
     const { data, error } = await query;
