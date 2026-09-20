@@ -8,7 +8,7 @@ import {
   Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { scrapeDeKut } from "../app/actions";
+import { scrapeWebpage, scrapeDeKut, discoverPages } from "../app/actions";
 import { AdminChat } from "./admin-chat";
 import { InstallButton } from "./install-button";
 
@@ -1240,6 +1240,8 @@ function OfficialSourceImport() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoveredPages, setDiscoveredPages] = useState<{ title: string; url: string; status?: 'idle' | 'busy' | 'done' | 'error'; errorMsg?: string; chunks?: number }[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
@@ -1259,11 +1261,84 @@ function OfficialSourceImport() {
     });
   }, []);
 
+  const handleDiscover = async () => {
+    if (!url.trim()) { setStatus("Please enter a valid target URL or domain first."); return; }
+    setDiscovering(true);
+    setStatus("Scanning website for official pages...");
+    const res = await discoverPages(url);
+    setDiscovering(false);
+    if (res.error) {
+      setStatus(`Discovery failed: ${res.error}`);
+      return;
+    }
+    if (res.pages && res.pages.length > 0) {
+      setDiscoveredPages(res.pages.map(p => ({ title: p.title, url: p.url, status: "idle" })));
+      setStatus(`✓ Discovered ${res.pages.length} official pages on this domain!`);
+    } else {
+      setStatus("No additional internal pages discovered on this URL.");
+    }
+  };
+
+  const handleIndexDiscoveredPage = async (idx: number) => {
+    const page = discoveredPages[idx];
+    if (!page || !supabase) return;
+    setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "busy" } : p));
+
+    const result = await scrapeWebpage(page.url);
+    if (result.error) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: result.error } : p));
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+    const targetInstId = profile?.institution_id || user.user_metadata?.institution_id;
+    const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
+
+    const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
+    if (se) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: se.message } : p));
+      return;
+    }
+
+    const { data: doc, error: de } = await supabase.from("documents").insert({
+      title: result.title || page.title,
+      category: "Administration",
+      source_url: page.url,
+      storage_path: path,
+      file_type: "txt",
+      uploaded_by: user.id,
+      institution_id: targetInstId,
+      metadata: { processing_status: "processing" }
+    }).select("id").single();
+
+    if (de) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: de.message } : p));
+      return;
+    }
+
+    const { data: resData, error: ie } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });
+    if (ie || (resData && resData.success === false)) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: ie?.message || resData?.error || "Indexing error" } : p));
+    } else {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", chunks: resData?.chunks || 0 } : p));
+    }
+  };
+
+  const handleIndexAllDiscovered = async () => {
+    for (let i = 0; i < discoveredPages.length; i++) {
+      if (discoveredPages[i].status !== "done") {
+        await handleIndexDiscoveredPage(i);
+      }
+    }
+  };
+
   const ingest = async () => {
     if (!supabase) { setStatus("Supabase is not configured."); return; }
     if (!url.trim()) { setStatus("Please enter a valid webpage URL."); return; }
     setBusy(true); setStatus("Fetching the official page...");
-    const result = await scrapeDeKut(url);
+    const result = await scrapeWebpage(url);
     if (result.error) { setBusy(false); setStatus(`Failed: ${result.error}`); return; }
     setStatus("Saving document record...");
     const { data: { user } } = await supabase.auth.getUser();
@@ -1333,7 +1408,7 @@ function OfficialSourceImport() {
               Add Knowledge & Import Documents
               <span style={{ fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 100, background: "rgba(16,185,129,0.2)", color: D.accent, border: "1px solid rgba(16,185,129,0.4)", whiteSpace: "nowrap", flexShrink: 0, display: "inline-flex", alignItems: "center" }}>Fast Ingestion</span>
             </h2>
-            <p style={{ fontSize: 13, color: D.muted, marginTop: 2 }}>Upload PDF, DOCX, TXT files or scrape official campus URLs directly into AI memory.</p>
+            <p style={{ fontSize: 13, color: D.muted, marginTop: 2 }}>Upload PDF, DOCX, TXT files or discover & scrape official campus URLs directly into AI memory.</p>
           </div>
         </div>
         <button style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${D.border}`, color: D.text, width: 36, height: 36, borderRadius: 12, display: "grid", placeItems: "center" }}>
@@ -1391,18 +1466,18 @@ function OfficialSourceImport() {
                 </button>
               </section>
 
-              {/* Card 2: Web URL Scrape */}
+              {/* Card 2: Web URL Scrape & Page Discovery */}
               <section style={{ borderRadius: 24, background: "rgba(255,255,255,0.02)", padding: 24, border: `1px solid ${D.border}`, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                   <Globe size={20} style={{ color: "#3b82f6" }} />
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text }}>Scrape Webpage URL</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: D.text }}>Scrape & Discover Pages</h3>
                 </div>
                 <p style={{ fontSize: 13, color: D.muted, lineHeight: 1.6, marginBottom: 16 }}>
-                  Scrape any official <b style={{ color: D.text }}>{instDomain || "university"}</b> page directly into the knowledge base.
+                  Scrape any official <b style={{ color: D.text }}>{instDomain || "university"}</b> URL or click Discover to automatically scan all campus links.
                 </p>
 
                 <label style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: D.muted, marginBottom: 8 }}>
-                  OFFICIAL TARGET URL
+                  OFFICIAL TARGET URL OR DOMAIN
                 </label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input 
@@ -1413,22 +1488,110 @@ function OfficialSourceImport() {
                   />
                 </div>
 
-                <button 
-                  disabled={busy} 
-                  onClick={ingest} 
-                  style={{ 
-                    width: "100%", marginTop: 16, borderRadius: 16, 
-                    background: busy ? "rgba(255,255,255,0.05)" : "#3b82f6", 
-                    padding: "14px 20px", fontSize: 14, fontWeight: 800, 
-                    color: busy ? D.muted : "#fff", 
-                    cursor: busy ? "not-allowed" : "pointer", border: "none",
-                    boxShadow: !busy ? "0 4px 16px rgba(59,130,246,0.3)" : "none",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8
-                  }}
-                >
-                  <Globe size={18} />
-                  {busy ? "Fetching Page Content…" : "Scrape & Index Web Page"}
-                </button>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
+                  <button 
+                    disabled={busy || discovering} 
+                    onClick={ingest} 
+                    style={{ 
+                      borderRadius: 14, 
+                      background: busy ? "rgba(255,255,255,0.05)" : "#3b82f6", 
+                      padding: "12px 14px", fontSize: 13, fontWeight: 800, 
+                      color: busy ? D.muted : "#fff", 
+                      cursor: busy ? "not-allowed" : "pointer", border: "none",
+                      boxShadow: !busy ? "0 4px 16px rgba(59,130,246,0.25)" : "none",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                    }}
+                  >
+                    <Globe size={16} />
+                    {busy ? "Scraping..." : "Scrape Single URL"}
+                  </button>
+
+                  <button 
+                    disabled={discovering || busy} 
+                    onClick={handleDiscover} 
+                    style={{ 
+                      borderRadius: 14, 
+                      background: discovering ? "rgba(255,255,255,0.05)" : "rgba(16,185,129,0.15)", 
+                      border: "1px solid rgba(16,185,129,0.3)",
+                      padding: "12px 14px", fontSize: 13, fontWeight: 800, 
+                      color: discovering ? D.muted : D.accent, 
+                      cursor: discovering ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                    }}
+                  >
+                    <Search size={16} />
+                    {discovering ? "Scanning..." : "Discover Pages"}
+                  </button>
+                </div>
+
+                {status && (
+                  <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 12, background: status.startsWith("✓") ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${status.startsWith("✓") ? "rgba(16,185,129,0.3)" : D.border}`, fontSize: 12, color: status.startsWith("✓") ? D.accent : D.text, fontWeight: 600 }}>
+                    {status}
+                  </div>
+                )}
+
+                {/* Discovered Pages List */}
+                {discoveredPages.length > 0 && (
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${D.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: D.text }}>
+                        Discovered Pages ({discoveredPages.length})
+                      </span>
+                      <button 
+                        onClick={handleIndexAllDiscovered}
+                        style={{ 
+                          fontSize: 11, fontWeight: 800, padding: "6px 12px", borderRadius: 100, 
+                          background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", 
+                          border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 
+                        }}
+                      >
+                        <Zap size={12} /> Scrape & Index All
+                      </button>
+                    </div>
+
+                    <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
+                      {discoveredPages.map((item, idx) => (
+                        <div key={item.url} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: "rgba(0,0,0,0.3)", border: `1px solid ${D.border}` }}>
+                          <div style={{ overflow: "hidden", paddingRight: 10 }}>
+                            <b style={{ display: "block", fontSize: 13, color: D.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {item.title}
+                            </b>
+                            <span style={{ display: "block", fontSize: 11, color: D.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {item.url}
+                            </span>
+                          </div>
+
+                          <div style={{ flexShrink: 0 }}>
+                            {item.status === "done" ? (
+                              <span style={{ fontSize: 11, fontWeight: 700, color: D.accent, background: "rgba(16,185,129,0.15)", padding: "4px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Check size={12} /> Indexed ({item.chunks || 0})
+                              </span>
+                            ) : item.status === "busy" ? (
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa", background: "rgba(59,130,246,0.15)", padding: "4px 8px", borderRadius: 6 }}>
+                                Indexing...
+                              </span>
+                            ) : item.status === "error" ? (
+                              <button onClick={() => handleIndexDiscoveredPage(idx)} style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", background: "rgba(239,68,68,0.15)", border: "none", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
+                                Retry
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleIndexDiscoveredPage(idx)}
+                                style={{ 
+                                  fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 8, 
+                                  background: "rgba(255,255,255,0.06)", border: `1px solid ${D.border}`, 
+                                  color: D.text, cursor: "pointer", transition: "all 0.2s" 
+                                }}
+                              >
+                                Scrape & Index
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Suggestions Pills */}
                 {(() => {
@@ -1711,6 +1874,8 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
   const [url, setUrl] = useState("");
   const [instDomain, setInstDomain] = useState("");
   const [busy, setBusy] = useState(false);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoveredPages, setDiscoveredPages] = useState<{ title: string; url: string; status?: 'idle' | 'busy' | 'done' | 'error'; errorMsg?: string; chunks?: number }[]>([]);
   const [status, setStatus] = useState("");
 
   useEffect(() => {
@@ -1729,6 +1894,79 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
       }
     });
   }, []);
+
+  const handleDiscover = async () => {
+    if (!url.trim()) { setStatus("Please enter a valid target URL or domain first."); return; }
+    setDiscovering(true);
+    setStatus("Scanning website for official pages...");
+    const res = await discoverPages(url);
+    setDiscovering(false);
+    if (res.error) {
+      setStatus(`Discovery failed: ${res.error}`);
+      return;
+    }
+    if (res.pages && res.pages.length > 0) {
+      setDiscoveredPages(res.pages.map(p => ({ title: p.title, url: p.url, status: "idle" })));
+      setStatus(`✓ Discovered ${res.pages.length} official pages on this domain!`);
+    } else {
+      setStatus("No additional internal pages discovered on this URL.");
+    }
+  };
+
+  const handleIndexDiscoveredPage = async (idx: number) => {
+    const page = discoveredPages[idx];
+    if (!page || !supabase) return;
+    setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "busy" } : p));
+
+    const result = await scrapeWebpage(page.url);
+    if (result.error) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: result.error } : p));
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+    const targetInstId = profile?.institution_id || user.user_metadata?.institution_id;
+    const path = `admin/${user.id}/${crypto.randomUUID()}.txt`;
+
+    const { error: se } = await supabase.storage.from("documents").upload(path, result.text || "", { contentType: "text/plain" });
+    if (se) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: se.message } : p));
+      return;
+    }
+
+    const { data: doc, error: de } = await supabase.from("documents").insert({
+      title: result.title || page.title,
+      category: "Administration",
+      source_url: page.url,
+      storage_path: path,
+      file_type: "txt",
+      uploaded_by: user.id,
+      institution_id: targetInstId,
+      metadata: { processing_status: "processing" }
+    }).select("id").single();
+
+    if (de) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: de.message } : p));
+      return;
+    }
+
+    const { data: resData, error: ie } = await supabase.functions.invoke("ingest-document", { body: { documentId: doc.id, text: result.text } });
+    if (ie || (resData && resData.success === false)) {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "error", errorMsg: ie?.message || resData?.error || "Indexing error" } : p));
+    } else {
+      setDiscoveredPages(prev => prev.map((p, i) => i === idx ? { ...p, status: "done", chunks: resData?.chunks || 0 } : p));
+    }
+  };
+
+  const handleIndexAllDiscovered = async () => {
+    for (let i = 0; i < discoveredPages.length; i++) {
+      if (discoveredPages[i].status !== "done") {
+        await handleIndexDiscoveredPage(i);
+      }
+    }
+  };
 
   const handleUpload = async () => {
     if (!supabase) return;
@@ -1772,7 +2010,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
     } else {
       if (!url.trim()) return;
       setBusy(true); setStatus("Fetching official webpage...");
-      const result = await scrapeDeKut(url);
+      const result = await scrapeWebpage(url);
       if (result.error) { setBusy(false); setStatus(`Scrape failed: ${result.error}`); return; }
       
       setStatus("Saving web document record...");
@@ -1811,7 +2049,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
       <motion.section 
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        style={{ width: "100%", maxWidth: 520, borderRadius: 24, background: "rgba(10, 16, 24, 0.95)", padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
+        style={{ width: "100%", maxWidth: 540, maxHeight: "90vh", overflowY: "auto", borderRadius: 24, background: "rgba(10, 16, 24, 0.95)", padding: 28, border: `1px solid ${D.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1838,7 +2076,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
             onClick={() => setActiveMode("url")} 
             style={{ flex: 1, padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", background: activeMode === "url" ? "#3b82f6" : "transparent", color: activeMode === "url" ? "#fff" : D.muted, transition: "all 0.2s" }}
           >
-            Webpage URL
+            Webpage & Page Discovery
           </button>
         </div>
 
@@ -1860,14 +2098,112 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
         ) : (
           <div>
             <label style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: D.muted, marginBottom: 8 }}>
-              OFFICIAL TARGET URL
+              OFFICIAL TARGET URL OR DOMAIN
             </label>
             <input 
               value={url} 
               onChange={e => setUrl(e.target.value)} 
-              style={{ width: "100%", borderRadius: 14, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.4)", color: D.text, padding: "12px 14px", fontSize: 13, outline: "none" }}
+              style={{ width: "100%", borderRadius: 14, border: `1px solid ${D.border}`, background: "rgba(0,0,0,0.4)", color: D.text, padding: "12px 14px", fontSize: 13, outline: "none", marginBottom: 12 }}
               placeholder={instDomain ? `https://www.${instDomain}/...` : "https://university.ac.ke/..."}
             />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <button 
+                disabled={busy || discovering || !url.trim()} 
+                onClick={handleUpload} 
+                style={{ 
+                  borderRadius: 14, 
+                  background: busy ? "rgba(255,255,255,0.05)" : "#3b82f6", 
+                  padding: "12px 14px", fontSize: 13, fontWeight: 800, 
+                  color: busy ? D.muted : "#fff", 
+                  cursor: busy || !url.trim() ? "not-allowed" : "pointer", border: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                }}
+              >
+                <Globe size={16} />
+                {busy ? "Scraping..." : "Scrape Single URL"}
+              </button>
+
+              <button 
+                disabled={discovering || busy || !url.trim()} 
+                onClick={handleDiscover} 
+                style={{ 
+                  borderRadius: 14, 
+                  background: discovering ? "rgba(255,255,255,0.05)" : "rgba(16,185,129,0.15)", 
+                  border: "1px solid rgba(16,185,129,0.3)",
+                  padding: "12px 14px", fontSize: 13, fontWeight: 800, 
+                  color: discovering ? D.muted : D.accent, 
+                  cursor: discovering || !url.trim() ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                }}
+              >
+                <Search size={16} />
+                {discovering ? "Scanning..." : "Discover Pages"}
+              </button>
+            </div>
+
+            {/* Discovered Pages List inside Modal */}
+            {discoveredPages.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${D.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: D.text }}>
+                    Discovered Pages ({discoveredPages.length})
+                  </span>
+                  <button 
+                    onClick={handleIndexAllDiscovered}
+                    style={{ 
+                      fontSize: 11, fontWeight: 800, padding: "5px 10px", borderRadius: 100, 
+                      background: "linear-gradient(135deg, #10b981, #059669)", color: "#000", 
+                      border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 
+                    }}
+                  >
+                    <Zap size={12} /> Scrape & Index All
+                  </button>
+                </div>
+
+                <div style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 }}>
+                  {discoveredPages.map((item, idx) => (
+                    <div key={item.url} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 10, background: "rgba(0,0,0,0.3)", border: `1px solid ${D.border}` }}>
+                      <div style={{ overflow: "hidden", paddingRight: 8 }}>
+                        <b style={{ display: "block", fontSize: 12, color: D.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {item.title}
+                        </b>
+                        <span style={{ display: "block", fontSize: 10, color: D.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {item.url}
+                        </span>
+                      </div>
+
+                      <div style={{ flexShrink: 0 }}>
+                        {item.status === "done" ? (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: D.accent, background: "rgba(16,185,129,0.15)", padding: "3px 7px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Check size={10} /> Indexed ({item.chunks || 0})
+                          </span>
+                        ) : item.status === "busy" ? (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "#60a5fa", background: "rgba(59,130,246,0.15)", padding: "3px 7px", borderRadius: 6 }}>
+                            Indexing...
+                          </span>
+                        ) : item.status === "error" ? (
+                          <button onClick={() => handleIndexDiscoveredPage(idx)} style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", background: "rgba(239,68,68,0.15)", border: "none", padding: "3px 7px", borderRadius: 6, cursor: "pointer" }}>
+                            Retry
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleIndexDiscoveredPage(idx)}
+                            style={{ 
+                              fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 6, 
+                              background: "rgba(255,255,255,0.06)", border: `1px solid ${D.border}`, 
+                              color: D.text, cursor: "pointer" 
+                            }}
+                          >
+                            Scrape & Index
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1877,21 +2213,23 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <button 
-          disabled={busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim())} 
-          onClick={handleUpload} 
-          style={{ 
-            width: "100%", marginTop: 20, borderRadius: 16, 
-            background: busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim()) ? "rgba(255,255,255,0.05)" : activeMode === "file" ? "linear-gradient(135deg, #10b981, #059669)" : "#3b82f6", 
-            padding: "14px 20px", fontSize: 14, fontWeight: 800, 
-            color: busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim()) ? D.muted : "#000", 
-            cursor: busy || (activeMode === "file" && !file) || (activeMode === "url" && !url.trim()) ? "not-allowed" : "pointer", border: "none", 
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8
-          }}
-        >
-          <Upload size={18} />
-          {busy ? "Processing..." : activeMode === "file" ? (file ? `Confirm & Upload ${file.name.slice(0, 18)}...` : "Select File to Upload") : "Scrape & Index Webpage"}
-        </button>
+        {activeMode === "file" && (
+          <button 
+            disabled={busy || !file} 
+            onClick={handleUpload} 
+            style={{ 
+              width: "100%", marginTop: 20, borderRadius: 16, 
+              background: busy || !file ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #10b981, #059669)", 
+              padding: "14px 20px", fontSize: 14, fontWeight: 800, 
+              color: busy || !file ? D.muted : "#000", 
+              cursor: busy || !file ? "not-allowed" : "pointer", border: "none", 
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+            }}
+          >
+            <Upload size={18} />
+            {busy ? "Processing..." : file ? `Confirm & Upload ${file.name.slice(0, 18)}...` : "Select File to Upload"}
+          </button>
+        )}
       </motion.section>
     </div>
   );

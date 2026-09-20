@@ -10,3 +10,5 @@ select u.email, r.role
 from auth.users u
 join public.user_roles r on r.user_id = u.id
 where lower(u.email) = lower('griffinwekesa65@gmail.com');
+
+
