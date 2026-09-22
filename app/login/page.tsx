@@ -29,13 +29,19 @@ export default function LoginPage() {
   const [customDeptName, setCustomDeptName] = useState("");
 
   useEffect(() => {
+    getRoleDestination().then((destination) => {
+      if (destination && destination !== "/login") {
+        router.replace(destination);
+      }
+    });
+
     if (!supabase) return;
     supabase.from("system_settings").select("value").eq("key", "allow_institution_registration").single().then(({ data }) => {
       if (data && data.value === 'false') {
         setAllowRegistration(false);
       }
     });
-  }, []);
+  }, [router]);
 
   // Load institutions when in signup mode
   const loadInstitutions = async () => {

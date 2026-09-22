@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, ExternalLink, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Paperclip, Pencil, Plus, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, ExternalLink, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Paperclip, Pencil, Plus, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, WifiOff, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 import { DocumentViewerModal } from "./document-viewer-modal";
@@ -61,9 +61,27 @@ export function StudentWorkspace() {
   const [studentDeptId, setStudentDeptId] = useState<string>("");
   const [savingDept, setSavingDept] = useState(false);
   const [deptSavedStatus, setDeptSavedStatus] = useState<string>("");
+  const [isOffline, setIsOffline] = useState(typeof navigator !== "undefined" ? !navigator.onLine : false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const fetchStudentNotices = async (deptId?: string, instId?: string) => {
-    if (!supabase) return;
+    if (!supabase || isOffline) {
+      try {
+        const cached = localStorage.getItem("kiliguide_cached_notices");
+        if (cached) setNotices(JSON.parse(cached));
+      } catch (_) {}
+      return;
+    }
     let query = supabase.from("notices").select("*").order("published_at", { ascending: false }).limit(30);
     const targetInst = instId || institutionId;
     if (targetInst) {
@@ -73,8 +91,14 @@ export function StudentWorkspace() {
       query = query.or(`department_id.is.null,department_id.eq.${deptId}`);
     }
     const { data, error } = await query;
-    if (!error) {
-      setNotices(data ?? []);
+    if (!error && data) {
+      setNotices(data);
+      try { localStorage.setItem("kiliguide_cached_notices", JSON.stringify(data)); } catch (_) {}
+    } else {
+      try {
+        const cached = localStorage.getItem("kiliguide_cached_notices");
+        if (cached) setNotices(JSON.parse(cached));
+      } catch (_) {}
     }
   };
   const [tickets, setTickets] = useState<any[]>([]);
@@ -221,6 +245,20 @@ export function StudentWorkspace() {
     setAutoRead(storedAutoRead);
     if (storedReminder) setReminderMinutes(parseInt(storedReminder, 10));
 
+    // Load offline cached data first
+    try {
+      const cDocs = localStorage.getItem("kiliguide_cached_documents");
+      if (cDocs) setDocuments(JSON.parse(cDocs));
+      const cTcks = localStorage.getItem("kiliguide_cached_tickets");
+      if (cTcks) setTickets(JSON.parse(cTcks));
+      const cTimes = localStorage.getItem("kiliguide_cached_timetables");
+      if (cTimes) setTimetables(JSON.parse(cTimes));
+      const cEvents = localStorage.getItem("kiliguide_cached_events");
+      if (cEvents) setCalendarEvents(JSON.parse(cEvents));
+      const cDepts = localStorage.getItem("kiliguide_cached_departments");
+      if (cDepts) setDepartments(JSON.parse(cDepts));
+    } catch (_) {}
+
     if (!supabase) return;
     Promise.all([
       supabase.auth.getUser(),
@@ -256,11 +294,12 @@ export function StudentWorkspace() {
         if (settings && settings.value === 'true') setShowDocuments(true);
       }
       fetchStudentNotices(initialDeptId, effectiveInstId);
-      setDocuments(docs.data ?? []);
-      setTickets(tcks.data ?? []);
-      setDepartments(depts.data ?? []);
-      setTimetables(times.data ?? []);
-      setCalendarEvents(calEvents.data ?? []);
+      if (docs.data) { setDocuments(docs.data); try { localStorage.setItem("kiliguide_cached_documents", JSON.stringify(docs.data)); } catch(_) {} }
+      if (tcks.data) { setTickets(tcks.data); try { localStorage.setItem("kiliguide_cached_tickets", JSON.stringify(tcks.data)); } catch(_) {} }
+      if (depts.data) { setDepartments(depts.data); try { localStorage.setItem("kiliguide_cached_departments", JSON.stringify(depts.data)); } catch(_) {} }
+      if (times.data) { setTimetables(times.data); try { localStorage.setItem("kiliguide_cached_timetables", JSON.stringify(times.data)); } catch(_) {} }
+      if (calEvents.data) { setCalendarEvents(calEvents.data); try { localStorage.setItem("kiliguide_cached_events", JSON.stringify(calEvents.data)); } catch(_) {} }
+
       // Auto-jump to the first week that has classes (relative to today)
       const events = calEvents.data ?? [];
       if (events.length > 0) {
@@ -275,6 +314,8 @@ export function StudentWorkspace() {
         const offset = Math.floor(diffDays / 7);
         setScheduleWeekOffset(offset);
       }
+    }).catch((err) => {
+      console.warn("Using offline cached student workspace data:", err);
     });
     try {
       const saved = localStorage.getItem("kiliguide_conversations");
@@ -394,8 +435,13 @@ export function StudentWorkspace() {
   };
 
   const handleSignOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
+    try {
+      localStorage.removeItem("kiliguide_user_role");
+      localStorage.removeItem("kiliguide-auth-token");
+    } catch (_) {}
+    if (supabase) {
+      await supabase.auth.signOut().catch(() => undefined);
+    }
     window.location.href = "/login";
   };
   
@@ -777,13 +823,20 @@ export function StudentWorkspace() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.06) 100%)", border: "1px solid rgba(52, 211, 153, 0.3)", boxShadow: "0 0 20px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)", fontSize: 12, fontWeight: 600, color: "#34d399", letterSpacing: "-0.01em" }}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
-              </span>
-              {instShortName} AI Online
-            </div>
+            {isOffline ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)", fontSize: 12, fontWeight: 600, color: "#fbbf24", letterSpacing: "-0.01em" }}>
+                <WifiOff size={14} />
+                <span>Offline Mode</span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.06) 100%)", border: "1px solid rgba(52, 211, 153, 0.3)", boxShadow: "0 0 20px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)", fontSize: 12, fontWeight: 600, color: "#34d399", letterSpacing: "-0.01em" }}>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+                </span>
+                {instShortName} AI Online
+              </div>
+            )}
 
             <motion.button whileHover={{ scale: 1.03, boxShadow: "0 0 25px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255,255,255,0.3)" }} whileTap={{ scale: 0.97 }} onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 14, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(20, 184, 166, 0.14) 100%)", color: "#34d399", border: "1px solid rgba(52, 211, 153, 0.4)", boxShadow: "0 0 18px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }}>
               <Sparkles size={15} style={{ color: "#34d399" }} /> <span>Ask KiliGuide</span>
