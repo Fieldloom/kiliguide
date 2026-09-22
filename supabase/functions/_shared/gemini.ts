@@ -1,8 +1,15 @@
 import { encodeBase64 } from "jsr:@std/encoding/base64";
 
-const modelsToTry = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-exp"];
+export const modelsToTry = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-flash-latest",
+  "gemini-2.0-flash-exp",
+  "gemini-1.5-pro",
+];
 
-function availableKeys() {
+export function availableKeys(): string[] {
   return [
     Deno.env.get("GEMINI_API_KEY_1"),
     Deno.env.get("GEMINI_API_KEY_2"),
@@ -12,6 +19,9 @@ function availableKeys() {
     Deno.env.get("GEMINI_API_KEY"),
   ].filter((key): key is string => Boolean(key && key.trim()));
 }
+
+/** Delay helper for exponential backoff during retries */
+export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Sends a Gemini request with round-robin key selection, query param key injection, and automatic model/key fallback. */
 export async function geminiFetch(url: string, init: RequestInit): Promise<Response> {
@@ -25,6 +35,7 @@ export async function geminiFetch(url: string, init: RequestInit): Promise<Respo
 
   const errors: string[] = [];
   let lastResponse: Response | undefined;
+  let retryAttempt = 0;
 
   for (const model of models) {
     const currentUrl = url.replace(/\/models\/[^:]+:/, `/models/${model}:`);
@@ -40,7 +51,8 @@ export async function geminiFetch(url: string, init: RequestInit): Promise<Respo
           ...init,
           headers: {
             "Content-Type": "application/json",
-            "x-goog-api-key": key
+            "x-goog-api-key": key,
+            ...(init.headers || {})
           }
         });
 
@@ -50,8 +62,15 @@ export async function geminiFetch(url: string, init: RequestInit): Promise<Respo
 
         const errText = await response.clone().text();
         errors.push(`[${model}, key ${index + 1}, status ${response.status}]: ${errText.substring(0, 150)}`);
-        console.error(`Gemini fetch [model: ${model}, key: ${index + 1}, status: ${response.status}]: ${errText}`);
+        console.warn(`Gemini fetch attempt failed [model: ${model}, key: ${index + 1}, status: ${response.status}]: ${errText.substring(0, 200)}`);
         lastResponse = response;
+
+        // If high demand (503), rate limit (429), or server error (500, 502, 504), wait before trying next key/model
+        if ([429, 500, 502, 503, 504].includes(response.status)) {
+          retryAttempt++;
+          const backoff = Math.min(800 * Math.pow(1.5, retryAttempt), 3000);
+          await delay(backoff);
+        }
       } catch (fetchErr: any) {
         errors.push(`[${model}, key ${index + 1}, err]: ${fetchErr?.message || fetchErr}`);
       }
@@ -59,7 +78,7 @@ export async function geminiFetch(url: string, init: RequestInit): Promise<Respo
   }
 
   console.error("All Gemini attempts failed:", errors.join(" | "));
-  return new Response(JSON.stringify({ error: `All Gemini API attempts failed: ${errors.join(" --- ")}` }), { status: 200, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ error: `All Gemini API attempts failed: ${errors.join(" --- ")}` }), { status: 503, headers: { "Content-Type": "application/json" } });
 }
 
 /** 
@@ -97,3 +116,4 @@ export async function geminiAnalyzeDocument(
     }
   );
 }
+

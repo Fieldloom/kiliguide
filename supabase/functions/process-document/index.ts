@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import mammoth from "npm:mammoth@1.8.0";
 import * as pdfjsLib from "npm:pdfjs-dist@3.11.174/legacy/build/pdf.js";
 import { Buffer } from "node:buffer";
+import { availableKeys, delay, geminiFetch, modelsToTry } from "../_shared/gemini.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -24,56 +25,139 @@ async function extractPdfText(buf: Buffer): Promise<string> {
   return fullText.trim();
 }
 
-/** Use Gemini File API for scanned/image-based PDFs that have no embedded text */
+/** 
+ * Use Gemini File API & Base64 Multimodal OCR for scanned/image-based PDFs.
+ * Features key rotation, multi-model fallback cascade, exponential backoff on 503/429, 
+ * and inline base64 redundancy.
+ */
 async function geminiOcr(buf: Buffer, mimeType: string): Promise<string> {
-  const apiKey = Deno.env.get("GEMINI_API_KEY_1") || Deno.env.get("GEMINI_API_KEY_2");
-  if (!apiKey) throw new Error("GEMINI_API_KEY_1 is not configured.");
+  const keys = availableKeys();
+  if (!keys.length) throw new Error("No Gemini API key is configured in environment.");
 
-  // Upload to Gemini File API
-  const uploadRes = await fetch(
-    `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=media&key=${apiKey}`,
-    { method: "POST", headers: { "Content-Type": mimeType }, body: buf }
-  );
-  if (!uploadRes.ok) throw new Error(`Gemini upload failed: ${await uploadRes.text()}`);
-  const uploadData = await uploadRes.json();
-  const fileUri = uploadData.file.uri;
-  const fileName = uploadData.file.name;
+  let uploadedFileUri: string | null = null;
+  let uploadedFileName: string | null = null;
+  let uploadKey: string | null = null;
 
-  // Poll until ACTIVE (up to 30 seconds)
-  for (let i = 0; i < 15; i++) {
-    const checkRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`);
-    if (!checkRes.ok) throw new Error(`File state check failed: ${await checkRes.text()}`);
-    const { state } = await checkRes.json();
-    if (state === "ACTIVE") break;
-    if (state === "FAILED") throw new Error("Gemini could not process the PDF.");
-    await new Promise(r => setTimeout(r, 2000));
+  // Step A: Attempt File API upload across available keys
+  for (const key of keys) {
+    try {
+      const uploadRes = await fetch(
+        `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=media&key=${encodeURIComponent(key)}`,
+        { method: "POST", headers: { "Content-Type": mimeType }, body: buf }
+      );
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json();
+        uploadedFileUri = uploadData.file.uri;
+        uploadedFileName = uploadData.file.name;
+        uploadKey = key;
+        break;
+      }
+    } catch (e) {
+      console.warn("Gemini File API upload key attempt failed:", e);
+    }
   }
 
-  // Extract text
-  const genRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: "Extract ALL text from this document exactly as written. Include every word, number, table, and list. Do not summarise or add commentary." },
-            { fileData: { mimeType, fileUri } }
-          ]
-        }],
-        generationConfig: { temperature: 0 }
-      })
+  // If File API upload succeeded, poll state and run model fallback cascade
+  if (uploadedFileUri && uploadedFileName && uploadKey) {
+    try {
+      // Poll file state until ACTIVE (up to 20 seconds)
+      let active = false;
+      for (let i = 0; i < 10; i++) {
+        const checkRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${encodeURIComponent(uploadKey)}`);
+        if (checkRes.ok) {
+          const { state } = await checkRes.json();
+          if (state === "ACTIVE") { active = true; break; }
+          if (state === "FAILED") break;
+        }
+        await delay(1500);
+      }
+
+      if (active) {
+        // Run model fallback cascade with key rotation & backoff for generateContent
+        const errors: string[] = [];
+        let retryAttempt = 0;
+
+        for (const model of modelsToTry) {
+          for (const key of keys) {
+            try {
+              const genRes = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{
+                      role: "user",
+                      parts: [
+                        { text: "Extract ALL text from this document exactly as written. Include every word, number, table, and list. Do not summarise or add commentary." },
+                        { fileData: { mimeType, fileUri: uploadedFileUri } }
+                      ]
+                    }],
+                    generationConfig: { temperature: 0 }
+                  })
+                }
+              );
+
+              if (genRes.ok) {
+                const genData = await genRes.json();
+                const extracted = (genData.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
+                if (extracted.length > 30) {
+                  // Fire-and-forget delete
+                  fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${encodeURIComponent(uploadKey)}`, { method: "DELETE" }).catch(() => {});
+                  return extracted;
+                }
+              }
+
+              const errText = await genRes.text();
+              errors.push(`[${model}, status ${genRes.status}]: ${errText.substring(0, 100)}`);
+
+              if ([429, 500, 502, 503, 504].includes(genRes.status)) {
+                retryAttempt++;
+                await delay(Math.min(800 * Math.pow(1.5, retryAttempt), 3000));
+              }
+            } catch (e: any) {
+              errors.push(`[${model}, err]: ${e?.message || e}`);
+            }
+          }
+        }
+        console.warn("File API generateContent cascade failed, attempting inline base64 fallback. Errors:", errors.join(" | "));
+      }
+    } catch (err) {
+      console.warn("Error during File API processing:", err);
+    } finally {
+      fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${encodeURIComponent(uploadKey)}`, { method: "DELETE" }).catch(() => {});
     }
-  );
+  }
 
-  // Delete the uploaded file (fire-and-forget)
-  fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`, { method: "DELETE" }).catch(() => {});
+  // Step B: Inline Base64 Multimodal Redundancy Fallback
+  console.log("Running inline base64 multimodal OCR fallback...");
+  const prompt = "Extract ALL text from this document page exactly as written. Include every word, number, table, and list. Do not summarise or add commentary.";
+  
+  const base64Data = buf.toString("base64");
+  const payload = {
+    contents: [{
+      parts: [
+        { inlineData: { mimeType, data: base64Data } },
+        { text: prompt }
+      ]
+    }],
+    generationConfig: { temperature: 0.1 }
+  };
 
-  if (!genRes.ok) throw new Error(`Gemini generation failed: ${await genRes.text()}`);
-  const genData = await genRes.json();
-  return (genData.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
+  const response = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (response.ok) {
+    const data = await response.json();
+    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
+    if (text.length > 30) return text;
+  }
+
+  const errBody = await response.text().catch(() => "");
+  throw new Error(`Gemini OCR failed (High demand 503 / API unavailable): ${errBody.substring(0, 300)}`);
 }
 
 async function nvidiaVisionOcr(buf: Buffer, extension: string): Promise<string> {
@@ -140,14 +224,28 @@ Deno.serve(async (req) => {
     if (extension === "pdf") {
       // Step 1: try fast offline text extraction
       console.log("Attempting pdfjs text extraction...");
-      extractedText = await extractPdfText(buffer);
-      console.log(`pdfjs extracted ${extractedText.length} chars`);
+      try {
+        extractedText = await extractPdfText(buffer);
+        console.log(`pdfjs extracted ${extractedText.length} chars`);
+      } catch (pdfErr) {
+        console.warn("pdfjs extraction encountered an issue, falling back to Gemini OCR:", pdfErr);
+      }
 
-      // Step 2: if pdfjs got nothing (scanned/image PDF), use Gemini vision
+      // Step 2: if pdfjs got nothing (scanned/image PDF), use Gemini vision OCR
       if (extractedText.length < 100) {
         console.log("pdfjs returned insufficient text — falling back to Gemini OCR...");
-        extractedText = await geminiOcr(buffer, "application/pdf");
-        console.log(`Gemini OCR extracted ${extractedText.length} chars`);
+        try {
+          extractedText = await geminiOcr(buffer, "application/pdf");
+          console.log(`Gemini OCR extracted ${extractedText.length} chars`);
+        } catch (ocrErr: any) {
+          console.error("Gemini OCR failed:", ocrErr);
+          // If pdfjs got AT LEAST some text, use whatever pdfjs got instead of hard-failing
+          if (extractedText.length >= 30) {
+            console.log(`Rescuing using partial pdfjs text (${extractedText.length} chars)`);
+          } else {
+            throw ocrErr;
+          }
+        }
       }
     } else if (extension === "docx") {
       const result = await mammoth.extractRawText({ buffer });
@@ -160,16 +258,16 @@ Deno.serve(async (req) => {
       throw new Error(`Unsupported extension: ${extension}`);
     }
 
-    if (!extractedText || extractedText.length < 80) {
+    if (!extractedText || extractedText.length < 30) {
       throw new Error(`Text extraction returned insufficient content (${extractedText.length} chars). The document may be empty or password-protected.`);
     }
 
+    // Auto-tag document (best-effort using geminiFetch)
     try {
-      const apiKey = Deno.env.get("GEMINI_API_KEY_1") || Deno.env.get("GEMINI_API_KEY_2");
       const { data: depts } = await supabase.from("departments").select("name");
       const deptNames = depts?.map((d: any) => d.name).join(" | ") || "";
       
-      const prompt = `Analyze this university document and determine its target audience and department.
+      const tagPrompt = `Analyze this university document and determine its target audience and department.
       Respond ONLY with a valid JSON object matching exactly this schema:
       {
         "audience": "postgraduate" | "undergraduate" | "staff" | "parent" | "all",
@@ -179,17 +277,15 @@ Deno.serve(async (req) => {
       Document:
       ${extractedText.slice(0, 3000)}`;
 
-      const aiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
-        }
-      );
+      const aiRes = await geminiFetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: tagPrompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
+
       if (aiRes.ok) {
         const aiData = await aiRes.json();
         const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -214,12 +310,14 @@ Deno.serve(async (req) => {
     });
 
     if (!ingestResponse.ok) {
-      throw new Error(`Ingestion pipeline failed: ${await ingestResponse.text()}`);
+      const ingestErrText = await ingestResponse.text();
+      throw new Error(`Ingestion pipeline failed: ${ingestErrText}`);
     }
 
-    return Response.json({ success: true, chunks: (await ingestResponse.json()).chunks }, { headers: CORS });
+    const ingestResult = await ingestResponse.json();
+    return Response.json({ success: true, chunks: ingestResult.chunks }, { headers: CORS });
   } catch (err: any) {
-    console.error("Process Document Error:", err.stack);
+    console.error("Process Document Error:", err.stack || err.message);
     if (currentDocumentId) {
       try {
         const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -229,6 +327,7 @@ Deno.serve(async (req) => {
         }).eq("id", currentDocumentId);
       } catch { /* ignore */ }
     }
-    return Response.json({ success: false, error: err.stack || err.message }, { status: 200, headers: CORS });
+    return Response.json({ success: false, error: String(err.message || err).slice(0, 500) }, { status: 200, headers: CORS });
   }
 });
+

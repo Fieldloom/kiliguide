@@ -46,7 +46,10 @@ KiliGuide implements a state-of-the-art RAG pipeline designed for speed, cost ef
 [ User Query ]
        │
        ▼
-[ Query Contextualization ] ──► (Rewrites multi-turn chat context into standalone query)
+[ Smart 0-Token Fast-Path Contextualizer ] ──(Self-Contained Query)──► [ Skip LLM Rewriting (0 Tokens) ]
+       │ (Ambiguous / Pronoun Follow-Up)
+       ▼
+[ Query Contextualization (Cerebras Llama-3.1-70B) ]
        │
        ▼
 [ Semantic Caching (pgvector) ] ──(Similarity > 95%)──► [ Instant Cache Hit Response ]
@@ -61,19 +64,22 @@ KiliGuide implements a state-of-the-art RAG pipeline designed for speed, cost ef
 [ Confidence-based LLM Bypass ] ──(Score > 85%)──► [ Direct Extracted Text Response ]
        │ (Score < 85%)
        ▼
-[ Multi-LLM Routing & Web Fallback ]
- ├─► Primary: Groq (Llama-3.3-70B)
- ├─► Secondary: NVIDIA NIM (Llama-3.1-70B)
- ├─► Tertiary: Gemini 2.5 Flash
- └─► External: Web Search Fallback (Official University & Educational Domains)
+[ Multi-LLM Inference Hierarchy & Precision Citation Filter ]
+ ├─► Primary Chat Engine: Cerebras (Llama-3.1-70B)
+ ├─► Secondary Fallback: Groq (Llama-3.3-70B / GPT-OSS-120B)
+ ├─► Tertiary Fallback: NVIDIA NIM (Llama-3.1-70B)
+ ├─► Quaternary Fallback: Gemini 2.5 Flash / 2.0 Flash
+ └─► Vision & Extraction Engine: Gemini Multimodal & NVIDIA Vision (Timetables, Scanned PDFs, Images)
 ```
 
-1. **Query Contextualization**: Fast LLM processing transforms conversational context into clear, standalone search vectors.
+1. **Smart 0-Token Fast-Path Contextualizer**: Evaluates incoming queries using lightweight regex heuristics. Self-contained queries skip LLM rewriting completely (0 tokens consumed, sub-millisecond overhead). Contextualization via **Cerebras (Llama-3.1-70B)** is reserved strictly for ambiguous follow-ups containing pronouns.
 2. **Semantic Caching (`query_cache`)**: Queries with >95% vector similarity hit the semantic cache for sub-second responses.
 3. **RRF Hybrid Search**: Combines dense pgvector cosine similarity with sparse PostgreSQL full-text search (`tsvector`) via Reciprocal Rank Fusion scoring to maximize retrieval recall.
 4. **Contextual Compression & Chunk Merging**: Merges contiguous chunks from the same source document to preserve full context.
 5. **Confidence-based LLM Bypass**: For factual queries scoring above 85% relevance, raw source text is returned immediately without LLM invocation.
-6. **Multi-LLM Routing**: Automatically routes inference through **Groq (Llama-3.3)**, falling back to **NVIDIA NIM (Llama-3.1)**, and **Gemini 2.5 Flash**. Unresolved queries seamlessly invoke **Web Search Fallback**.
+6. **Multi-LLM Inference Hierarchy**: Serves chat completions through **Cerebras (Llama-3.1-70B)** as the primary high-speed engine, with multi-tier fallback through Groq, NVIDIA NIM, and Gemini.
+7. **Precision Citation Filtering**: Post-processes LLM output to match explicit `[n]` citation tags against retrieved chunks, ensuring `sources` cards mention **only** the documents actually referenced in the answer text.
+8. **Multi-Key & Multi-Model Vision Pipeline**: For scanned PDFs, image format document ingestion, and timetable parsing, Gemini Multimodal File API & inline base64 operate with key pool rotation (`GEMINI_API_KEY_1..5`) and exponential backoff on HTTP 503 high demand spikes.
 
 ---
 
@@ -105,9 +111,9 @@ The application leverages **18 Supabase Edge Functions** for serverless executio
 
 | Function | Description / Purpose |
 | --- | --- |
-| `chat` | Multi-stage RAG chat orchestrator with RRF hybrid search, caching, LLM routing, and web fallback |
+| `chat` | Multi-stage RAG chat orchestrator with Cerebras primary inference, RRF hybrid search, caching, and precision citation filtering |
 | `ingest-document` | Handles document processing, text chunking, Gemini embeddings, and pgvector insertion |
-| `process-document` | Async pipeline worker for background document ingestion |
+| `process-document` | Multi-key, multi-model resilient worker for background document ingestion & vision OCR |
 | `ingest-website` | Ingests crawled web pages into institution-scoped vector storage |
 | `ingest-official-source` | Processes verified official university announcements and documents |
 | `crawl-sitemap` | Triggers background crawling and queues discovered URLs |
@@ -130,7 +136,11 @@ The application leverages **18 Supabase Edge Functions** for serverless executio
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS
 - **Backend & Database**: Supabase (Auth, PostgreSQL 15, Storage, Realtime, Edge Functions)
 - **Vector Database**: PostgreSQL `pgvector` with HNSW indexing and RRF hybrid search
-- **AI Models & API**: Gemini Embedding 2, Gemini 2.5 Flash, Groq (Llama-3.3-70B), NVIDIA NIM (Llama-3.1-70B)
+- **AI Models & Inference Engines**:
+  - **Primary Chat Engine**: Cerebras AI (`llama3.1-70b`)
+  - **Fallback Chat Engines**: Groq (`llama-3.3-70b`), NVIDIA NIM (`llama-3.1-70b`), Gemini 2.5/2.0 Flash
+  - **Embeddings**: Gemini Embedding 2 (`gemini-embedding-2`, `text-embedding-004`)
+  - **Document Vision & OCR**: Gemini File API / Inline Base64, NVIDIA Llama 3.2 Vision
 - **Ingestion Backend**: Python 3.12, FastAPI, Playwright, BeautifulSoup4, PyMuPDF, APScheduler
 - **Agent Protocols**: Model Context Protocol (MCP) server integration (`mcp-server/`)
 - **API Specs**: OpenAPI 3.0 with Swagger UI (`/developers`)

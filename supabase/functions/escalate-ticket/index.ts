@@ -4,20 +4,37 @@ const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const gemini = "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function geminiJson(path: string, body: unknown) {
-  const keys = [Deno.env.get("GEMINI_API_KEY_1"), Deno.env.get("GEMINI_API_KEY_2"), Deno.env.get("GEMINI_API_KEY_3"), Deno.env.get("GEMINI_API_KEY_4"), Deno.env.get("GEMINI_API_KEY_5"), Deno.env.get("GEMINI_API_KEY")].filter((key): key is string => Boolean(key));
+  const keys = [Deno.env.get("GEMINI_API_KEY_1"), Deno.env.get("GEMINI_API_KEY_2"), Deno.env.get("GEMINI_API_KEY_3"), Deno.env.get("GEMINI_API_KEY_4"), Deno.env.get("GEMINI_API_KEY_5"), Deno.env.get("GEMINI_API_KEY")].filter((key): key is string => Boolean(key && key.trim()));
   if (!keys.length) throw new Error("No Gemini API key is configured.");
+
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-2.0-flash-exp", "gemini-1.5-pro"];
+  const action = path.includes(":") ? path.split(":")[1] : "generateContent";
+  
   let response: Response | undefined;
-  const start = Math.floor(Date.now() / 1000) % keys.length;
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const key = keys[(start + attempt) % keys.length];
-    response = await fetch(`${gemini}/${path}`, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(body) });
-    if (response.ok || ![429, 500, 502, 503, 504].includes(response.status)) break;
+  let lastErrText = "";
+  
+  for (const model of models) {
+    const targetPath = `${model}:${action}`;
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const key = keys[attempt];
+      try {
+        response = await fetch(`${gemini}/${targetPath}`, { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key }, 
+          body: JSON.stringify(body) 
+        });
+        if (response.ok) return response.json();
+        lastErrText = await response.text().catch(() => "");
+        if ([429, 500, 502, 503, 504].includes(response.status)) {
+          await new Promise(r => setTimeout(r, 600));
+        }
+      } catch (err: any) {
+        lastErrText = err?.message || String(err);
+      }
+    }
   }
-  if (!response || !response.ok) {
-    const errText = await response?.text().catch(() => "");
-    throw new Error(`Gemini request failed: ${response?.status} - ${errText}`);
-  }
-  return response.json();
+
+  throw new Error(`Gemini request failed: ${lastErrText}`);
 }
 
 Deno.serve(async (req) => {

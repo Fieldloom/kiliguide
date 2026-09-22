@@ -7,20 +7,39 @@ const unavailable = "Sorry, I could not find this information in the university 
 const gemini = "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function geminiJson(path: string, body: unknown) {
-  const keys = [Deno.env.get("GEMINI_API_KEY_1"), Deno.env.get("GEMINI_API_KEY_2"), Deno.env.get("GEMINI_API_KEY_3"), Deno.env.get("GEMINI_API_KEY_4"), Deno.env.get("GEMINI_API_KEY_5"), Deno.env.get("GEMINI_API_KEY")].filter((key): key is string => Boolean(key));
+  const keys = [Deno.env.get("GEMINI_API_KEY_1"), Deno.env.get("GEMINI_API_KEY_2"), Deno.env.get("GEMINI_API_KEY_3"), Deno.env.get("GEMINI_API_KEY_4"), Deno.env.get("GEMINI_API_KEY_5"), Deno.env.get("GEMINI_API_KEY")].filter((key): key is string => Boolean(key && key.trim()));
   if (!keys.length) throw new Error("No Gemini API key is configured in Supabase secrets.");
+
+  const isEmbed = path.includes(":embedContent");
+  const models = isEmbed
+    ? ["gemini-embedding-2", "text-embedding-004", "embedding-001"]
+    : ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-2.0-flash-exp", "gemini-1.5-pro"];
+
   let response: Response | undefined;
-  const start = Math.floor(Date.now() / 1000) % keys.length;
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const key = keys[(start + attempt) % keys.length];
-    response = await fetch(`${gemini}/${path}`, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(body) });
-    if (response.ok || ![429, 500, 502, 503, 504].includes(response.status)) break;
+  let lastErrText = "";
+  
+  for (const model of models) {
+    const targetPath = isEmbed ? `${model}:embedContent` : `${model}:generateContent`;
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const key = keys[attempt];
+      try {
+        response = await fetch(`${gemini}/${targetPath}`, { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key }, 
+          body: JSON.stringify(body) 
+        });
+        if (response.ok) return response.json();
+        lastErrText = await response.text().catch(() => "");
+        if ([429, 500, 502, 503, 504].includes(response.status)) {
+          await new Promise(r => setTimeout(r, 400));
+        }
+      } catch (err: any) {
+        lastErrText = err?.message || String(err);
+      }
+    }
   }
-  if (!response || !response.ok) {
-    const errText = await response?.text().catch(() => "");
-    throw new Error(`Gemini request failed (${path}): ${response?.status} - ${errText}`);
-  }
-  return response.json();
+
+  throw new Error(`Gemini request failed (${path}): ${lastErrText}`);
 }
 
 async function extractPdfText(buf: Buffer): Promise<string> {
@@ -145,28 +164,66 @@ Deno.serve(async (req) => {
       recentTurns = (history ?? []).reverse().map((turn: any) => `${turn.role}: ${turn.content}`);
     }
 
-    // 0. Query Contextualization
+    // 0. Smart Fast-Path Query Contextualization Detector (0-token overhead for self-contained queries)
     let standaloneQuery = question;
-    if (recentTurns.length > 0) {
+    const isPronounOrFollowUp = /\b(it|its|this|that|these|those|they|them|he|she|his|her|there|what about|how about|and for|why|also|same|former|latter)\b/i.test(question);
+    const isVeryShort = question.trim().split(/\s+/).length <= 4;
+    const isGreetingQuery = /^(hi|hello|hey|greetings|help|who are you|what can you do)[\s\W]*$/i.test(question);
+
+    // Only invoke LLM contextualization if history exists AND query is ambiguous/pronoun-dependent/very short (and not a greeting)
+    if (recentTurns.length > 0 && (isPronounOrFollowUp || isVeryShort) && !isGreetingQuery) {
+      console.log("Follow-up/pronoun query detected — running contextualization...");
       const rewriteInstruction = "Given the following conversation history and the latest user question, rewrite the user question to be a standalone query that can be used to search a knowledge base. If the question is already self-contained, return it as is. Do NOT answer the question. ONLY output the standalone question.";
-      const contents = [
-        ...recentTurns.map(t => {
-          const isUser = t.startsWith("user:");
-          return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
-        }),
-        { role: "user", parts: [{ text: question }] }
-      ];
-      try {
-        const rewriteRes = await geminiJson("gemini-flash-latest:generateContent", { 
-          system_instruction: { parts: [{ text: rewriteInstruction }] }, 
-          contents, 
-          generationConfig: { temperature: 0, maxOutputTokens: 100 } 
-        });
-        const rewritten = rewriteRes.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (rewritten && rewritten.length > 3) standaloneQuery = rewritten;
-      } catch (e) {
-        // Fallback to original question
+      const cerebrasKey = Deno.env.get("CEREBRAS_API_KEY");
+      let rewritten = "";
+
+      if (cerebrasKey) {
+        try {
+          const cRes = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cerebrasKey}` },
+            body: JSON.stringify({
+              model: "llama3.1-70b",
+              messages: [
+                { role: "system", content: rewriteInstruction },
+                ...recentTurns.map(t => {
+                  const isUser = t.startsWith("user:");
+                  return { role: isUser ? "user" : "assistant", content: t.substring(isUser ? 6 : 11) };
+                }),
+                { role: "user", content: question }
+              ],
+              temperature: 0,
+              max_tokens: 100
+            })
+          });
+          if (cRes.ok) {
+            const cData = await cRes.json();
+            rewritten = cData.choices?.[0]?.message?.content?.trim() || "";
+          }
+        } catch (e) {
+          console.warn("Cerebras query rewrite exception:", e);
+        }
       }
+
+      if (!rewritten) {
+        try {
+          const contents = [
+            ...recentTurns.map(t => {
+              const isUser = t.startsWith("user:");
+              return { role: isUser ? "user" : "model", parts: [{ text: t.substring(isUser ? 6 : 11) }] };
+            }),
+            { role: "user", parts: [{ text: question }] }
+          ];
+          const rewriteRes = await geminiJson("gemini-flash-latest:generateContent", { 
+            system_instruction: { parts: [{ text: rewriteInstruction }] }, 
+            contents, 
+            generationConfig: { temperature: 0, maxOutputTokens: 100 } 
+          });
+          rewritten = rewriteRes.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        } catch (e) {}
+      }
+
+      if (rewritten && rewritten.length > 3) standaloneQuery = rewritten;
     }
 
     // Generate Embedding using the Contextualized Query
@@ -256,6 +313,7 @@ ${customInstructions ? `USER'S CUSTOM INSTRUCTIONS:\nThe user has provided the f
 CONTEXT:
 ${context || "(No relevant documents found for this question)"}`;
 
+    // Cerebras as Primary Provider
     const cerebrasKey = Deno.env.get("CEREBRAS_API_KEY");
     if (cerebrasKey && providerUsed === "none") {
       try {
@@ -289,6 +347,7 @@ ${context || "(No relevant documents found for this question)"}`;
       }
     }
 
+    // Groq Fallback
     const groqKey = Deno.env.get("GROQ_API_KEY");
     if (groqKey && providerUsed === "none") {
       try {
@@ -322,6 +381,7 @@ ${context || "(No relevant documents found for this question)"}`;
       }
     }
 
+    // NVIDIA Fallback
     const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
     if (nvidiaKey && providerUsed === "none") {
       try {
@@ -378,14 +438,37 @@ ${context || "(No relevant documents found for this question)"}`;
       parseError = e.message;
     }
 
-    // ----------------------------------------------------
-    // FALLBACK: LIVE WEB SEARCH (DISABLED BY USER)
-    // ----------------------------------------------------
-    /*
-    if (escalate || answer === unavailable) {
-      ...
+    // Precision Citation Filtering: Only include documents actually referenced/cited in the LLM response
+    if (finalChunks.length > 0 && answer && answer !== unavailable && !escalate) {
+      const citedIndices = new Set<number>();
+      const matches = answer.matchAll(/\[(\d+)\]/g);
+      for (const m of matches) {
+        const idx = parseInt(m[1], 10) - 1; // [1]-indexed in prompt
+        if (idx >= 0 && idx < finalChunks.length) {
+          citedIndices.add(idx);
+        }
+      }
+
+      if (citedIndices.size > 0) {
+        const filteredSources: any[] = [];
+        const seen = new Set<string>();
+        for (const idx of citedIndices) {
+          const chunk = finalChunks[idx];
+          const key = `${chunk.title}-${chunk.page_number ?? ""}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            filteredSources.push({ title: chunk.title, page: chunk.page_number });
+          }
+        }
+        sources = filteredSources;
+      } else {
+        // Fallback: If no explicit [n] citation tags were written, attach only the top #1 most relevant document
+        const topChunk = finalChunks[0];
+        sources = [{ title: topChunk.title, page: topChunk.page_number }];
+      }
+    } else if (escalate || answer === unavailable) {
+      sources = [];
     }
-    */
 
     // 5. Cache Write
     if (answer !== unavailable && !escalate && providerUsed !== "none" && !forceWebSearch) {
