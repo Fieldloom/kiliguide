@@ -25,6 +25,9 @@ export function LinkPortalModal({
 }: LinkPortalModalProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [updatedUsername, setUpdatedUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
   const [linkedAccount, setLinkedAccount] = useState<any | null>(null);
@@ -45,6 +48,7 @@ export function LinkPortalModal({
       if (data) {
         setLinkedAccount(data);
         setUsername(data.portal_username || "");
+        setUpdatedUsername(data.portal_username || "");
       } else {
         setLinkedAccount(null);
       }
@@ -108,6 +112,61 @@ export function LinkPortalModal({
     }
   };
 
+  const handleUpdateCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase || !userId || !newPassword.trim()) {
+      setErrorMsg("Please enter a new password to update.");
+      return;
+    }
+    const client = supabase;
+
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      const { cipherText, iv } = await encryptPortalPassword(newPassword.trim());
+      const targetInstId = institutionId || "00000000-0000-0000-0000-000000000001";
+
+      const payload = {
+        user_id: userId,
+        institution_id: targetInstId,
+        portal_username: (updatedUsername || username).trim(),
+        encrypted_password: cipherText,
+        encryption_iv: iv,
+        encrypted_session_cookies: null, // Invalidate old session cache
+        session_expires_at: null,
+        is_verified: true,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await client
+        .from("linked_student_accounts")
+        .upsert(payload, { onConflict: "user_id,institution_id" })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setLinkedAccount(data);
+      setUsername(data.portal_username);
+      setSuccessMsg("✓ Student portal password updated & re-encrypted successfully!");
+      setNewPassword("");
+      setIsUpdatingPassword(false);
+      if (onSuccess) onSuccess();
+
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+
+    } catch (err: any) {
+      console.error("Error updating portal password:", err);
+      setErrorMsg("Failed to update password: " + (err.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleUnlink = async () => {
     if (!supabase || !linkedAccount) return;
     const client = supabase;
@@ -119,6 +178,7 @@ export function LinkPortalModal({
       setLinkedAccount(null);
       setUsername("");
       setPassword("");
+      setIsUpdatingPassword(false);
       setSuccessMsg("Portal account unlinked.");
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -169,7 +229,7 @@ export function LinkPortalModal({
 
           {linkedAccount ? (
             <div className="flex flex-col gap-4">
-              <div className="bg-black/40 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
+              <div className="bg-black/40 border border-white/10 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-xs text-zinc-400 block">Linked Student Reg / Email</span>
                   <span className="text-sm font-bold text-white block mt-0.5">{linkedAccount.portal_username}</span>
@@ -177,14 +237,119 @@ export function LinkPortalModal({
                     <CheckCircle2 size={12} /> Active Sync Ready
                   </span>
                 </div>
-                <button
-                  onClick={handleUnlink}
-                  disabled={unlinking}
-                  className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold cursor-pointer transition-colors"
-                >
-                  {unlinking ? <Loader2 size={14} className="animate-spin" /> : "Unlink Account"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUpdatingPassword(!isUpdatingPassword);
+                      setErrorMsg("");
+                      setSuccessMsg("");
+                    }}
+                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
+                  >
+                    <KeyRound size={13} className="text-[#10b981]" />
+                    {isUpdatingPassword ? "Cancel" : "Update Password"}
+                  </button>
+                  <button
+                    onClick={handleUnlink}
+                    disabled={unlinking}
+                    className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    {unlinking ? <Loader2 size={14} className="animate-spin" /> : "Unlink"}
+                  </button>
+                </div>
               </div>
+
+              {isUpdatingPassword ? (
+                <form onSubmit={handleUpdateCredentials} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white">
+                    <KeyRound size={15} className="text-[#10b981]" />
+                    <span>Update Student Portal Password</span>
+                  </div>
+
+                  <div className="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl text-[11px] text-amber-200/90 flex items-start gap-2">
+                    <Lock size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Existing passwords are vault-encrypted and cannot be previewed. Enter your new password below to update your saved credentials.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-zinc-400 font-semibold mb-1 block">
+                      Student Reg Number / Portal Email
+                    </label>
+                    <input
+                      type="text"
+                      value={updatedUsername}
+                      onChange={(e) => setUpdatedUsername(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white text-xs outline-none focus:border-[#10b981]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-zinc-400 font-semibold mb-1 block">
+                      New Portal Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new portal password..."
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white text-xs outline-none focus:border-[#10b981]"
+                    />
+                  </div>
+
+                  {errorMsg && (
+                    <div className="bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl text-rose-400 text-xs flex items-center gap-2">
+                      <AlertCircle size={14} />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  {successMsg && (
+                    <div className="bg-[#10b981]/15 border border-[#10b981]/30 p-2.5 rounded-xl text-[#10b981] text-xs flex items-center gap-2 font-semibold">
+                      <CheckCircle2 size={14} />
+                      <span>{successMsg}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsUpdatingPassword(false)}
+                      className="px-3 py-2 rounded-xl border border-white/10 text-zinc-400 text-xs font-semibold hover:bg-white/5 cursor-pointer bg-transparent"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving || !newPassword.trim()}
+                      className="px-4 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-black font-bold text-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5 transition-colors border-none"
+                    >
+                      {saving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+                      <span>{saving ? "Encrypting..." : "Save New Password"}</span>
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {errorMsg && (
+                    <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl text-rose-400 text-xs flex items-center gap-2">
+                      <AlertCircle size={15} />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  {successMsg && (
+                    <div className="bg-[#10b981]/15 border border-[#10b981]/30 p-3 rounded-xl text-[#10b981] text-xs flex items-center gap-2 font-semibold">
+                      <CheckCircle2 size={15} />
+                      <span>{successMsg}</span>
+                    </div>
+                  )}
+                </>
+              )}
 
               <div className="pt-2 border-t border-white/5 flex justify-end">
                 <button
