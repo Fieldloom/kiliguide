@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "../../../lib/supabase";
 import { decryptPortalPassword } from "../../../lib/encryption";
+import { parsePortalFeePdf, parseFeeStatementText, parseRegisteredUnitsText } from "../../../lib/pdf-portal-parser";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, action } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { userId, action, pdfBase64, rawHtmlText } = body;
 
     if (!userId || !supabase) {
       return NextResponse.json({ error: "Missing required parameters or Supabase not initialized" }, { status: 400 });
     }
 
+    const client = supabase;
+
     // 1. Fetch encrypted linked account record for user
-    const { data: account, error: accErr } = await supabase
+    const { data: account, error: accErr } = await client
       .from("linked_student_accounts")
       .select("*")
       .eq("user_id", userId)
@@ -25,41 +29,51 @@ export async function POST(req: NextRequest) {
 
     // 2. Ephemerally decrypt password in server memory
     const decryptedPassword = await decryptPortalPassword(account.encrypted_password, account.encryption_iv);
+    const username = account.portal_username;
 
-    // 3. Perform automated portal scraper / API query
-    // In production, this executes Playwright/Puppeteer or portal REST request against portal.dkut.ac.ke
     const timestamp = new Date().toISOString();
     let resultData: any = {};
 
-    if (action === "fee_statement" || !action) {
-      resultData.feeStatement = {
-        studentRegNo: account.portal_username,
-        academicYear: "2025/2026 Semester 2",
-        billedAmount: "KES 65,000",
-        paidAmount: "KES 50,500",
-        currentBalance: "KES 14,500",
-        examClearanceStatus: "PENDING_CLEARANCE",
-        lastTransactionDate: new Date().toLocaleDateString()
-      };
+    // Scenario A: Portal returned or uploaded a PDF Buffer (Fee Statement PDF)
+    if (pdfBase64) {
+      const pdfBuffer = Buffer.from(pdfBase64, "base64");
+      const parsedFee = await parsePortalFeePdf(pdfBuffer, username);
+      resultData.feeStatement = parsedFee;
+      resultData.pdfDownloadUrl = `data:application/pdf;base64,${pdfBase64}`;
+    } 
+    // Scenario B: Portal returned HTML Page or raw text
+    else if (rawHtmlText) {
+      resultData.feeStatement = parseFeeStatementText(rawHtmlText, username, "html_table");
+      resultData.registeredUnits = parseRegisteredUnitsText(rawHtmlText);
+    } 
+    // Scenario C: Standard Portal Navigation Sync (DeKUT / University Portal Routes)
+    else {
+      if (action === "fee_statement" || !action) {
+        // Simulated portal fetch output processed through financial ledger parser
+        const portalText = `DEDAN KIMATHI UNIVERSITY OF TECHNOLOGY - STUDENT FEE STATEMENT
+Registration No: ${username}
+Semester: 2025/2026 Semester 2
+Total Billed Amount: KES 65,000.00
+Total Payments Received: KES 50,500.00
+Current Net Balance: KES 14,500.00
+Last Receipt Date: ${new Date().toLocaleDateString()}`;
+
+        resultData.feeStatement = parseFeeStatementText(portalText, username, "html_table");
+      }
+
+      if (action === "unit_registration" || !action) {
+        resultData.registeredUnits = parseRegisteredUnitsText("");
+      }
     }
 
-    if (action === "unit_registration" || !action) {
-      resultData.registeredUnits = [
-        { code: "BIT 3201", title: "Distributed Systems", status: "REGISTERED", credits: 4 },
-        { code: "BIT 3202", title: "Artificial Intelligence & Expert Systems", status: "REGISTERED", credits: 4 },
-        { code: "BIT 3203", title: "Web Application Architecture & Security", status: "REGISTERED", credits: 4 },
-        { code: "BIT 3204", title: "Research Methodology in ICT", status: "REGISTERED", credits: 3 }
-      ];
-    }
-
-    // 4. Cache clean data snapshot in Supabase DB for offline/fast AI answers
+    // 3. Cache clean, token-saving JSON snapshot in Supabase DB (~30 tokens)
     const updatedCache = {
       ...(account.cached_portal_data || {}),
       ...resultData,
       lastSyncedAt: timestamp
     };
 
-    await supabase
+    await client
       .from("linked_student_accounts")
       .update({
         cached_portal_data: updatedCache,
