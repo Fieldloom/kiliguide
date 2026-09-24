@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight, ChevronUp,
-  FileText, LayoutDashboard, Menu, MessageSquareText, Search,
-  ShieldCheck, Ticket, Upload, UploadCloud, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap, Loader2,
+  FileText, LayoutDashboard, LogOut, Menu, MessageSquareText, Search,
+  ShieldCheck, Ticket, Upload, UploadCloud, UserX, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap, Loader2,
   Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, EyeOff, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -108,6 +108,40 @@ export function AdminWorkspace({ role }: { role?: string }) {
     });
   }, [tab]);
 
+  const handleSignOut = async () => {
+    try {
+      localStorage.removeItem("kiliguide_user_role");
+      localStorage.removeItem("kiliguide-auth-token");
+    } catch (_) {}
+    if (supabase) {
+      await supabase.auth.signOut().catch(() => undefined);
+    }
+    window.location.href = "/login";
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to PERMANENTLY DELETE your administrator account? All your personal settings and profile data will be erased. This action CANNOT be undone."
+    );
+    if (!confirmDelete) return;
+
+    try {
+      if (supabase) {
+        const { error } = await supabase.rpc("delete_user_account");
+        if (error) {
+          console.warn("RPC delete_user_account error:", error.message);
+        }
+        await supabase.auth.signOut().catch(() => undefined);
+      }
+    } catch (err) {
+      console.error("Failed to delete account:", err);
+    } finally {
+      localStorage.removeItem("kiliguide_user_role");
+      localStorage.removeItem("kiliguide-auth-token");
+      window.location.href = "/login";
+    }
+  };
+
   const go = (next: Tab) => { setTab(next); setMenu(false); };
 
   const allNavItems = role === "super_admin" ? [...nav, { label: "Institutions" as Tab, icon: Building2 }] : nav;
@@ -176,12 +210,20 @@ export function AdminWorkspace({ role }: { role?: string }) {
           </nav>
 
           <div style={{ padding: "16px 20px", borderTop: `1px solid ${D.border}`, background: "rgba(0,0,0,0.3)", borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <span style={{ width: 38, height: 38, borderRadius: "16px", background: "linear-gradient(135deg, #10b981, #059669)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "#fff", flexShrink: 0, boxShadow: "0 4px 14px rgba(16,185,129,0.35)" }}>SA</span>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <b style={{ fontSize: 13, display: "block", color: D.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Super Administrator</b>
                 <small style={{ fontSize: 11, color: D.accent, fontWeight: 600 }}>System Control</small>
               </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleSignOut} title="Sign Out" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.25)", padding: "8px 12px", borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <LogOut size={14} /> Sign Out
+              </button>
+              <button onClick={handleDeleteAccount} title="Delete Account" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.35)", padding: "8px 12px", borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <UserX size={14} />
+              </button>
             </div>
           </div>
         </aside>
@@ -206,6 +248,15 @@ export function AdminWorkspace({ role }: { role?: string }) {
                   placeholder="Search workspace…"
                 />
               </label>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.25)", padding: "8px 14px", borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <LogOut size={15} /> <span className="hidden sm:inline">Sign Out</span>
+              </button>
+              <button onClick={handleDeleteAccount} title="Delete Account" style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(239, 68, 68, 0.18)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.35)", padding: "8px 12px", borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <UserX size={15} />
+              </button>
             </div>
           </header>
 
