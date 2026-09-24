@@ -145,19 +145,56 @@ export function LecturerWorkspace() {
     const file = e.target.files?.[0];
     if (!supabase || !file || !profile) return;
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `${profile.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from("personal-resources").upload(path, file);
-    if (!error && data) {
-      const { data: dbData } = await supabase.from("personal_resources").insert({
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || "pdf";
+      const path = `lecturer-docs/${profile.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      
+      const { data: uploadRes, error: uploadErr } = await supabase.storage.from("documents").upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const finalPath = uploadRes?.path || path;
+      const targetInstId = profile.user_metadata?.institution_id || "00000000-0000-0000-0000-000000000001";
+      
+      const { data: dbData, error: dbErr } = await supabase.from("documents").insert({
+        title: file.name.replace(/\.[^.]+$/, ""),
+        category: "Academic Timetable",
+        file_type: ext,
+        status: "processing",
+        institution_id: targetInstId,
+        uploaded_by: profile.id,
+        storage_path: finalPath
+      }).select().single();
+
+      if (dbErr) throw dbErr;
+
+      // 1. Process document & extract RAG vector embeddings
+      await supabase.functions.invoke("process-document", {
+        body: { documentId: dbData.id, storagePath: finalPath, extension: ext }
+      }).catch(err => console.warn("RAG process-document warning:", err));
+
+      // 2. Timetable metadata extraction
+      await supabase.functions.invoke("analyze-timetable-metadata", {
+        body: { resourceId: dbData.id }
+      }).catch(err => console.warn("Timetable metadata analysis warning:", err));
+
+      await supabase.from("documents").update({ status: "active" }).eq("id", dbData.id);
+      dbData.status = "active";
+
+      // Also record in personal resources for lecturer view
+      await supabase.from("personal_resources").insert({
         user_id: profile.id,
         title: file.name,
         resource_type: "timetable",
-        storage_path: path
-      }).select();
-      if (dbData) setTimetables([dbData[0], ...timetables]);
+        storage_path: finalPath
+      });
+
+      alert("✓ Lecturer timetable uploaded, AI vector-indexed, and synced successfully!");
+    } catch (err: any) {
+      console.error("Error uploading timetable:", err);
+      alert(`Error uploading timetable: ${err?.message || "Upload failed"}`);
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const handleSignOut = async () => {

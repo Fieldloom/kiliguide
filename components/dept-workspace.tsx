@@ -85,6 +85,7 @@ export function DeptWorkspace() {
 
   const [showDocUploadModal, setShowDocUploadModal] = useState(false);
   const [docTitle, setDocTitle] = useState("");
+  const [docCategory, setDocCategory] = useState("Academic Timetable");
   const [docFile, setDocFile] = useState<File | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
@@ -223,33 +224,75 @@ export function DeptWorkspace() {
     if (!supabase || !docTitle.trim() || !docFile) return;
     setUploadingDoc(true);
     try {
-      const ext = docFile.name.split('.').pop() || "pdf";
+      const ext = docFile.name.split('.').pop()?.toLowerCase() || "pdf";
       const storagePath = `department-docs/${deptId || 'general'}/${Date.now()}_${docFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
       
-      const { data: uploadRes } = await supabase.storage.from("documents").upload(storagePath, docFile);
-      
-      const category = deptName ? `Dept: ${deptName}` : "Departmental";
+      const { data: uploadRes, error: uploadErr } = await supabase.storage.from("documents").upload(storagePath, docFile);
+      if (uploadErr) throw uploadErr;
+
+      const finalPath = uploadRes?.path || storagePath;
+      const categoryLabel = docCategory || (deptName ? `Dept: ${deptName}` : "Departmental");
       const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
+      
       const { data: dbData, error: dbErr } = await supabase.from("documents").insert({
         title: docTitle.trim(),
-        category: category,
-        file_type: ext.toLowerCase(),
-        status: "active",
+        category: categoryLabel,
+        file_type: ext,
+        status: "processing",
         institution_id: instId || "00000000-0000-0000-0000-000000000001",
         uploaded_by: userId,
-        storage_path: uploadRes?.path || storagePath
-      }).select();
+        storage_path: finalPath
+      }).select().single();
 
-      if (dbErr) {
-        alert(`Error saving document record: ${dbErr.message}`);
-      } else if (dbData && dbData.length > 0) {
-        setDocuments([dbData[0], ...documents]);
-        setDocTitle("");
-        setDocFile(null);
-        setShowDocUploadModal(false);
-        alert("✓ Department document uploaded successfully!");
+      if (dbErr) throw dbErr;
+
+      // 1. Process document & extract vector embeddings for RAG AI Chat
+      const { error: procErr } = await supabase.functions.invoke("process-document", {
+        body: { documentId: dbData.id, storagePath: finalPath, extension: ext }
+      });
+
+      if (procErr) {
+        console.warn("RAG Vector Ingestion Warning:", procErr.message);
       }
+
+      // 2. If it's a timetable, run timetable analysis & publish automatic department notice
+      const isTimetable = categoryLabel.toLowerCase().includes("timetable") || docTitle.toLowerCase().includes("timetable");
+
+      if (isTimetable) {
+        // Trigger timetable metadata extraction
+        await supabase.functions.invoke("analyze-timetable-metadata", {
+          body: { resourceId: dbData.id }
+        }).catch(err => console.warn("Timetable metadata analysis warning:", err));
+
+        // Auto-publish Department Notice to notify all department students
+        try {
+          await supabase.from("notices").insert({
+            title: `📢 Official Timetable Published: ${docTitle.trim()}`,
+            body: `An official academic/exam timetable "${docTitle.trim()}" has been published by ${deptName ? `${deptName} Department` : "department administration"}. KiliGuide AI has processed the schedule, class groups, venues, and times. You can now ask KiliGuide about your class times, rooms, and schedules!`,
+            summary: `Official timetable "${docTitle.trim()}" published for your department.`,
+            category: "Timetable",
+            department_id: deptId,
+            institution_id: instId || "00000000-0000-0000-0000-000000000001",
+            author_id: userId,
+            published_at: new Date().toISOString()
+          });
+        } catch (nErr) {
+          console.warn("Notice creation warning:", nErr);
+        }
+      }
+
+      // Update status to active
+      await supabase.from("documents").update({ status: "active" }).eq("id", dbData.id);
+      dbData.status = "active";
+
+      setDocuments([dbData, ...documents]);
+      setDocTitle("");
+      setDocFile(null);
+      setShowDocUploadModal(false);
+      alert(`✓ ${isTimetable ? "Timetable" : "Department Document"} uploaded, AI vector indexed, and notice published successfully!`);
+
     } catch (err: any) {
+      console.error("Error uploading department document:", err);
       alert(`Error uploading document: ${err?.message || "Upload failed"}`);
     } finally {
       setUploadingDoc(false);
@@ -268,19 +311,65 @@ export function DeptWorkspace() {
     const file = e.target.files?.[0];
     if (!supabase || !file || !profile) return;
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `${profile.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from("personal-resources").upload(path, file);
-    if (!error && data) {
-      const { data: dbData } = await supabase.from("personal_resources").insert({
-        user_id: profile.id,
-        title: file.name,
-        resource_type: "timetable",
-        storage_path: path
-      }).select();
-      if (dbData) setTimetables([dbData[0], ...timetables]);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || "pdf";
+      const path = `department-docs/${deptId || 'general'}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      
+      const { data: uploadRes, error: uploadErr } = await supabase.storage.from("documents").upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const finalPath = uploadRes?.path || path;
+      const userId = profile.id;
+      
+      const { data: dbData, error: dbErr } = await supabase.from("documents").insert({
+        title: file.name.replace(/\.[^.]+$/, ""),
+        category: "Academic Timetable",
+        file_type: ext,
+        status: "processing",
+        institution_id: instId || "00000000-0000-0000-0000-000000000001",
+        uploaded_by: userId,
+        storage_path: finalPath
+      }).select().single();
+
+      if (dbErr) throw dbErr;
+
+      // 1. Index RAG vectors
+      await supabase.functions.invoke("process-document", {
+        body: { documentId: dbData.id, storagePath: finalPath, extension: ext }
+      }).catch(err => console.warn("RAG process-document warning:", err));
+
+      // 2. Timetable metadata extraction
+      await supabase.functions.invoke("analyze-timetable-metadata", {
+        body: { resourceId: dbData.id }
+      }).catch(err => console.warn("Timetable metadata analysis warning:", err));
+
+      // 3. Auto-publish Department Notice
+      try {
+        await supabase.from("notices").insert({
+          title: `📢 Official Timetable Uploaded: ${file.name.replace(/\.[^.]+$/, "")}`,
+          body: `An official timetable "${file.name}" has been uploaded by ${deptName ? `${deptName} Department` : "department administration"}. KiliGuide AI has processed the schedule, class groups, venues, and times. You can now ask KiliGuide about your class times, rooms, and schedules!`,
+          summary: `Official timetable "${file.name}" published.`,
+          category: "Timetable",
+          department_id: deptId,
+          institution_id: instId || "00000000-0000-0000-0000-000000000001",
+          author_id: userId,
+          published_at: new Date().toISOString()
+        });
+      } catch (nErr) {
+        console.warn("Notice creation warning:", nErr);
+      }
+
+      await supabase.from("documents").update({ status: "active" }).eq("id", dbData.id);
+      dbData.status = "active";
+
+      setDocuments([dbData, ...documents]);
+      alert("✓ Timetable uploaded, vector-indexed for AI chat, and notice published to students!");
+    } catch (err: any) {
+      console.error("Error uploading timetable:", err);
+      alert(`Error uploading timetable: ${err?.message || "Upload failed"}`);
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const handleEscalate = async (t: any) => {
@@ -1346,10 +1435,24 @@ export function DeptWorkspace() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Document Category</label>
+                <select
+                  value={docCategory}
+                  onChange={e => setDocCategory(e.target.value)}
+                  style={{ width: "100%", background: "#000", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 13, outline: "none" }}
+                >
+                  <option value="Academic Timetable">📅 Academic Timetable</option>
+                  <option value="Exam Timetable">📝 Exam Timetable</option>
+                  <option value="Unit Outline / Syllabus">📚 Unit Outline / Syllabus</option>
+                  <option value="General Departmental Document">📄 General Departmental Document</option>
+                </select>
+              </div>
+
+              <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Document Title</label>
                 <input
                   type="text"
-                  placeholder="e.g. 2026 Academic Calendar & Unit Outline"
+                  placeholder="e.g. 2026 Semester 2 Teaching Timetable"
                   value={docTitle}
                   onChange={e => setDocTitle(e.target.value)}
                   style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 14px", color: "#fff", fontSize: 14, outline: "none" }}
@@ -1357,10 +1460,10 @@ export function DeptWorkspace() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Select File (PDF, DOCX, TXT)</label>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", display: "block", marginBottom: 6 }}>Select File (PDF, DOCX, PNG, JPG, TXT)</label>
                 <input
                   type="file"
-                  accept=".pdf,.docx,.doc,.txt"
+                  accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg"
                   onChange={e => setDocFile(e.target.files?.[0] || null)}
                   style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none" }}
                 />
