@@ -39,9 +39,11 @@ function groupByDate(convs: Conversation[]) {
 
 import { MarkdownRender as MarkdownMessage } from "./markdown-render";
 import { EscalateModal } from "./escalate-modal";
+import { LinkPortalModal } from "./link-portal-modal";
 
 export function StudentWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Student");
@@ -277,6 +279,9 @@ export function StudentWorkspace() {
       let initialDeptId = "";
       let effectiveInstId = "";
       if (user && supabase) {
+        const { data: linkedAcc } = await supabase.from("linked_student_accounts").select("id").eq("user_id", user.id).maybeSingle();
+        if (linkedAcc) setIsLinked(true);
+
         const { data: prof } = await supabase.from("profiles").select("preferred_language,custom_instructions,institution_id,department_id").eq("id", user.id).single();
         if (prof?.preferred_language) setLanguage(prof.preferred_language);
         if (prof?.custom_instructions) setCustomInstructions(prof.custom_instructions);
@@ -517,10 +522,8 @@ export function StudentWorkspace() {
     setSavingDept(false);
   };
 
-  const handleLinkUniversity = async () => {
-    if (!supabase) return;
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { queryParams: { prompt: 'select_account' } } });
-    if (error) alert("Failed to link account: " + error.message);
+  const handleLinkUniversity = () => {
+    setShowLinkModal(true);
   };
 
   const handleClearChatHistory = async () => {
@@ -2197,15 +2200,20 @@ export function StudentWorkspace() {
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-sm sm:text-base font-bold text-white m-0">University Account Link</h3>
                   {isLinked ? (
-                    <span className="bg-[#10b981]/15 text-[#10b981] px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                      <CheckCircle2 size={13} /> Linked
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="bg-[#10b981]/15 text-[#10b981] px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                        <CheckCircle2 size={13} /> Account Linked
+                      </span>
+                      <button onClick={handleLinkUniversity} className="bg-white/10 hover:bg-white/20 text-white border border-white/15 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors">
+                        Manage Credentials
+                      </button>
+                    </div>
                   ) : null}
                 </div>
-                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Link your official student email to securely access your live university grades and fee balances via KiliGuide AI.</p>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Link your official student portal credentials to securely access your live university grades and fee balances via KiliGuide AI.</p>
                 {!isLinked && (
-                  <button onClick={handleLinkUniversity} className="bg-white text-black border-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center gap-2 hover:bg-zinc-100 transition-colors">
-                    Link Student Email
+                  <button onClick={handleLinkUniversity} className="bg-[#10b981] hover:bg-[#059669] text-black border-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold cursor-pointer flex items-center gap-2 transition-colors">
+                    Link Student Portal Account
                   </button>
                 )}
               </div>
@@ -2322,6 +2330,14 @@ export function StudentWorkspace() {
       <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} onOpenTicketChat={(ticketId) => setActiveTicketChatId(ticketId)} />
       <TicketChatModal ticketId={activeTicketChatId} userRole="student" onClose={() => setActiveTicketChatId(null)} />
       <DocumentViewerModal source={activeSourceModal} onClose={() => setActiveSourceModal(null)} />
+      <LinkPortalModal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        userId={profile?.id}
+        institutionId={institutionId}
+        institutionName={institutionName}
+        onSuccess={() => setIsLinked(true)}
+      />
     </main>
   );
 }
