@@ -17,7 +17,7 @@ paths:
   /chat:
     post:
       summary: Ask KiliGuide a question
-      description: Submit a query to the KiliGuide AI assistant. Returns an answer generated from the official Dedan Kimathi University vector database or official Kenyan educational web sources.
+      description: Submit a query to the KiliGuide AI assistant. Returns an answer generated from the official Dedan Kimathi University of Technology vector database or official Kenyan educational web sources.
       tags:
         - Chat
       requestBody:

@@ -94,7 +94,7 @@ export function TrustedBy() {
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 backdrop-blur-md shadow-lg">
           <img src="/dekut_logo.png" alt="DeKUT" className="w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-xl p-1 shadow-md" />
           <div className="text-left">
-            <b className="text-sm sm:text-base text-zinc-200 tracking-tight block">Dedan Kimathi University</b>
+            <b className="text-sm sm:text-base text-zinc-200 tracking-tight block">Dedan Kimathi University of Technology</b>
             <span className="text-[10px] sm:text-xs text-zinc-400">Institutional Partner</span>
           </div>
         </div>

@@ -105,7 +105,7 @@ export function EscalateModal({
           <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Escalate to Human</h2>
         </div>
         <p style={{ color: "#a1a1aa", fontSize: 13, marginBottom: 20 }}>
-          Select the department to contact. On mobile phones, this opens your native <strong>Gmail / Mail App</strong> with pre-crafted conversation context ready to send.
+          Select the department to direct your escalation. Choose <strong>Gmail Web</strong> to compose directly in your web browser or <strong>Mail App</strong> for native device apps.
         </p>
         
         <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "50vh", overflowY: "auto", paddingRight: 4 }} className="hide-scroll">
@@ -117,9 +117,16 @@ export function EscalateModal({
               </div>
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                 <button 
+                  onClick={() => handleDraft(dept.email, dept.name, true)} 
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: 10, color: "#60a5fa", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                  title="Open draft in Gmail (Web)"
+                >
+                  <Mail size={14} /> Gmail Web
+                </button>
+                <button 
                   onClick={() => handleDraft(dept.email, dept.name, false)} 
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 10, color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                  title="Open in Mail/Gmail App"
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 10, color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                  title="Open in default OS Mail app"
                 >
                   <Mail size={14} /> Mail App
                 </button>
