@@ -37,10 +37,12 @@ function groupByDate(convs: Conversation[]) {
 
 
 import { EscalateModal } from "./escalate-modal";
+import { TicketChatModal } from "./ticket-chat-modal";
 
 export function DeptWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
   const [escalatePayload, setEscalatePayload] = useState<{subject: string, body: string} | null>(null);
+  const [activeTicketChatId, setActiveTicketChatId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Department Head");
@@ -175,10 +177,11 @@ export function DeptWorkspace() {
       department_id: deptId,
       institution_id: instId || "00000000-0000-0000-0000-000000000001"
     }).select();
-    if (!error && data) {
+    if (!error && data && data[0]) {
       setTickets([data[0], ...tickets]);
       setTicketSubject("");
       setTicketDesc("");
+      setActiveTicketChatId(data[0].id);
     }
     setCreatingTicket(false);
   };
@@ -1081,6 +1084,14 @@ export function DeptWorkspace() {
                         }}>{ticket.status}</span>
                       </div>
                       <p style={{ fontSize: 13, color: "#a1a1aa", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ticket.description}</p>
+                      <div style={{ marginTop: 12, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "flex-end" }}>
+                        <button
+                          onClick={() => setActiveTicketChatId(ticket.id)}
+                          style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                        >
+                          <MessageSquare size={14} /> Live Chat
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {tickets.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14 }}>No tickets submitted.</p>}
@@ -1133,6 +1144,12 @@ export function DeptWorkspace() {
                     </div>
 
                     <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+                      <button
+                        onClick={() => setActiveTicketChatId(t.id)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(16, 185, 129, 0.2)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.4)", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        <MessageSquare size={16} /> Open 2-Way Chat
+                      </button>
                       {t.status !== "in_progress" && (
                         <button
                           onClick={() => handleUpdateTicketStatus(t.id, "in_progress")}
@@ -1369,6 +1386,8 @@ export function DeptWorkspace() {
           </div>
         </div>
       )}
+      <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} onOpenTicketChat={(ticketId) => setActiveTicketChatId(ticketId)} />
+      <TicketChatModal ticketId={activeTicketChatId} userRole="dept_admin" onClose={() => setActiveTicketChatId(null)} />
     </main>
   );
 }

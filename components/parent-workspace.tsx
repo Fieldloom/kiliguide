@@ -37,10 +37,12 @@ function groupByDate(convs: Conversation[]) {
 
 
 import { EscalateModal } from "./escalate-modal";
+import { TicketChatModal } from "./ticket-chat-modal";
 
 export function ParentWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
   const [escalatePayload, setEscalatePayload] = useState<{subject: string, body: string} | null>(null);
+  const [activeTicketChatId, setActiveTicketChatId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [name, setName] = useState("Parent");
@@ -129,11 +131,12 @@ export function ParentWorkspace() {
       created_by: profile?.id,
       department_id: ticketDeptId || null
     }).select();
-    if (!error && data) {
+    if (!error && data && data[0]) {
       setTickets([data[0], ...tickets]);
       setTicketSubject("");
       setTicketDesc("");
       setTicketDeptId("");
+      setActiveTicketChatId(data[0].id);
     }
     setCreatingTicket(false);
   };
@@ -939,6 +942,14 @@ export function ParentWorkspace() {
                         }}>{ticket.status}</span>
                       </div>
                       <p style={{ fontSize: 13, color: "#a1a1aa", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ticket.description}</p>
+                      <div style={{ marginTop: 12, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "flex-end" }}>
+                        <button
+                          onClick={() => setActiveTicketChatId(ticket.id)}
+                          style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(249, 115, 22, 0.15)", color: "#f97316", border: "1px solid rgba(249, 115, 22, 0.3)", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                        >
+                          <MessageSquare size={14} /> Live Chat
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {tickets.length === 0 && <p style={{ color: "#a1a1aa", fontSize: 14 }}>No tickets submitted.</p>}
@@ -1043,7 +1054,8 @@ export function ParentWorkspace() {
         ) : null}
       </section>
 
-      <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} />
+      <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} onOpenTicketChat={(ticketId) => setActiveTicketChatId(ticketId)} />
+      <TicketChatModal ticketId={activeTicketChatId} userRole="parent" onClose={() => setActiveTicketChatId(null)} />
     </main>
   );
 }

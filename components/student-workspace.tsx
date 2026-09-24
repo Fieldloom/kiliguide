@@ -7,6 +7,7 @@ import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, Calen
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 import { DocumentViewerModal } from "./document-viewer-modal";
+import { TicketChatModal } from "./ticket-chat-modal";
 
 type Tab = "Home" | "Chats" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
 const navigation: [Tab, any][] = [
@@ -102,6 +103,7 @@ export function StudentWorkspace() {
     }
   };
   const [tickets, setTickets] = useState<any[]>([]);
+  const [activeTicketChatId, setActiveTicketChatId] = useState<string | null>(null);
   const [departments, setDepartments] = useState<any[]>([]);
   const [timetables, setTimetables] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
@@ -343,11 +345,12 @@ export function StudentWorkspace() {
       department_id: ticketDeptId || null,
       institution_id: institutionId || "00000000-0000-0000-0000-000000000001"
     }).select();
-    if (!error && data) {
+    if (!error && data && data[0]) {
       setTickets([data[0], ...tickets]);
       setTicketSubject("");
       setTicketDesc("");
       setTicketDeptId("");
+      setActiveTicketChatId(data[0].id);
     }
     setCreatingTicket(false);
   };
@@ -1587,7 +1590,14 @@ export function StudentWorkspace() {
                         <p className="text-xs text-zinc-400 m-0 line-clamp-2 leading-relaxed">{ticket.description}</p>
                         <div className="mt-3 pt-2.5 border-t border-white/5 flex justify-between items-center text-[10px] text-zinc-500">
                           <span>Ref ID: #{ticket.id.slice(0, 8)}</span>
-                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => setActiveTicketChatId(ticket.id)}
+                              className="text-[#10b981] bg-[#10b981]/15 hover:bg-[#10b981]/25 border border-[#10b981]/30 px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-[11px]"
+                              title="Open 2-Way Chat"
+                            >
+                              <MessageSquare size={13} />
+                              <span>Live Chat</span>
+                            </button>
                             <button 
                               onClick={() => startEditTicket(ticket)}
                               className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center gap-1"
@@ -1607,7 +1617,6 @@ export function StudentWorkspace() {
                             </button>
                           </div>
                         </div>
-                      </div>
                     ))}
 
                     {tickets.length === 0 && (
@@ -2310,7 +2319,8 @@ export function StudentWorkspace() {
         ) : null}
       </section>
 
-      <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} />
+      <EscalateModal payload={escalatePayload} onClose={() => setEscalatePayload(null)} onOpenTicketChat={(ticketId) => setActiveTicketChatId(ticketId)} />
+      <TicketChatModal ticketId={activeTicketChatId} userRole="student" onClose={() => setActiveTicketChatId(null)} />
       <DocumentViewerModal source={activeSourceModal} onClose={() => setActiveSourceModal(null)} />
     </main>
   );

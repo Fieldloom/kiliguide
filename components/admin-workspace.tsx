@@ -11,6 +11,7 @@ import { supabase } from "../lib/supabase";
 import { scrapeWebpage, scrapeDeKut, discoverPages, discoverDepartmentContacts } from "../app/actions";
 import { AdminChat } from "./admin-chat";
 import { InstallButton } from "./install-button";
+import { TicketChatModal } from "./ticket-chat-modal";
 
 type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Departments" | "Users" | "Analytics" | "System Health" | "Institutions" | "Web Crawler";
 const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
@@ -1630,6 +1631,7 @@ function DepartmentsWorkspace() {
 function TicketsWorkspace() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [escalatingId, setEscalatingId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase?.from("tickets").select(`*, profiles:created_by(full_name, email), departments(name, email)`).order("created_at", { ascending: false }).limit(50).then(({ data }) => setTickets(data || []));
@@ -1682,7 +1684,10 @@ function TicketsWorkspace() {
               </select>
             </div>
             <p style={{ fontSize: 14, color: D.text, whiteSpace: "pre-wrap", background: "rgba(255,255,255,0.03)", padding: 16, borderRadius: 8, border: `1px solid ${D.border}`, lineHeight: 1.6 }}>{t.description}</p>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setActiveChatId(t.id)} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(16, 185, 129, 0.2)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.4)", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                <MessageSquareText size={16} /> Open 2-Way Chat
+              </button>
               <button onClick={() => handleEscalate(t)} disabled={escalatingId === t.id} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#8b5cf615", color: "#8b5cf6", padding: "8px 16px", borderRadius: 100, fontSize: 13, fontWeight: 600, border: "1px solid #8b5cf644", cursor: "pointer", opacity: escalatingId === t.id ? 0.5 : 1 }}>
                 <Sparkles size={16} /> {escalatingId === t.id ? "Drafting..." : "Auto-Escalate with AI"}
               </button>
@@ -1691,6 +1696,8 @@ function TicketsWorkspace() {
         ))}
         {tickets.length === 0 && <p style={{ color: D.muted, fontSize: 14 }}>No tickets found.</p>}
       </div>
+
+      <TicketChatModal ticketId={activeChatId} userRole="admin" onClose={() => setActiveChatId(null)} />
     </section>
   );
 }
