@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, ExternalLink, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Paperclip, Pencil, Plus, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, WifiOff, X, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, ExternalLink, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, Mic, PanelLeft, PanelLeftClose, Paperclip, Pencil, Plus, RotateCw, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, UserX, Volume2, VolumeX, Wallet, WifiOff, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 import { DocumentViewerModal } from "./document-viewer-modal";
@@ -443,6 +443,32 @@ export function StudentWorkspace() {
       await supabase.auth.signOut().catch(() => undefined);
     }
     window.location.href = "/login";
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to PERMANENTLY DELETE your account? All your personal settings, chat history, and profile data will be erased. This action CANNOT be undone."
+    );
+    if (!confirmDelete) return;
+
+    try {
+      if (supabase) {
+        const { error } = await supabase.rpc("delete_user_account");
+        if (error) {
+          console.warn("RPC delete_user_account error:", error.message);
+          if (profile?.id) {
+            await supabase.from("profiles").delete().eq("id", profile.id);
+          }
+        }
+        await supabase.auth.signOut().catch(() => undefined);
+      }
+    } catch (err) {
+      console.error("Failed to delete account:", err);
+    } finally {
+      localStorage.removeItem("kiliguide_user_role");
+      localStorage.removeItem("kiliguide-auth-token");
+      window.location.href = "/login";
+    }
   };
   
   const handleUpdateLanguage = async (lang: string) => {
@@ -2108,8 +2134,11 @@ export function StudentWorkspace() {
                 
                 <hr style={{ width: "100%", border: "none", borderTop: "1px solid rgba(255,255,255,0.05)", margin: "32px 0" }} />
                 
-                <button onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 24px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center" }}>
+                <button onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 24px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center", marginBottom: 12 }}>
                   <LogOut size={18} /> Sign Out securely
+                </button>
+                <button onClick={handleDeleteAccount} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.18)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.35)", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center" }}>
+                  <UserX size={18} /> Delete Account Permanently
                 </button>
               </div>
             </div>
@@ -2259,13 +2288,19 @@ export function StudentWorkspace() {
               
               <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6 border border-rose-500/20">
                 <h3 className="text-sm sm:text-base font-bold text-rose-400 mb-2">Data & Privacy Controls</h3>
-                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Permanently delete your data. This action cannot be undone.</p>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Manage your data, sign out, or permanently remove your account from KiliGuide.</p>
                 <div className="flex flex-col gap-2.5">
                   <button onClick={handleClearChatHistory} className="flex items-center gap-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer w-full justify-start hover:bg-rose-500/20 transition-colors">
                     <Trash2 size={16} /> Clear Chat History
                   </button>
                   <button onClick={handleDeleteTimetables} className="flex items-center gap-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer w-full justify-start hover:bg-rose-500/20 transition-colors">
                     <CalendarDays size={16} /> Delete Uploaded Timetables
+                  </button>
+                  <button onClick={handleSignOut} className="flex items-center gap-2.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer w-full justify-start hover:bg-amber-500/20 transition-colors">
+                    <LogOut size={16} /> Sign Out Securely
+                  </button>
+                  <button onClick={handleDeleteAccount} className="flex items-center gap-2.5 bg-rose-600/20 text-rose-300 border border-rose-500/40 p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm font-bold cursor-pointer w-full justify-start hover:bg-rose-600/30 transition-colors">
+                    <UserX size={16} /> Delete Account Permanently
                   </button>
                 </div>
               </div>

@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { MarkdownRender as MarkdownMessage } from "./markdown-render";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
+import { AlertCircle, Bell, BookOpen, BookOpenCheck, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, UserX, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 
@@ -158,9 +158,40 @@ export function LecturerWorkspace() {
   };
 
   const handleSignOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
+    try {
+      localStorage.removeItem("kiliguide_user_role");
+      localStorage.removeItem("kiliguide-auth-token");
+    } catch (_) {}
+    if (supabase) {
+      await supabase.auth.signOut().catch(() => undefined);
+    }
     window.location.href = "/login";
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to PERMANENTLY DELETE your lecturer account? All your personal settings and profile data will be erased. This action CANNOT be undone."
+    );
+    if (!confirmDelete) return;
+
+    try {
+      if (supabase) {
+        const { error } = await supabase.rpc("delete_user_account");
+        if (error) {
+          console.warn("RPC delete_user_account error:", error.message);
+          if (profile?.id) {
+            await supabase.from("profiles").delete().eq("id", profile.id);
+          }
+        }
+        await supabase.auth.signOut().catch(() => undefined);
+      }
+    } catch (err) {
+      console.error("Failed to delete account:", err);
+    } finally {
+      localStorage.removeItem("kiliguide_user_role");
+      localStorage.removeItem("kiliguide-auth-token");
+      window.location.href = "/login";
+    }
   };
   
   const handleUpdateLanguage = async (lang: string) => {
@@ -954,8 +985,11 @@ export function LecturerWorkspace() {
                 
                 <hr style={{ width: "100%", border: "none", borderTop: "1px solid rgba(255,255,255,0.05)", margin: "32px 0" }} />
                 
-                <button onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 24px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center" }}>
+                <button onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "12px 24px", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center", marginBottom: 12 }}>
                   <LogOut size={18} /> Sign Out securely
+                </button>
+                <button onClick={handleDeleteAccount} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.18)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.35)", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "center" }}>
+                  <UserX size={18} /> Delete Account Permanently
                 </button>
               </div>
             </div>
@@ -977,6 +1011,19 @@ export function LecturerWorkspace() {
                   <button onClick={() => handleUpdateLanguage("sw")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.2)", border: language === "sw" ? "1px solid #8b5cf6" : "1px solid rgba(255,255,255,0.1)", padding: "16px 20px", borderRadius: 12, cursor: "pointer", transition: "0.2s" }}>
                     <span style={{ fontSize: 15, color: "#fff", fontWeight: 600 }}>Kiswahili</span>
                     {language === "sw" && <CheckCircle2 size={18} color="#8b5cf6" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="glass-panel" style={{ padding: 24, marginBottom: 24, border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f87171", marginBottom: 8 }}>Account & Security</h3>
+                <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>Sign out securely or permanently delete your lecturer portal account.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <button onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(245, 158, 11, 0.1)", color: "#fbbf24", border: "1px solid rgba(245, 158, 11, 0.2)", padding: "14px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", justifyContent: "flex-start" }}>
+                    <LogOut size={18} /> Sign Out Securely
+                  </button>
+                  <button onClick={handleDeleteAccount} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239, 68, 68, 0.2)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: "14px 20px", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%", justifyContent: "flex-start" }}>
+                    <UserX size={18} /> Delete Account Permanently
                   </button>
                 </div>
               </div>

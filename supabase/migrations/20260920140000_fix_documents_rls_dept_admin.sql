@@ -15,7 +15,12 @@ WITH CHECK (
   OR EXISTS (
     SELECT 1 FROM public.profiles 
     WHERE id = auth.uid() 
-    AND (institution_id = public.documents.institution_id OR role IN ('super_admin', 'administrator', 'dept_admin'))
+    AND institution_id = public.documents.institution_id
+  )
+  OR EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = auth.uid()
+    AND role IN ('super_admin', 'administrator', 'dept_admin')
   )
 );
 
