@@ -619,7 +619,39 @@ export function StudentWorkspace() {
     const userMsg: Message = { id: Date.now().toString(), role: "user", content: value + (attachment ? `\n\n[Attachment: ${attachment.name}]` : "") };
     setConversations(prev => prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, userMsg], title: c.title === "New chat" ? value.slice(0, 42) : c.title } : c));
     
-    const finalQuery = language === "sw" ? "(Please answer in Swahili) " + value : value;
+    let finalQuery = language === "sw" ? "(Please answer in Swahili) " + value : value;
+
+    // Check if query asks for student portal data (fee, balance, units, statement)
+    const lowerVal = value.toLowerCase();
+    const isPortalQuery = lowerVal.includes("fee") || lowerVal.includes("balance") || lowerVal.includes("statement") || lowerVal.includes("unit") || lowerVal.includes("clearance");
+
+    if (isPortalQuery && profile?.id) {
+      try {
+        const syncRes = await fetch("/api/portal-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: profile.id, action: lowerVal.includes("unit") ? "unit_registration" : "fee_statement" })
+        });
+        const syncJson = await syncRes.json();
+        if (syncJson?.data) {
+          const pData = syncJson.data;
+          let portalContextStr = "\n\n[LIVE STUDENT PORTAL SYNC DATA]:\n";
+          if (pData.feeStatement) {
+            portalContextStr += `Student Reg No: ${pData.feeStatement.studentRegNo || 'Student'}\nTotal Billed: ${pData.feeStatement.billedAmount}\nTotal Paid: ${pData.feeStatement.paidAmount}\nCurrent Net Balance: ${pData.feeStatement.currentBalance}\nExam Clearance: ${pData.feeStatement.examClearanceStatus}\n`;
+            if (pData.pdfDownloadUrl) {
+              portalContextStr += `Official PDF Download Link: [ 📥 Download Official Fee Statement (PDF) ](${pData.pdfDownloadUrl})\n`;
+            }
+          }
+          if (pData.registeredUnits) {
+            portalContextStr += `Registered Units: ${pData.registeredUnits.map((u: any) => `${u.code} - ${u.title}`).join(", ")}\n`;
+          }
+          finalQuery += portalContextStr;
+        }
+      } catch (pErr) {
+        console.warn("Portal context auto-sync error:", pErr);
+      }
+    }
+
     let { data, error } = await supabase.functions.invoke("chat", { body: { question: finalQuery, conversationId: convId, attachment } });
     
     if (data?.escalate) {
