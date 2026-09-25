@@ -624,13 +624,21 @@ export function StudentWorkspace() {
 
     // Detect if question should be routed to student portal (https://portal.dkut.ac.ke/)
     const portalIntent = detectPortalIntent(value);
+    const currentUserId = profile?.id || (await supabase?.auth?.getUser())?.data?.user?.id;
 
-    if (portalIntent.isPortalQuery && profile?.id) {
+    if (portalIntent.isPortalQuery && currentUserId) {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
         const syncRes = await fetch("/api/portal-sync", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: profile.id, action: portalIntent.action })
+          headers,
+          body: JSON.stringify({ userId: currentUserId, action: portalIntent.action })
         });
         const syncJson = await syncRes.json();
         if (syncRes.ok && syncJson?.data) {

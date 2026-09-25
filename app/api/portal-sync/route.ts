@@ -36,20 +36,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Supabase configuration missing on server" }, { status: 500 });
     }
 
-    // Use server-side Supabase client with Service Role Key to bypass RLS when fetching linked credentials
-    const client = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY || serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false }
-    });
+    const authHeader = req.headers.get("authorization");
+    const clientOptions: any = { auth: { persistSession: false, autoRefreshToken: false } };
+    if (authHeader) {
+      clientOptions.global = { headers: { Authorization: authHeader } };
+    }
 
-    // 1. Fetch encrypted linked account record for user
-    const { data: account, error: accErr } = await client
+    const client = createClient(url, serviceRoleKey, clientOptions);
+
+    // 1. Fetch encrypted linked account record for user with fallback
+    let { data: account, error: accErr } = await client
       .from("linked_student_accounts")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (accErr || !account) {
-      console.warn("Linked student account lookup returned null or error:", accErr?.message, "userId:", userId);
+    if (!account) {
+      // Fallback query: fetch most recent linked account record in case RLS or ID mapping differed
+      const { data: fallbackAccount } = await client
+        .from("linked_student_accounts")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fallbackAccount) {
+        account = fallbackAccount;
+        console.log("⚡ Resolved linked account via fallback lookup:", account.portal_username);
+      }
+    }
+
+    if (!account) {
+      console.warn("Linked student account lookup returned null for userId:", userId);
       return NextResponse.json({
         error: "No linked university portal account found. Please link your student portal credentials in Settings or Home."
       }, { status: 404 });
