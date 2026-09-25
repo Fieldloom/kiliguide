@@ -51,27 +51,36 @@ export function parseFeeStatementText(
   username: string,
   sourceType: "pdf_statement" | "html_table" = "html_table"
 ): ParsedFeeStatement {
+  // Extract Student Name if present
+  const nameMatch = text.match(/(?:Student\s*Name|Name)\s*[:=]?\s*([A-Za-z\s.]{3,40})/i);
+  const studentName = nameMatch ? nameMatch[1].trim() : undefined;
+
+  // Extract Academic Year / Semester if present
+  const yearMatch = text.match(/(?:Academic\s*Year|Semester)\s*[:=]?\s*([A-Za-z0-9\/\s\-]{5,30})/i);
+  const academicYear = yearMatch ? yearMatch[1].trim() : "2025/2026 Semester 2";
+
   // Regex pattern matching for Current / Net Balance
-  const balanceMatch = text.match(/(?:Net|Closing|Current|Running|Outstanding)\s*Balance\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i)
-    || text.match(/(?:Balance)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
+  const balanceMatch = text.match(/(?:Net|Closing|Current|Running|Outstanding|Balance\s*Due)\s*Balance\s*[:=]?\s*(?:KES|Ksh|\$)?\s*(-?[\d,]+(?:\.\d{2})?)/i)
+    || text.match(/(?:Balance)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*(-?[\d,]+(?:\.\d{2})?)/i);
 
   const currentBalance = balanceMatch ? `KES ${balanceMatch[1]}` : "KES 14,500";
 
-  // Regex pattern matching for Total Paid / Receipts
-  const paidMatch = text.match(/(?:Total\s*Paid|Total\s*Receipts|Credit\s*Total|Paid)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
+  // Regex pattern matching for Total Paid / Credit
+  const paidMatch = text.match(/(?:Total\s*Paid|Total\s*Receipts|Credit\s*Total|Total\s*Credit|Paid)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
   const paidAmount = paidMatch ? `KES ${paidMatch[1]}` : "KES 50,500";
 
   // Regex pattern matching for Total Billed / Debit
-  const billedMatch = text.match(/(?:Total\s*Billed|Total\s*Invoiced|Debit\s*Total|Billed)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
+  const billedMatch = text.match(/(?:Total\s*Billed|Total\s*Invoiced|Debit\s*Total|Total\s*Debit|Billed)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
   const billedAmount = billedMatch ? `KES ${billedMatch[1]}` : "KES 65,000";
 
   // Determine Exam Clearance Status
-  const numBalance = parseFloat(currentBalance.replace(/[^0-9.]/g, "")) || 0;
+  const numBalance = parseFloat(currentBalance.replace(/[^0-9.-]/g, "")) || 0;
   const examClearanceStatus = numBalance <= 5000 ? "CLEARED_FOR_EXAMS" : "PENDING_CLEARANCE";
 
   return {
     studentRegNo: username,
-    academicYear: "2025/2026 Semester 2",
+    studentName,
+    academicYear,
     billedAmount,
     paidAmount,
     currentBalance,
