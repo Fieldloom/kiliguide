@@ -647,9 +647,16 @@ export function StudentWorkspace() {
           const pData = syncJson.data;
           let portalContextStr = `\n\n[LIVE STUDENT PORTAL SYNC DATA (AUTONOMOUS FETCH FROM ${portalIntent.targetUrl})]:\n`;
           if (pData.feeStatement) {
-            portalContextStr += `Portal Target URL: ${portalIntent.targetUrl}\nStudent Reg No: ${pData.feeStatement.studentRegNo || 'Student'}\nTotal Billed Amount: ${pData.feeStatement.billedAmount}\nTotal Paid Amount: ${pData.feeStatement.paidAmount}\nCurrent Net Fee Balance: ${pData.feeStatement.currentBalance}\nExam Clearance Status: ${pData.feeStatement.examClearanceStatus}\n`;
-            if (pData.pdfDownloadUrl) {
-              portalContextStr += `Official Summarized Fee Statement PDF Download Link: [ 📥 Download Official Fee Statement (PDF) ](${pData.pdfDownloadUrl})\n`;
+            const fs = pData.feeStatement;
+            portalContextStr += `Portal Target URL: ${portalIntent.targetUrl}\nStudent Reg No: ${fs.studentRegNo || 'Student'}\nStudent Name: ${fs.studentName || 'Student'}\nTotal Billed Amount: ${fs.billedAmount}\nTotal Paid Amount: ${fs.paidAmount}\nCurrent Net Fee Balance: ${fs.currentBalance}\nExam Clearance Status: ${fs.examClearanceStatus}\n`;
+            if (fs.lastPaymentAmount) {
+              portalContextStr += `Last Payment Received: ${fs.lastPaymentAmount} on ${fs.lastTransactionDate} (${fs.lastPaymentRef || 'Payment'})\n`;
+            }
+            if (fs.recentTransactions && fs.recentTransactions.length > 0) {
+              portalContextStr += `Recent Summarized Ledger Transactions:\n` + fs.recentTransactions.map((t: any) => `- ${t.date} | ${t.docNo} | ${t.desc} | ${t.amount}`).join("\n") + "\n";
+            }
+            if (pData.pdfDownloadUrl || fs.pdfDownloadUrl) {
+              portalContextStr += `Official Summarized Fee Statement PDF Download Link: [ 📥 Download Official Fee Statement (PDF) ](${pData.pdfDownloadUrl || fs.pdfDownloadUrl})\n`;
             }
           }
           if (pData.registeredUnits) {

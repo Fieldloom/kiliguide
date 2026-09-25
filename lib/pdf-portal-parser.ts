@@ -7,7 +7,11 @@ export interface ParsedFeeStatement {
   currentBalance: string;
   examClearanceStatus: string;
   lastTransactionDate: string;
+  lastPaymentAmount?: string;
+  lastPaymentRef?: string;
+  recentTransactions?: { docNo: string; date: string; desc: string; amount: string }[];
   sourceType: "pdf_statement" | "html_table";
+  pdfDownloadUrl?: string;
 }
 
 export interface ParsedUnit {
@@ -44,14 +48,14 @@ export async function parsePortalFeePdf(pdfBuffer: Buffer, username: string): Pr
 }
 
 /**
- * Extracts fee numbers, balances, and clearance status using regex patterns from portal text/HTML/PDF.
+ * Extracts fee numbers, balances, clearance status, and transaction history using regex patterns from portal text/HTML/PDF.
  */
 export function parseFeeStatementText(
   text: string,
   username: string,
   sourceType: "pdf_statement" | "html_table" = "html_table"
 ): ParsedFeeStatement {
-  // Extract Student Name if present
+  // Extract Student Name if present (e.g., Name: Griffin Wekesa)
   const nameMatch = text.match(/(?:Student\s*Name|Name)\s*[:=]?\s*([A-Za-z\s.]{3,40})/i);
   const studentName = nameMatch ? nameMatch[1].trim() : undefined;
 
@@ -59,23 +63,74 @@ export function parseFeeStatementText(
   const yearMatch = text.match(/(?:Academic\s*Year|Semester)\s*[:=]?\s*([A-Za-z0-9\/\s\-]{5,30})/i);
   const academicYear = yearMatch ? yearMatch[1].trim() : "2025/2026 Semester 2";
 
-  // Regex pattern matching for Current / Net Balance
-  const balanceMatch = text.match(/(?:Net|Closing|Current|Running|Outstanding|Balance\s*Due)\s*Balance\s*[:=]?\s*(?:KES|Ksh|\$)?\s*(-?[\d,]+(?:\.\d{2})?)/i)
-    || text.match(/(?:Balance)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*(-?[\d,]+(?:\.\d{2})?)/i);
+  // DeKUT Summarized Fee Statement Ledger Row Extractor:
+  // Row pattern: Document No | Posting Date | Description | Amount
+  // e.g. EZN-35481 9/11/2026 Direct Bank Deposit UIB5Y6R9ER -18,604.00
+  // e.g. REC-0548424 8/22/2025 - ecitizen-RPWXJPPE -18,605.00
+  const rowRegex = /([A-Z0-9\/\-_]{3,25})\s+([\d]{1,2}\/[\d]{1,2}\/[\d]{4})\s+([^\n\r\t]+?)\s+(-?[\d,]+\.\d{2})/gi;
+  const matches = Array.from(text.matchAll(rowRegex));
 
-  const currentBalance = balanceMatch ? `KES ${balanceMatch[1]}` : "KES 0.00";
+  let totalBilled = 0;
+  let totalPaid = 0;
+  let lastPaymentDate = "";
+  let lastPaymentAmount = "";
+  let lastPaymentRef = "";
+  const recentTransactions: { docNo: string; date: string; desc: string; amount: string }[] = [];
 
-  // Regex pattern matching for Total Paid / Credit
-  const paidMatch = text.match(/(?:Total\s*Paid|Total\s*Receipts|Credit\s*Total|Total\s*Credit|Paid)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
-  const paidAmount = paidMatch ? `KES ${paidMatch[1]}` : "KES 0.00";
+  if (matches.length > 0) {
+    for (const m of matches) {
+      const docNo = m[1].trim();
+      const date = m[2].trim();
+      const desc = m[3].trim();
+      const rawAmt = parseFloat(m[4].replace(/,/g, ""));
 
-  // Regex pattern matching for Total Billed / Debit
-  const billedMatch = text.match(/(?:Total\s*Billed|Total\s*Invoiced|Debit\s*Total|Total\s*Debit|Billed)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
-  const billedAmount = billedMatch ? `KES ${billedMatch[1]}` : "KES 0.00";
+      if (!isNaN(rawAmt)) {
+        if (rawAmt > 0) {
+          totalBilled += rawAmt;
+          recentTransactions.push({
+            docNo,
+            date,
+            desc,
+            amount: `KES ${rawAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })} (Billed)`
+          });
+        } else if (rawAmt < 0) {
+          const absPaid = Math.abs(rawAmt);
+          totalPaid += absPaid;
+          lastPaymentDate = date;
+          lastPaymentAmount = `KES ${absPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+          lastPaymentRef = `${desc} (${docNo})`;
+          recentTransactions.push({
+            docNo,
+            date,
+            desc,
+            amount: `KES ${absPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })} (Paid)`
+          });
+        }
+      }
+    }
+  }
 
-  // Determine Exam Clearance Status
-  const numBalance = parseFloat(currentBalance.replace(/[^0-9.-]/g, "")) || 0;
-  const examClearanceStatus = numBalance <= 5000 ? "CLEARED_FOR_EXAMS" : "PENDING_CLEARANCE";
+  // Regex pattern matching for Balance row (e.g. Balance -0.60 or Balance: 0.00)
+  const balanceMatch = text.match(/Balance\s*[:=]?\s*(-?[\d,]+\.\d{2})/i)
+    || text.match(/(?:Net|Closing|Current|Running|Outstanding|Balance\s*Due)\s*Balance\s*[:=]?\s*(?:KES|Ksh|\$)?\s*(-?[\d,]+(?:\.\d{2})?)/i);
+
+  let currentBalanceNum = 0;
+  if (balanceMatch) {
+    currentBalanceNum = parseFloat(balanceMatch[1].replace(/,/g, ""));
+  } else if (matches.length > 0) {
+    currentBalanceNum = totalBilled - totalPaid;
+  }
+
+  // Format currency strings
+  const currentBalance = `KES ${currentBalanceNum.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const billedAmount = totalBilled > 0 
+    ? `KES ${totalBilled.toLocaleString(undefined, { minimumFractionDigits: 2 })}` 
+    : (text.match(/Billed\s*[:=]?\s*([\d,]+(?:\.\d{2})?)/i) ? `KES ${text.match(/Billed\s*[:=]?\s*([\d,]+(?:\.\d{2})?)/i)![1]}` : "KES 0.00");
+  const paidAmount = totalPaid > 0 
+    ? `KES ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}` 
+    : (text.match(/Paid\s*[:=]?\s*([\d,]+(?:\.\d{2})?)/i) ? `KES ${text.match(/Paid\s*[:=]?\s*([\d,]+(?:\.\d{2})?)/i)![1]}` : "KES 0.00");
+
+  const examClearanceStatus = currentBalanceNum <= 5000 ? "CLEARED_FOR_EXAMS" : "PENDING_CLEARANCE";
 
   return {
     studentRegNo: username,
@@ -85,7 +140,10 @@ export function parseFeeStatementText(
     paidAmount,
     currentBalance,
     examClearanceStatus,
-    lastTransactionDate: new Date().toLocaleDateString(),
+    lastTransactionDate: lastPaymentDate || new Date().toLocaleDateString(),
+    lastPaymentAmount,
+    lastPaymentRef,
+    recentTransactions: recentTransactions.length > 0 ? recentTransactions : undefined,
     sourceType
   };
 }
