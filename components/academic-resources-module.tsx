@@ -61,93 +61,7 @@ const RESOURCE_TYPES = [
   { id: "study_guide", label: "Study Guides", icon: Sparkles, color: "from-sky-500 to-cyan-600" },
 ];
 
-const DEFAULT_SAMPLE_RESOURCES: AcademicResource[] = [
-  {
-    id: "sample-1",
-    title: "CCS 3105 Data Structures & Algorithms - Past Examination Paper (2024)",
-    course_code: "CCS 3105",
-    course_name: "Data Structures & Algorithms",
-    academic_year: "Year 3",
-    semester: "Semester 1",
-    resource_type: "past_paper",
-    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    file_name: "CCS3105_PastPaper_2024_Sem1.pdf",
-    file_size: 2450000,
-    file_type: "pdf",
-    description: "End of semester main examination paper covering trees, graphs, sorting algorithms, and complexity analysis.",
-    download_count: 342,
-    uploader_name: "Dr. Griffin O.",
-    created_at: new Date(Date.now() - 86400000 * 5).toISOString()
-  },
-  {
-    id: "sample-2",
-    title: "BIT 2102 Object Oriented Programming with Java - Complete Lecture Notes",
-    course_code: "BIT 2102",
-    course_name: "Object Oriented Programming",
-    academic_year: "Year 2",
-    semester: "Semester 1",
-    resource_type: "lecture_note",
-    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    file_name: "BIT2102_Java_FullNotes.pdf",
-    file_size: 4120000,
-    file_type: "pdf",
-    description: "Comprehensive lecture slides covering OOP concepts, inheritance, polymorphism, design patterns, and stream APIs.",
-    download_count: 518,
-    uploader_name: "Prof. N. K. Mwangi",
-    created_at: new Date(Date.now() - 86400000 * 12).toISOString()
-  },
-  {
-    id: "sample-3",
-    title: "SMA 2101 Calculus II - Integration Techniques & Differential Equations",
-    course_code: "SMA 2101",
-    course_name: "Calculus II",
-    academic_year: "Year 1",
-    semester: "Semester 2",
-    resource_type: "study_guide",
-    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    file_name: "SMA2101_Calculus_II_Study_Guide.pdf",
-    file_size: 1850000,
-    file_type: "pdf",
-    description: "Worked examples, practice questions, and step-by-step solutions for integration by parts, partial fractions, and ODEs.",
-    download_count: 679,
-    uploader_name: "Department of Mathematics",
-    created_at: new Date(Date.now() - 86400000 * 20).toISOString()
-  },
-  {
-    id: "sample-4",
-    title: "CCS 3201 Database Management Systems - Past Paper (2023 Special Exam)",
-    course_code: "CCS 3201",
-    course_name: "Database Systems",
-    academic_year: "Year 3",
-    semester: "Semester 2",
-    resource_type: "past_paper",
-    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    file_name: "CCS3201_PastPaper_2023_Special.pdf",
-    file_size: 1980000,
-    file_type: "pdf",
-    description: "Special exam paper focusing on ER diagrams, SQL optimization, normalization (1NF-3NF/BCNF), and transaction handling.",
-    download_count: 289,
-    uploader_name: "Dr. Griffin O.",
-    created_at: new Date(Date.now() - 86400000 * 35).toISOString()
-  },
-  {
-    id: "sample-5",
-    title: "EEE 1102 Basic Electrical Engineering - Course Outline & Lab Guide",
-    course_code: "EEE 1102",
-    course_name: "Basic Electrical Engineering",
-    academic_year: "Year 1",
-    semester: "Semester 1",
-    resource_type: "course_material",
-    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    file_name: "EEE1102_Course_Outline_Lab.pdf",
-    file_size: 3200000,
-    file_type: "pdf",
-    description: "Laboratory experiment instructions, circuit diagrams, safety instructions, and weekly syllabus breakdown.",
-    download_count: 194,
-    uploader_name: "Eng. J. Kiprono",
-    created_at: new Date(Date.now() - 86400000 * 45).toISOString()
-  }
-];
+const DEFAULT_SAMPLE_RESOURCES: AcademicResource[] = [];
 
 interface AcademicResourcesModuleProps {
   userRole?: string;
@@ -224,15 +138,16 @@ export function AcademicResourcesModule({
       const cached = localStorage.getItem("kiliguide_academic_resources_cache");
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setResources(parsed);
+        if (Array.isArray(parsed)) {
+          const realOnly = parsed.filter((r: any) => r && r.id && !String(r.id).startsWith("sample-"));
+          setResources(realOnly);
           setLoading(false);
           return;
         }
       }
     } catch (_) {}
 
-    setResources(DEFAULT_SAMPLE_RESOURCES);
+    setResources([]);
     setLoading(false);
   };
 
