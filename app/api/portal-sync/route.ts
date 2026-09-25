@@ -3,6 +3,22 @@ import { supabase } from "../../../lib/supabase";
 import { decryptPortalPassword, encryptPortalPassword } from "../../../lib/encryption";
 import { parsePortalFeePdf, parseFeeStatementText, parseRegisteredUnitsText } from "../../../lib/pdf-portal-parser";
 
+const DEKUT_PORTAL_ROUTES = {
+  LOGIN: "https://portal.dkut.ac.ke/",
+  DASHBOARD: "https://portal.dkut.ac.ke/Dashboard/Dashboard",
+  PROFILE: "https://portal.dkut.ac.ke/Student/Profile",
+  COURSE_REGISTRATION: "https://portal.dkut.ac.ke/Course/CourseRegistration",
+  TIMETABLE: "https://portal.dkut.ac.ke/Course/StudentTimeTable",
+  ACADEMIC_REQUISITION: "https://portal.dkut.ac.ke/Course/StudentRequisitions",
+  COURSE_EVALUATION: "https://portal.dkut.ac.ke/Course/LecturerEvaluation",
+  CLEARANCE_REQUEST: "https://portal.dkut.ac.ke/Course/ClearanceRequest",
+  FEE_STATEMENT: "https://portal.dkut.ac.ke/Financial/FeeStatementCard",
+  RECEIPTS: "https://portal.dkut.ac.ke/Financial/Receipts",
+  TRANSCRIPT: "https://portal.dkut.ac.ke/ExamResults/ProvisionalResults",
+  HOSTEL_BOOKING: "https://portal.dkut.ac.ke/Welfare/HostelList",
+  CHANGE_PASSWORD: "https://portal.dkut.ac.ke/Settings/ChangePassword"
+};
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -28,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     const timestamp = new Date().toISOString();
-    let resultData: any = {};
+    let resultData: any = { portalRoutes: DEKUT_PORTAL_ROUTES };
     let sessionActive = false;
 
     // ── FEATURE 3: SESSION COOKIE CACHING (< 800ms Fast Query) ───────────────
