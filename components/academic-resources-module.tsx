@@ -108,9 +108,12 @@ export function AcademicResourcesModule({
 
   const fetchResources = async () => {
     setLoading(true);
+    let combinedResources: AcademicResource[] = [];
     try {
-      if (supabase) {
-        let q = supabase
+      const client = supabase;
+      if (client) {
+        // 1. Fetch from academic_resources table
+        let q = client
           .from("academic_resources")
           .select("*")
           .order("created_at", { ascending: false });
@@ -119,11 +122,79 @@ export function AcademicResourcesModule({
           q = q.or(`institution_id.is.null,institution_id.eq.${userInstitutionId}`);
         }
 
-        const { data, error } = await q;
-        if (!error && data && data.length > 0) {
-          setResources(data);
+        const { data: resData, error: resErr } = await q;
+        if (!resErr && resData) {
+          combinedResources = [...resData];
+        }
+
+        // 2. Fetch department & campus documents from 'documents' table
+        let docQ = client
+          .from("documents")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (userInstitutionId) {
+          docQ = docQ.or(`institution_id.is.null,institution_id.eq.${userInstitutionId}`);
+        }
+
+        const { data: docData } = await docQ;
+        if (docData && docData.length > 0) {
+          const deptDocsMapped: AcademicResource[] = docData.map((d: any) => {
+            let fileUrl = d.source_url || "";
+            if (!fileUrl && d.storage_path) {
+              const publicUrlData = client.storage.from("documents").getPublicUrl(d.storage_path);
+              fileUrl = publicUrlData?.data?.publicUrl || "";
+            }
+
+            const categoryLower = (d.category || "").toLowerCase();
+            const titleLower = (d.title || "").toLowerCase();
+
+            let resType: AcademicResource["resource_type"] = "course_material";
+            if (categoryLower.includes("paper") || titleLower.includes("paper") || titleLower.includes("exam")) {
+              resType = "past_paper";
+            } else if (categoryLower.includes("outline") || titleLower.includes("syllabus")) {
+              resType = "syllabus";
+            } else if (categoryLower.includes("note") || titleLower.includes("lecture")) {
+              resType = "lecture_note";
+            } else if (categoryLower.includes("guide") || titleLower.includes("guide")) {
+              resType = "study_guide";
+            }
+
+            return {
+              id: d.id,
+              institution_id: d.institution_id,
+              department_id: d.department_id,
+              title: d.title,
+              course_code: d.category?.toUpperCase() || "DEPT",
+              course_name: d.category || "Department Document",
+              academic_year: "All Years",
+              semester: "All Semesters",
+              resource_type: resType,
+              file_url: fileUrl,
+              file_name: d.title,
+              file_type: d.file_type || "pdf",
+              description: `Department Document (${d.category || "General"})`,
+              download_count: 0,
+              uploader_name: d.uploader_name || "Department Head",
+              created_at: d.created_at || new Date().toISOString()
+            };
+          });
+
+          // Avoid duplication if inserted into both tables
+          const existingIds = new Set(combinedResources.map(r => r.id));
+          const existingTitles = new Set(combinedResources.map(r => r.title.toLowerCase().trim()));
+
+          deptDocsMapped.forEach(d => {
+            if (!existingIds.has(d.id) && !existingTitles.has(d.title.toLowerCase().trim())) {
+              combinedResources.push(d);
+            }
+          });
+        }
+
+        if (combinedResources.length > 0) {
+          setResources(combinedResources);
           try {
-            localStorage.setItem("kiliguide_academic_resources_cache", JSON.stringify(data));
+            localStorage.setItem("kiliguide_academic_resources_cache", JSON.stringify(combinedResources));
           } catch (_) {}
           setLoading(false);
           return;
@@ -133,7 +204,7 @@ export function AcademicResourcesModule({
       console.warn("Could not fetch academic resources from Supabase:", err);
     }
 
-    // Fallback to cached or sample data
+    // Fallback to cached data
     try {
       const cached = localStorage.getItem("kiliguide_academic_resources_cache");
       if (cached) {

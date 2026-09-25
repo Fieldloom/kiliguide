@@ -248,6 +248,37 @@ export function DeptWorkspace() {
 
       if (dbErr) throw dbErr;
 
+      // Insert into academic_resources table so it immediately appears in Academic Resources Hub
+      try {
+        const publicUrlData = supabase.storage.from("documents").getPublicUrl(finalPath);
+        const publicUrl = publicUrlData?.data?.publicUrl || "";
+        await supabase.from("academic_resources").insert([
+          {
+            institution_id: instId || null,
+            department_id: deptId || null,
+            title: docTitle.trim(),
+            course_code: deptName ? deptName.toUpperCase().slice(0, 10) : "DEPT",
+            course_name: categoryLabel,
+            academic_year: "All Years",
+            semester: "All Semesters",
+            resource_type: categoryLabel.toLowerCase().includes("syllabus") || docTitle.toLowerCase().includes("outline") 
+              ? "syllabus" 
+              : categoryLabel.toLowerCase().includes("exam") || docTitle.toLowerCase().includes("paper") 
+              ? "past_paper" 
+              : "course_material",
+            file_url: publicUrl,
+            file_name: docFile.name,
+            file_size: docFile.size,
+            file_type: ext,
+            description: `Department Document (${categoryLabel})`,
+            uploader_name: deptName ? `${deptName} Head` : "Department Admin",
+            uploaded_by: userId
+          }
+        ]);
+      } catch (aErr) {
+        console.warn("Academic resources sync warning:", aErr);
+      }
+
       // 1. Process document & extract vector embeddings for RAG AI Chat
       const { error: procErr } = await supabase.functions.invoke("process-document", {
         body: { documentId: dbData.id, storagePath: finalPath, extension: ext }
