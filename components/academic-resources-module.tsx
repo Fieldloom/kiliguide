@@ -30,7 +30,7 @@ import {
   ArrowDownToLine
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { DocumentViewerModal } from "./document-viewer-modal";
+import { AcademicResourceViewerModal } from "./academic-resource-viewer-modal";
 
 export interface AcademicResource {
   id: string;
@@ -892,12 +892,10 @@ export function AcademicResourcesModule({
 
       {/* Document Viewer Modal */}
       {previewResource && (
-        <DocumentViewerModal
-          source={{
-            title: `${previewResource.course_code} - ${previewResource.title}`,
-            source_url: previewResource.file_url
-          }}
+        <AcademicResourceViewerModal
+          resource={previewResource}
           onClose={() => setPreviewResource(null)}
+          onDownload={(res) => handleDownload(res)}
         />
       )}
     </div>
