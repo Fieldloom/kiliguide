@@ -112,35 +112,37 @@ export function AcademicResourcesModule({
   const fetchResources = async () => {
     setLoading(true);
     try {
-      const client = supabase;
-      if (client) {
+      if (supabase) {
         // Fetch all published academic resources (uploaded by dept admins, lecturers, and admins)
-        let q = client
+        const { data: resData, error: resErr } = await supabase
           .from("academic_resources")
           .select("*")
           .order("created_at", { ascending: false });
 
-        const { data: resData, error: resErr } = await q;
         if (!resErr && resData) {
-          setResources(resData);
+          // Filter out any invalid blob URLs from display
+          const validData = resData.filter(r => r && r.file_url && !r.file_url.startsWith("blob:"));
+          setResources(validData);
           try {
-            localStorage.setItem("kiliguide_academic_resources_cache", JSON.stringify(resData));
+            localStorage.setItem("kiliguide_academic_resources_cache", JSON.stringify(validData));
           } catch (_) {}
           setLoading(false);
           return;
+        } else if (resErr) {
+          console.error("Error fetching academic resources from Supabase:", resErr);
         }
       }
     } catch (err) {
       console.warn("Could not fetch academic resources from Supabase:", err);
     }
 
-    // Fallback to cached data
+    // Fallback to cached data if Supabase connection fails
     try {
       const cached = localStorage.getItem("kiliguide_academic_resources_cache");
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed)) {
-          const realOnly = parsed.filter((r: any) => r && r.id && !String(r.id).startsWith("sample-"));
+          const realOnly = parsed.filter((r: any) => r && r.id && !String(r.id).startsWith("sample-") && !String(r.file_url).startsWith("blob:"));
           setResources(realOnly);
           setLoading(false);
           return;
@@ -169,98 +171,96 @@ export function AcademicResourcesModule({
     let fileType = uploadFile.name.split(".").pop() || "pdf";
 
     try {
-      if (supabase) {
-        const fileExt = uploadFile.name.split(".").pop();
-        const filePath = `${uploadCourseCode.replace(/\s+/g, "_")}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { data: uploadData, error: uploadErr } = await supabase.storage
-          .from("academic_resources")
-          .upload(filePath, uploadFile);
-
-        if (!uploadErr && uploadData) {
-          const { data: publicUrlData } = supabase.storage
-            .from("academic_resources")
-            .getPublicUrl(filePath);
-          fileUrl = publicUrlData.publicUrl;
-        }
+      if (!supabase) {
+        setIsSubmitting(false);
+        setUploadErrorMsg("Supabase client is not available.");
+        return;
       }
-    } catch (err) {
-      console.warn("Storage upload failed, fallback to local URL:", err);
-    }
 
-    if (!fileUrl) {
-      fileUrl = URL.createObjectURL(uploadFile);
-    }
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id || null;
 
-    const newResource: AcademicResource = {
-      id: `res-${Date.now()}`,
-      institution_id: userInstitutionId || null,
-      title: uploadTitle.trim(),
-      course_code: uploadCourseCode.trim().toUpperCase(),
-      course_name: uploadCourseName.trim(),
-      academic_year: uploadYear,
-      semester: uploadSemester,
-      resource_type: uploadType,
-      file_url: fileUrl,
-      file_name: fileName,
-      file_size: fileSize,
-      file_type: fileType,
-      description: uploadDescription.trim(),
-      download_count: 0,
-      uploader_name: userName,
-      created_at: new Date().toISOString()
-    };
+      const fileExt = uploadFile.name.split(".").pop();
+      const filePath = `${uploadCourseCode.replace(/\s+/g, "_")}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      // 1. Upload file to Supabase Storage
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from("academic_resources")
+        .upload(filePath, uploadFile, {
+          cacheControl: "3600",
+          upsert: true
+        });
 
-    // Insert into DB if available
-    try {
-      if (supabase) {
-        const { data: inserted, error: insertErr } = await supabase
-          .from("academic_resources")
-          .insert([
-            {
-              institution_id: userInstitutionId || null,
-              title: newResource.title,
-              course_code: newResource.course_code,
-              course_name: newResource.course_name,
-              academic_year: newResource.academic_year,
-              semester: newResource.semester,
-              resource_type: newResource.resource_type,
-              file_url: newResource.file_url,
-              file_name: newResource.file_name,
-              file_size: newResource.file_size,
-              file_type: newResource.file_type,
-              description: newResource.description,
-              uploader_name: userName
-            }
-          ])
-          .select();
-
-        if (!insertErr && inserted && inserted.length > 0) {
-          newResource.id = inserted[0].id;
-        }
+      if (uploadErr) {
+        console.error("Storage upload error:", uploadErr);
+        setIsSubmitting(false);
+        setUploadErrorMsg(`Storage Upload Failed: ${uploadErr.message || "Permission denied or storage error."}`);
+        return;
       }
-    } catch (err) {
-      console.warn("DB insert error, saving locally:", err);
+
+      const { data: publicUrlData } = supabase.storage
+        .from("academic_resources")
+        .getPublicUrl(filePath);
+
+      fileUrl = publicUrlData.publicUrl;
+
+      if (!fileUrl || fileUrl.startsWith("blob:")) {
+        setIsSubmitting(false);
+        setUploadErrorMsg("Failed to obtain a public URL for the uploaded document.");
+        return;
+      }
+
+      // 2. Insert record into database table
+      const { data: inserted, error: insertErr } = await supabase
+        .from("academic_resources")
+        .insert([
+          {
+            institution_id: userInstitutionId || null,
+            title: uploadTitle.trim(),
+            course_code: uploadCourseCode.trim().toUpperCase(),
+            course_name: uploadCourseName.trim(),
+            academic_year: uploadYear,
+            semester: uploadSemester,
+            resource_type: uploadType,
+            file_url: fileUrl,
+            file_name: fileName,
+            file_size: fileSize,
+            file_type: fileType,
+            description: uploadDescription.trim(),
+            uploader_name: userName,
+            uploaded_by: userId
+          }
+        ])
+        .select();
+
+      if (insertErr) {
+        console.error("Database insert error:", insertErr);
+        setIsSubmitting(false);
+        setUploadErrorMsg(`Database Error: ${insertErr.message || "Failed to save resource info to database."}`);
+        return;
+      }
+
+      // 3. Re-fetch from database to ensure fresh state across all clients
+      await fetchResources();
+
+      setIsSubmitting(false);
+      setUploadSuccessMsg("Academic resource uploaded and published successfully!");
+      
+      setTimeout(() => {
+        setShowUploadModal(false);
+        setUploadTitle("");
+        setUploadCourseCode("");
+        setUploadCourseName("");
+        setUploadDescription("");
+        setUploadFile(null);
+        setUploadSuccessMsg("");
+      }, 1200);
+
+    } catch (err: any) {
+      console.error("Unexpected upload error:", err);
+      setIsSubmitting(false);
+      setUploadErrorMsg(`Upload Error: ${err.message || "An unexpected error occurred."}`);
     }
-
-    const updatedList = [newResource, ...resources];
-    setResources(updatedList);
-    try {
-      localStorage.setItem("kiliguide_academic_resources_cache", JSON.stringify(updatedList));
-    } catch (_) {}
-
-    setIsSubmitting(false);
-    setUploadSuccessMsg("Academic resource uploaded successfully!");
-    
-    setTimeout(() => {
-      setShowUploadModal(false);
-      setUploadTitle("");
-      setUploadCourseCode("");
-      setUploadCourseName("");
-      setUploadDescription("");
-      setUploadFile(null);
-      setUploadSuccessMsg("");
-    }, 1200);
   };
 
   const handleDownload = async (resource: AcademicResource) => {
