@@ -16,11 +16,15 @@ KiliGuide is a multi-tenant, source-grounded smart-campus platform by KiliMind A
 - **Grounded AI Assistant**: Interactive chat interface featuring verified source attribution cards, similarity score indicators, and confidence ratings.
 - **Academic Resources Hub (`academic_resources`)**: Centralized module where Lecturers, Department Admins, Institution Admins, and Super Admins upload course materials, lecture notes, past exam papers, revision guides, and syllabi, immediately synced and downloadable by all students in their portal workspace.
 - **In-App Resource Viewer (`AcademicResourceViewerModal`)**: In-app PDF/image document preview modal with zoom controls, pagination, and direct downloads.
-- **Timetable AI Parsing (`analyze-timetable`)**: Converts uploaded student timetable images and documents into structured calendar events and automated push notification reminders.
+- **Timetable AI Parsing & Class Reminders (`analyze-timetable`)**: Converts uploaded student timetable images and documents into structured calendar events. Enables students to set custom alerts and automated Web Push notification reminders for individual classes so they receive timely notifications before lectures start.
+- **Support Ticket Escalation & Live Department Assistance**:
+  - **Real-Time Department Live Chat (`TicketChatModal`)**: Students can open interactive, real-time 1-on-1 chat channels directly with department administrators and support staff for quick resolution.
+  - **Smart Email Escalation Generator**: When escalating complex issues to human support, KiliGuide automatically crafts a professionally formatted email pre-filled with the department's email address, issue subject, and context summary. It launches directly in the user's native email client (`mailto:` link) so students only need to perform minimal edits (entering their name and registration number) before sending.
+- **Portal Account Linking & Student Verification (`LinkPortalModal`)**: Enables students to securely link their official university portal credentials and registration numbers (`linked_student_accounts`), automatically synchronizing department affiliations, student schedules, and academic access.
 - **Document Center**: Centralized repository for academic, financial, hostel, examination, and departmental documents.
 - **Campus Notice Board & Auto-Summarization**: Instant updates with automatic Gemini-driven notice summaries and key deadline extraction.
 - **Interactive Reminders & Personal Calendar**: Custom event tracking and class reminders delivered via Web Push notifications (`send-push`, `save-push-subscription`).
-- **Support Ticket Escalation**: Multi-tier departmental support system with automated escalation (`escalate-ticket`) for high-priority tickets.
+- **Privacy & Compliance (`CookieConsentBanner`)**: System-wide cookie consent banner and privacy policy management for GDPR/privacy compliance.
 - **Localization**: Native English / Kiswahili language switching.
 - **Developer Portal (`/developers`)**: Interactive Swagger UI rendering OpenAPI 3.0 specs for external system integrations.
 
