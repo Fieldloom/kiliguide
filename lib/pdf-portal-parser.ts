@@ -63,15 +63,15 @@ export function parseFeeStatementText(
   const balanceMatch = text.match(/(?:Net|Closing|Current|Running|Outstanding|Balance\s*Due)\s*Balance\s*[:=]?\s*(?:KES|Ksh|\$)?\s*(-?[\d,]+(?:\.\d{2})?)/i)
     || text.match(/(?:Balance)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*(-?[\d,]+(?:\.\d{2})?)/i);
 
-  const currentBalance = balanceMatch ? `KES ${balanceMatch[1]}` : "KES 14,500";
+  const currentBalance = balanceMatch ? `KES ${balanceMatch[1]}` : "KES 0.00";
 
   // Regex pattern matching for Total Paid / Credit
   const paidMatch = text.match(/(?:Total\s*Paid|Total\s*Receipts|Credit\s*Total|Total\s*Credit|Paid)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
-  const paidAmount = paidMatch ? `KES ${paidMatch[1]}` : "KES 50,500";
+  const paidAmount = paidMatch ? `KES ${paidMatch[1]}` : "KES 0.00";
 
   // Regex pattern matching for Total Billed / Debit
   const billedMatch = text.match(/(?:Total\s*Billed|Total\s*Invoiced|Debit\s*Total|Total\s*Debit|Billed)\s*[:=]?\s*(?:KES|Ksh|\$)?\s*([\d,]+(?:\.\d{2})?)/i);
-  const billedAmount = billedMatch ? `KES ${billedMatch[1]}` : "KES 65,000";
+  const billedAmount = billedMatch ? `KES ${billedMatch[1]}` : "KES 0.00";
 
   // Determine Exam Clearance Status
   const numBalance = parseFloat(currentBalance.replace(/[^0-9.-]/g, "")) || 0;
