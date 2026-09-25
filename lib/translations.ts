@@ -4,6 +4,7 @@ export const translations = {
   en: {
     // Navigation / Tabs
     nav_chat: "AI Assistant",
+    nav_chats: "Chat History",
     nav_academic_resources: "Academic Resources",
     nav_timetable: "Timetable & Schedule",
     nav_documents: "Documents & Files",
@@ -146,6 +147,7 @@ export const translations = {
   sw: {
     // Navigation / Tabs
     nav_chat: "Msaidizi wa AI",
+    nav_chats: "Historia ya Mazungumzo",
     nav_academic_resources: "Rasilimali za Masomo",
     nav_timetable: "Ratiba ya Vipindi",
     nav_documents: "Nyaraka na Mafaili",

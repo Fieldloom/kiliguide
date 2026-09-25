@@ -14,6 +14,8 @@ KiliGuide is a multi-tenant, source-grounded smart-campus platform by KiliMind A
 ### 🤖 Smart Campus & AI Interface
 - **Responsive Dashboard**: Modern, mobile-first interface designed for fast access across mobile and desktop devices.
 - **Grounded AI Assistant**: Interactive chat interface featuring verified source attribution cards, similarity score indicators, and confidence ratings.
+- **Academic Resources Hub (`academic_resources`)**: Centralized module where Lecturers, Department Admins, Institution Admins, and Super Admins upload course materials, lecture notes, past exam papers, revision guides, and syllabi, immediately synced and downloadable by all students in their portal workspace.
+- **In-App Resource Viewer (`AcademicResourceViewerModal`)**: In-app PDF/image document preview modal with zoom controls, pagination, and direct downloads.
 - **Timetable AI Parsing (`analyze-timetable`)**: Converts uploaded student timetable images and documents into structured calendar events and automated push notification reminders.
 - **Document Center**: Centralized repository for academic, financial, hostel, examination, and departmental documents.
 - **Campus Notice Board & Auto-Summarization**: Instant updates with automatic Gemini-driven notice summaries and key deadline extraction.
