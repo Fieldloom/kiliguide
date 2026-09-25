@@ -208,7 +208,17 @@ export function LinkPortalModal({
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-white m-0">Link University Account</h3>
-                <span className="text-xs text-zinc-400 block mt-0.5">{institutionName}</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-zinc-400 block">{institutionName}</span>
+                  <a
+                    href="https://portal.dkut.ac.ke/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-[#10b981] hover:underline flex items-center gap-0.5 font-mono"
+                  >
+                    https://portal.dkut.ac.ke/ <ExternalLink size={10} />
+                  </a>
+                </div>
               </div>
             </div>
             <button onClick={onClose} className="text-zinc-400 hover:text-white bg-transparent border-none cursor-pointer p-1">
@@ -364,13 +374,13 @@ export function LinkPortalModal({
             <form onSubmit={handleSave} className="flex flex-col gap-4">
               <div>
                 <label className="text-xs text-zinc-400 font-semibold mb-1.5 block">
-                  Student Registration Number / Portal Email
+                  REG NO / Student Registration Number
                 </label>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. C025-01-0987/2023 or student@dkut.ac.ke"
+                  placeholder="e.g. A000-00-0000/2026 or C025-01-0987/2023"
                   required
                   className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-xs sm:text-sm outline-none focus:border-[#10b981]"
                 />
