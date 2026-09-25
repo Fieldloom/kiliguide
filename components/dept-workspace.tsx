@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Bell, BookOpen, BookOpenCheck, Building2, Check, CheckCircle2, ChevronRight, CircleDollarSign, Clock, Clock as ClockIcon, Download, File as FileIcon, FileText, GraduationCap, HeadphonesIcon, Home, Image as ImageIcon, Landmark, Loader2, Lock, LogOut, Menu, MessageCircleMore, MessageSquare, PanelLeft, PanelLeftClose, Plus, Search, Send, Settings, ShieldCheck, Sparkles, Ticket, Trash2, UploadCloud, User, UserX, Volume2, VolumeX, Wallet, X, Zap } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
+import { getTranslation } from "../lib/translations";
 
 type Tab = "Home" | "Chats" | "Academic Resources" | "Documents" | "Notices" | "Manage Tickets" | "Support" | "Profile" | "Settings";
 const navigation: [Tab, any][] = [
@@ -65,7 +66,13 @@ export function DeptWorkspace() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [timetables, setTimetables] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("kiliguide_language") || "en";
+    }
+    return "en";
+  });
+  const tr = getTranslation(language);
   const [docQuery, setDocQuery] = useState("");
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketDesc, setTicketDesc] = useState("");
@@ -460,6 +467,7 @@ export function DeptWorkspace() {
   
   const handleUpdateLanguage = async (lang: string) => {
     setLanguage(lang);
+    try { localStorage.setItem("kiliguide_language", lang); } catch (_) {}
     if (!supabase || !profile) return;
     await supabase.from("profiles").update({ preferred_language: lang }).eq("id", profile.id);
   };

@@ -33,10 +33,21 @@ export function LinkPortalModal({
   const [linkedAccount, setLinkedAccount] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [portalDisabled, setPortalDisabled] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || !supabase || !userId) return;
+    if (!isOpen || !supabase) return;
     const client = supabase;
+
+    client.from("system_settings").select("value").eq("key", "enable_portal_sync").maybeSingle().then(({ data }) => {
+      if (data && data.value === "false") {
+        setPortalDisabled(true);
+      } else {
+        setPortalDisabled(false);
+      }
+    });
+
+    if (!userId) return;
 
     const fetchLinked = async () => {
       const { data } = await client
@@ -225,6 +236,19 @@ export function LinkPortalModal({
               <X size={20} />
             </button>
           </div>
+
+          {/* SuperAdmin Kill Switch Banner */}
+          {portalDisabled && (
+            <div className="bg-rose-500/15 border border-rose-500/35 p-3.5 rounded-2xl mb-5 flex items-start gap-3 text-xs text-rose-200">
+              <AlertCircle size={18} className="text-rose-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-rose-300 block mb-0.5">School Portal Sync Disabled by SuperAdmin</span>
+                <span>
+                  Portal integration and live credential syncing are currently switched off system-wide. KiliGuide AI is answering all questions 100% directly from the official Knowledge Base.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Security Trust Badge */}
           <div className="bg-[#10b981]/10 border border-[#10b981]/25 p-3.5 rounded-2xl mb-6 flex items-start gap-3 text-xs text-zinc-300">

@@ -3997,6 +3997,7 @@ function InstitutionsWorkspace() {
   const [allowRegistration, setAllowRegistration] = useState(true);
   const [showDocuments, setShowDocuments] = useState(false);
   const [strictTenantIsolation, setStrictTenantIsolation] = useState(true);
+  const [enablePortalSync, setEnablePortalSync] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "active" | "suspended">("all");
 
@@ -4010,7 +4011,7 @@ function InstitutionsWorkspace() {
     const [reqRes, instRes, settingsRes] = await Promise.all([
       supabase.from("institution_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("institutions").select("*").order("name", { ascending: true }),
-      supabase.from("system_settings").select("*").in("key", ["allow_institution_registration", "show_documents_to_users", "strict_tenant_document_isolation"])
+      supabase.from("system_settings").select("*").in("key", ["allow_institution_registration", "show_documents_to_users", "strict_tenant_document_isolation", "enable_portal_sync"])
     ]);
     setRequests(reqRes.data || []);
     setApprovedList(instRes.data || []);
@@ -4022,6 +4023,8 @@ function InstitutionsWorkspace() {
       if (doc) setShowDocuments(doc.value === 'true');
       const iso = settingsRes.data.find(s => s.key === "strict_tenant_document_isolation");
       if (iso) setStrictTenantIsolation(iso.value !== 'false');
+      const portal = settingsRes.data.find(s => s.key === "enable_portal_sync");
+      if (portal) setEnablePortalSync(portal.value !== 'false');
     }
     setBusy(false);
   };
@@ -4047,6 +4050,13 @@ function InstitutionsWorkspace() {
     const newValue = !strictTenantIsolation;
     setStrictTenantIsolation(newValue);
     await supabase.from("system_settings").upsert({ key: "strict_tenant_document_isolation", value: newValue ? 'true' : 'false' });
+  };
+
+  const togglePortalSync = async () => {
+    if (!supabase) return;
+    const newValue = !enablePortalSync;
+    setEnablePortalSync(newValue);
+    await supabase.from("system_settings").upsert({ key: "enable_portal_sync", value: newValue ? 'true' : 'false' });
   };
 
   const handleApprove = async (id: string, name: string) => {
@@ -4152,6 +4162,18 @@ function InstitutionsWorkspace() {
           </span>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: enablePortalSync ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.15)", padding: "8px 14px", borderRadius: 100, border: enablePortalSync ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(239,68,68,0.4)" }} title="SuperAdmin Kill Switch: Disable school portal login & sync. System will rely 100% on Knowledge Base.">
+              <span style={{ fontSize: 12, fontWeight: 700, color: enablePortalSync ? "#34d399" : "#fca5a5" }}>
+                ⚡ School Portal Sync {enablePortalSync ? "[ENABLED]" : "[KILLED]"}
+              </span>
+              <div 
+                onClick={togglePortalSync}
+                style={{ width: 40, height: 22, borderRadius: 11, background: enablePortalSync ? D.accent : "#ef4444", position: "relative", transition: "all 0.2s" }}
+              >
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: enablePortalSync ? 20 : 2, transition: "all 0.2s" }} />
+              </div>
+            </label>
+
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 100, border: `1px solid ${D.border}` }} title="When enabled, AI search will only use documents belonging to the user's institution (e.g. DeKUT users only get DeKUT documents)">
               <span style={{ fontSize: 12, fontWeight: 700, color: D.text }}>Strict Tenant Isolation</span>
               <div 

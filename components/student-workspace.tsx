@@ -43,6 +43,7 @@ import { MarkdownRender as MarkdownMessage } from "./markdown-render";
 import { EscalateModal } from "./escalate-modal";
 import { LinkPortalModal } from "./link-portal-modal";
 import { AcademicResourcesModule } from "./academic-resources-module";
+import { getTranslation } from "../lib/translations";
 
 export function StudentWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
@@ -129,7 +130,28 @@ export function StudentWorkspace() {
     : institutionName.includes("Dedan Kimathi")
     ? "DeKUT"
     : (institutionName.split(" ").filter(w => w.length > 0).map(w => w[0]).join("").toUpperCase().slice(0, 6) || institutionName);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("kiliguide_language") || "en";
+    }
+    return "en";
+  });
+  const tr = getTranslation(language);
+
+  const getTabLabel = (lbl: string) => {
+    switch (lbl) {
+      case "Home": return tr.nav_chat;
+      case "Chats": return tr.nav_chat;
+      case "Academic Resources": return tr.nav_academic_resources;
+      case "Documents": return tr.nav_documents;
+      case "Notices": return tr.nav_notices;
+      case "My timetable": return tr.nav_timetable;
+      case "Support": return tr.nav_tickets;
+      case "Settings": return tr.nav_settings;
+      case "Profile": return tr.nav_profile;
+      default: return lbl;
+    }
+  };
   const [docQuery, setDocQuery] = useState("");
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketDesc, setTicketDesc] = useState("");
@@ -484,6 +506,7 @@ export function StudentWorkspace() {
   
   const handleUpdateLanguage = async (lang: string) => {
     setLanguage(lang);
+    try { localStorage.setItem("kiliguide_language", lang); } catch (_) {}
     if (!supabase || !profile) return;
     await supabase.from("profiles").update({ preferred_language: lang }).eq("id", profile.id);
   };
@@ -745,7 +768,7 @@ export function StudentWorkspace() {
           style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 8, borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600, background: "linear-gradient(180deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.08) 100%)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", cursor: "pointer", boxShadow: "0 4px 12px rgba(16, 185, 129, 0.1)" }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Plus size={16} /> <span>New Chat</span>
+            <Plus size={16} /> <span>{tr.new_chat}</span>
           </div>
           <span style={{ fontSize: 10, opacity: 0.6, background: "rgba(16,185,129,0.2)", padding: "2px 6px", borderRadius: 4 }}>Ctrl+K</span>
         </motion.button>
@@ -757,7 +780,7 @@ export function StudentWorkspace() {
         {/* Navigation / Workspace Tools */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 8px 8px" }}>
-            Navigation
+            {language === "sw" ? "Urambazaji" : "Navigation"}
           </div>
           {navigation.filter(([lbl]) => lbl !== "Documents" || showDocuments).map(([label, Icon]) => {
             const isActive = tab === label && !(label === "Chats" && !activeConvId);
@@ -768,7 +791,7 @@ export function StudentWorkspace() {
                 style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, borderRadius: 10, padding: "9px 10px", fontSize: 13, fontWeight: 500, background: isActive ? "rgba(16, 185, 129, 0.15)" : "transparent", color: isActive ? "#10b981" : "#d4d4d8", border: isActive ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid transparent", cursor: "pointer", marginBottom: 2, transition: "background 0.15s" }}
               >
                 <Icon size={16} style={{ color: isActive ? "#10b981" : "#a1a1aa", flexShrink: 0 }} />
-                <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+                <span style={{ flex: 1, textAlign: "left" }}>{getTabLabel(label)}</span>
               </button>
             );
           })}
@@ -780,14 +803,14 @@ export function StudentWorkspace() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px 8px" }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: "#71717a", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                Recent Chats
+                {language === "sw" ? "Mazungumzo ya Hivi Karibuni" : "Recent Chats"}
               </span>
               <span style={{ fontSize: 10, color: "#52525b" }}>{conversations.length}</span>
             </div>
             
             {groups.today.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: "#52525b", padding: "2px 8px 6px" }}>Today</div>
+                <div style={{ fontSize: 10, color: "#52525b", padding: "2px 8px 6px" }}>{language === "sw" ? "Leo" : "Today"}</div>
                 {groups.today.map(c => {
                   const isActive = activeConvId === c.id && tab === "Chats";
                   return (
@@ -810,7 +833,7 @@ export function StudentWorkspace() {
 
             {(groups.yesterday.length > 0 || groups.week.length > 0 || groups.older.length > 0) && (
               <div>
-                <div style={{ fontSize: 10, color: "#52525b", padding: "2px 8px 6px" }}>Previous</div>
+                <div style={{ fontSize: 10, color: "#52525b", padding: "2px 8px 6px" }}>{language === "sw" ? "Zilizopita" : "Previous"}</div>
                 {[...groups.yesterday, ...groups.week, ...groups.older].map(c => {
                   const isActive = activeConvId === c.id && tab === "Chats";
                   return (
@@ -842,7 +865,7 @@ export function StudentWorkspace() {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#fff", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{name}</span>
-            <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>Student Plan</span>
+            <span style={{ display: "block", fontSize: 10, color: "#a1a1aa", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{tr.account_student}</span>
           </div>
         </button>
         
@@ -901,7 +924,7 @@ export function StudentWorkspace() {
             </motion.button>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 14, background: "linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)", fontSize: 13, fontWeight: 600, color: "#f4f4f5", letterSpacing: "-0.01em" }}>
               <Sparkles size={15} style={{ color: "#34d399" }} />
-              <span>{tab} Workspace</span>
+              <span>{getTabLabel(tab)} Workspace</span>
             </div>
           </div>
 
@@ -909,7 +932,7 @@ export function StudentWorkspace() {
             {isOffline ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)", fontSize: 12, fontWeight: 600, color: "#fbbf24", letterSpacing: "-0.01em" }}>
                 <WifiOff size={14} />
-                <span>Offline Mode</span>
+                <span>{language === "sw" ? "Modi ya Nje ya Mtandao" : "Offline Mode"}</span>
               </div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.06) 100%)", border: "1px solid rgba(52, 211, 153, 0.3)", boxShadow: "0 0 20px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)", fontSize: 12, fontWeight: 600, color: "#34d399", letterSpacing: "-0.01em" }}>
@@ -922,7 +945,7 @@ export function StudentWorkspace() {
             )}
 
             <motion.button whileHover={{ scale: 1.03, boxShadow: "0 0 25px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255,255,255,0.3)" }} whileTap={{ scale: 0.97 }} onClick={()=>ask()} className="glazed-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 14, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(20, 184, 166, 0.14) 100%)", color: "#34d399", border: "1px solid rgba(52, 211, 153, 0.4)", boxShadow: "0 0 18px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }}>
-              <Sparkles size={15} style={{ color: "#34d399" }} /> <span>Ask KiliGuide</span>
+              <Sparkles size={15} style={{ color: "#34d399" }} /> <span>{language === "sw" ? "Uliza KiliGuide" : "Ask KiliGuide"}</span>
             </motion.button>
 
             <motion.button whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.08)" }} whileTap={{ scale: 0.95 }} onClick={()=>switchTab("Notices")} title="Notices" style={{ padding: 10, borderRadius: 14, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "#e4e4e7", cursor: "pointer", position: "relative", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -964,9 +987,9 @@ export function StudentWorkspace() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28 }}>
                 <div>
                   <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em", marginBottom: 4 }}>
-                    Welcome back, {name.split(" ")[0]} 👋
+                    {language === "sw" ? `Karibu tena, ${name.split(" ")[0]} 👋` : `Welcome back, ${name.split(" ")[0]} 👋`}
                   </h1>
-                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>{institutionName} Intelligent Campus Companion • Academic Year 2026/2027</p>
+                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>{institutionName} {language === "sw" ? "Msaidizi Mfawidhi wa Chuo • Mwaka wa Masomo 2026/2027" : "Intelligent Campus Companion • Academic Year 2026/2027"}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#a855f7", display: "flex", alignItems: "center", gap: 8 }}>
@@ -974,7 +997,7 @@ export function StudentWorkspace() {
                     THiNK AI Framework Aligned
                   </div>
                   <div className="glass-panel" style={{ padding: "8px 16px", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#10b981", display: "flex", alignItems: "center", gap: 8 }}>
-                    <ShieldCheck size={16} /> Portal Status: Verified Active
+                    <ShieldCheck size={16} /> {language === "sw" ? "Hali ya Tovuti: Imeunganishwa" : "Portal Status: Verified Active"}
                   </div>
                 </div>
               </div>
@@ -992,12 +1015,12 @@ export function StudentWorkspace() {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <Sparkles size={20} style={{ color: "#10b981" }} />
-                        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Ask KiliGuide AI Assistant</h2>
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tr.chat_title}</h2>
                       </div>
                       <span style={{ fontSize: 11, color: "#71717a", background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: 6 }}>RAG-indexed {instShortName} Docs</span>
                     </div>
                     
-                    <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>Ask anything about unit registration, fee payment, exam timetables, or hostel booking.</p>
+                    <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>{tr.chat_subtitle}</p>
                     
                     <motion.div 
                       className="glazed-input" 
@@ -1006,7 +1029,7 @@ export function StudentWorkspace() {
                       style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px 10px 20px" }}
                     >
                       <Search size={18} style={{ color: "#10b981" }} />
-                      <input disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !asking) ask(); }} placeholder={asking ? `Searching ${instShortName} knowledge base...` : "Search university guidelines, fee statements, course units..."} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", opacity: asking ? 0.7 : 1 }} />
+                      <input disabled={asking} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !asking) ask(); }} placeholder={asking ? (language === "sw" ? `Inatafuta nyaraka za ${instShortName}...` : `Searching ${instShortName} knowledge base...`) : tr.chat_input_placeholder} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", opacity: asking ? 0.7 : 1 }} />
                       <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 38, height: 38, borderRadius: 12, display: "grid", placeItems: "center", border: "none", background: query.trim() || asking ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "rgba(255,255,255,0.08)", color: "#fff", cursor: query.trim() && !asking ? "pointer" : "not-allowed", transition: "0.2s" }}>
                         {asking ? (
                           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "grid", placeItems: "center" }}>
@@ -1457,6 +1480,7 @@ export function StudentWorkspace() {
                 userRole="student"
                 userInstitutionId={institutionId}
                 userName={name}
+                language={language}
               />
             </div>
           </div>
@@ -1464,10 +1488,10 @@ export function StudentWorkspace() {
           <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px", position: "relative" }}>
             <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 100 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>Official Documents</h2>
+                <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>{tr.documents_title}</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", padding: "8px 16px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.1)" }}>
                   <Search size={16} color="#a1a1aa" />
-                  <input value={docQuery} onChange={e => setDocQuery(e.target.value)} placeholder="Search..." style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
+                  <input value={docQuery} onChange={e => setDocQuery(e.target.value)} placeholder={tr.search_documents} style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
@@ -1482,10 +1506,10 @@ export function StudentWorkspace() {
                         <span style={{ fontSize: 11, color: "#10b981", background: "rgba(16, 185, 129, 0.1)", padding: "4px 8px", borderRadius: 12, border: "1px solid rgba(16,185,129,0.2)" }}>{doc.category}</span>
                       </div>
                     </div>
-                    <button style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#a1a1aa", background: "transparent", border: "none", cursor: "pointer", width: "fit-content" }}><Download size={14} /> Download</button>
+                    <button style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#a1a1aa", background: "transparent", border: "none", cursor: "pointer", width: "fit-content" }}><Download size={14} /> {tr.download}</button>
                   </div>
                 ))}
-                {documents.length === 0 && <p style={{ color: "#a1a1aa" }}>No documents found.</p>}
+                {documents.length === 0 && <p style={{ color: "#a1a1aa" }}>{tr.no_documents}</p>}
               </div>
             </div>
           </div>
@@ -2349,16 +2373,16 @@ export function StudentWorkspace() {
               </div>
               
               <div className="glass-panel p-4 sm:p-6 mb-4 sm:mb-6">
-                <h3 className="text-sm sm:text-base font-bold text-white mb-2">Language & Localization</h3>
-                <p className="text-zinc-400 text-xs sm:text-sm mb-4">Choose the preferred language for KiliGuide AI to communicate with you.</p>
+                <h3 className="text-sm sm:text-base font-bold text-white mb-2">{tr.section_language}</h3>
+                <p className="text-zinc-400 text-xs sm:text-sm mb-4">{tr.section_language_desc}</p>
                 
                 <div className="flex flex-col gap-2.5">
                   <button onClick={() => handleUpdateLanguage("en")} className={`flex items-center justify-between bg-black/20 p-3.5 sm:p-4 rounded-xl cursor-pointer transition-colors ${language === "en" ? "border border-[#10b981]" : "border border-white/10"}`}>
-                    <span className="text-xs sm:text-sm text-white font-semibold">English</span>
+                    <span className="text-xs sm:text-sm text-white font-semibold">{tr.lang_en}</span>
                     {language === "en" && <CheckCircle2 size={16} className="text-[#10b981]" />}
                   </button>
                   <button onClick={() => handleUpdateLanguage("sw")} className={`flex items-center justify-between bg-black/20 p-3.5 sm:p-4 rounded-xl cursor-pointer transition-colors ${language === "sw" ? "border border-[#10b981]" : "border border-white/10"}`}>
-                    <span className="text-xs sm:text-sm text-white font-semibold">Kiswahili</span>
+                    <span className="text-xs sm:text-sm text-white font-semibold">{tr.lang_sw}</span>
                     {language === "sw" && <CheckCircle2 size={16} className="text-[#10b981]" />}
                   </button>
                 </div>

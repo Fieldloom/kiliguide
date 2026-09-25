@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { AcademicResourceViewerModal } from "./academic-resource-viewer-modal";
+import { getTranslation } from "../lib/translations";
 
 export interface AcademicResource {
   id: string;
@@ -53,27 +54,29 @@ export interface AcademicResource {
   created_at: string;
 }
 
-const RESOURCE_TYPES = [
-  { id: "all", label: "All Resources", icon: BookOpen, color: "from-blue-500 to-indigo-600" },
-  { id: "past_paper", label: "Past Papers", icon: GraduationCap, color: "from-purple-500 to-pink-600" },
-  { id: "lecture_note", label: "Lecture Notes", icon: FileText, color: "from-emerald-500 to-teal-600" },
-  { id: "course_material", label: "Course Materials", icon: BookMarked, color: "from-amber-500 to-orange-600" },
-  { id: "study_guide", label: "Study Guides", icon: Sparkles, color: "from-sky-500 to-cyan-600" },
-];
-
 const DEFAULT_SAMPLE_RESOURCES: AcademicResource[] = [];
 
 interface AcademicResourcesModuleProps {
   userRole?: string;
   userInstitutionId?: string;
   userName?: string;
+  language?: string;
 }
 
 export function AcademicResourcesModule({
   userRole = "student",
   userInstitutionId,
-  userName = "User"
+  userName = "User",
+  language = "en"
 }: AcademicResourcesModuleProps) {
+  const tr = getTranslation(language);
+  const resourceTypesList = [
+    { id: "all", label: tr.all_categories, icon: BookOpen, color: "from-blue-500 to-indigo-600" },
+    { id: "past_paper", label: tr.cat_past_papers, icon: GraduationCap, color: "from-purple-500 to-pink-600" },
+    { id: "lecture_note", label: tr.cat_lecture_notes, icon: FileText, color: "from-emerald-500 to-teal-600" },
+    { id: "course_material", label: tr.cat_course_outlines, icon: BookMarked, color: "from-amber-500 to-orange-600" },
+    { id: "study_guide", label: tr.cat_revision_guides, icon: Sparkles, color: "from-sky-500 to-cyan-600" },
+  ];
   const canUpload = userRole === "lecturer" || userRole === "administrator" || userRole === "department" || userRole === "super_admin";
   
   const [resources, setResources] = useState<AcademicResource[]>([]);
@@ -111,15 +114,11 @@ export function AcademicResourcesModule({
     try {
       const client = supabase;
       if (client) {
-        // Fetch strictly from academic_resources table (uploaded via Academic Resources Hub)
+        // Fetch all published academic resources (uploaded by dept admins, lecturers, and admins)
         let q = client
           .from("academic_resources")
           .select("*")
           .order("created_at", { ascending: false });
-          
-        if (userInstitutionId) {
-          q = q.or(`institution_id.is.null,institution_id.eq.${userInstitutionId}`);
-        }
 
         const { data: resData, error: resErr } = await q;
         if (!resErr && resData) {
@@ -349,13 +348,13 @@ export function AcademicResourcesModule({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold tracking-wide text-blue-100 uppercase">
-              <GraduationCap className="w-4 h-4" /> Academic Library & Repository
+              <GraduationCap className="w-4 h-4" /> {tr.academic_resources_title}
             </div>
             <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
-              Course Materials & Past Papers
+              {tr.academic_resources_title}
             </h1>
             <p className="text-blue-100 text-sm md:text-base leading-relaxed">
-              Search, view, and download lecture notes, past examination papers, course outlines, and revision guides.
+              {tr.academic_resources_subtitle}
             </p>
           </div>
 
@@ -365,7 +364,7 @@ export function AcademicResourcesModule({
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white text-indigo-700 font-bold shadow-lg hover:bg-blue-50 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-sm shrink-0"
             >
               <Plus className="w-5 h-5" />
-              Upload Resource
+              {tr.upload_resource}
             </button>
           )}
         </div>
@@ -380,7 +379,7 @@ export function AcademicResourcesModule({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by course code (e.g. CCS 3105), title, unit name, or topic..."
+            placeholder={tr.search_resources}
             className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm"
           />
           {searchQuery && (
@@ -395,7 +394,7 @@ export function AcademicResourcesModule({
 
         {/* Resource Category Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {RESOURCE_TYPES.map((type) => {
+          {resourceTypesList.map((type) => {
             const Icon = type.icon;
             const isSelected = selectedType === type.id;
             return (

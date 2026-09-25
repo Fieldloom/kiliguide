@@ -35,12 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_academic_resources_type ON public.academic_resour
 -- RLS Policies
 DROP POLICY IF EXISTS "Academic Resources: Read Policy" ON public.academic_resources;
 CREATE POLICY "Academic Resources: Read Policy" ON public.academic_resources
-FOR SELECT TO authenticated
-USING (
-  public.is_super_admin() OR
-  institution_id IS NULL OR
-  institution_id = public.get_user_institution_id()
-);
+FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Academic Resources: Write Policy" ON public.academic_resources;
 CREATE POLICY "Academic Resources: Write Policy" ON public.academic_resources

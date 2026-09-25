@@ -44,6 +44,20 @@ export async function POST(req: NextRequest) {
 
     const client = createClient(url, serviceRoleKey, clientOptions);
 
+    // 0. Check SuperAdmin Kill Switch setting
+    const { data: portalSetting } = await client
+      .from("system_settings")
+      .select("value")
+      .eq("key", "enable_portal_sync")
+      .maybeSingle();
+
+    if (portalSetting && portalSetting.value === "false") {
+      return NextResponse.json(
+        { error: "School portal integration has been disabled by the system administrator.", portal_disabled: true },
+        { status: 403 }
+      );
+    }
+
     // 1. Fetch encrypted linked account record for user with fallback
     let { data: account, error: accErr } = await client
       .from("linked_student_accounts")
