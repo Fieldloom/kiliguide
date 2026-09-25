@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../../../lib/supabase";
 import { decryptPortalPassword, encryptPortalPassword } from "../../../lib/encryption";
 import { parsePortalFeePdf, parseFeeStatementText, parseRegisteredUnitsText } from "../../../lib/pdf-portal-parser";
@@ -24,11 +25,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const { userId, action, pdfBase64, rawHtmlText, forceRefresh } = body;
 
-    if (!userId || !supabase) {
-      return NextResponse.json({ error: "Missing required parameters or Supabase not initialized" }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: "Missing required userId parameter" }, { status: 400 });
     }
 
-    const client = supabase;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !serviceRoleKey) {
+      return NextResponse.json({ error: "Supabase configuration missing on server" }, { status: 500 });
+    }
+
+    // Use server-side Supabase client with Service Role Key to bypass RLS when fetching linked credentials
+    const client = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY || serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
 
     // 1. Fetch encrypted linked account record for user
     const { data: account, error: accErr } = await client
@@ -38,6 +49,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (accErr || !account) {
+      console.warn("Linked student account lookup returned null or error:", accErr?.message, "userId:", userId);
       return NextResponse.json({
         error: "No linked university portal account found. Please link your student portal credentials in Settings or Home."
       }, { status: 404 });
