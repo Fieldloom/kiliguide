@@ -140,8 +140,8 @@ export function StudentWorkspace() {
 
   const getTabLabel = (lbl: string) => {
     switch (lbl) {
-      case "Home": return tr.nav_chat;
-      case "Chats": return tr.nav_chats;
+      case "Home": return tr.nav_home;
+      case "Chats": return tr.nav_chat;
       case "Academic Resources": return tr.nav_academic_resources;
       case "Documents": return tr.nav_documents;
       case "Notices": return tr.nav_notices;

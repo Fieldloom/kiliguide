@@ -3,6 +3,7 @@ export type Language = "en" | "sw";
 export const translations = {
   en: {
     // Navigation / Tabs
+    nav_home: "Home",
     nav_chat: "AI Assistant",
     nav_chats: "Chat History",
     nav_academic_resources: "Academic Resources",
@@ -146,6 +147,7 @@ export const translations = {
 
   sw: {
     // Navigation / Tabs
+    nav_home: "Mwanzo",
     nav_chat: "Msaidizi wa AI",
     nav_chats: "Historia ya Mazungumzo",
     nav_academic_resources: "Rasilimali za Masomo",
