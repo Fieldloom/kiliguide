@@ -633,19 +633,21 @@ export function StudentWorkspace() {
           body: JSON.stringify({ userId: profile.id, action: lowerVal.includes("unit") ? "unit_registration" : "fee_statement" })
         });
         const syncJson = await syncRes.json();
-        if (syncJson?.data) {
+        if (syncRes.ok && syncJson?.data) {
           const pData = syncJson.data;
-          let portalContextStr = "\n\n[LIVE STUDENT PORTAL SYNC DATA]:\n";
+          let portalContextStr = "\n\n[LIVE STUDENT PORTAL SYNC DATA (AUTONOMOUS FETCH FROM PORTAL.DKUT.AC.KE)]:\n";
           if (pData.feeStatement) {
-            portalContextStr += `Student Reg No: ${pData.feeStatement.studentRegNo || 'Student'}\nTotal Billed: ${pData.feeStatement.billedAmount}\nTotal Paid: ${pData.feeStatement.paidAmount}\nCurrent Net Balance: ${pData.feeStatement.currentBalance}\nExam Clearance: ${pData.feeStatement.examClearanceStatus}\n`;
+            portalContextStr += `Portal Target URL: https://portal.dkut.ac.ke/Financial/FeeStatementCard\nStudent Reg No: ${pData.feeStatement.studentRegNo || 'Student'}\nTotal Billed Amount: ${pData.feeStatement.billedAmount}\nTotal Paid Amount: ${pData.feeStatement.paidAmount}\nCurrent Net Fee Balance: ${pData.feeStatement.currentBalance}\nExam Clearance Status: ${pData.feeStatement.examClearanceStatus}\n`;
             if (pData.pdfDownloadUrl) {
-              portalContextStr += `Official PDF Download Link: [ 📥 Download Official Fee Statement (PDF) ](${pData.pdfDownloadUrl})\n`;
+              portalContextStr += `Official Summarized Fee Statement PDF Download Link: [ 📥 Download Official Fee Statement (PDF) ](${pData.pdfDownloadUrl})\n`;
             }
           }
           if (pData.registeredUnits) {
-            portalContextStr += `Registered Units: ${pData.registeredUnits.map((u: any) => `${u.code} - ${u.title}`).join(", ")}\n`;
+            portalContextStr += `Registered Units: ${pData.registeredUnits.map((u: any) => `${u.code} - ${u.title} (${u.status})`).join(", ")}\n`;
           }
           finalQuery += portalContextStr;
+        } else if (syncRes.status === 404) {
+          finalQuery += "\n\n[PORTAL PERMISSION NOTICE]: The student has not yet linked their DeKUT Student Portal account (https://portal.dkut.ac.ke/). Kindly instruct them to click 'Link Portal Account' in the workspace header to grant permission and enable automated live portal sync.";
         }
       } catch (pErr) {
         console.warn("Portal context auto-sync error:", pErr);
