@@ -191,14 +191,12 @@ export function AcademicResourcesModule({
           });
         }
 
-        if (combinedResources.length > 0) {
-          setResources(combinedResources);
-          try {
-            localStorage.setItem("kiliguide_academic_resources_cache", JSON.stringify(combinedResources));
-          } catch (_) {}
-          setLoading(false);
-          return;
-        }
+        setResources(combinedResources);
+        try {
+          localStorage.setItem("kiliguide_academic_resources_cache", JSON.stringify(combinedResources));
+        } catch (_) {}
+        setLoading(false);
+        return;
       }
     } catch (err) {
       console.warn("Could not fetch academic resources from Supabase:", err);
