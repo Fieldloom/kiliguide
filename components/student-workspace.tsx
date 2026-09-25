@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 import { DocumentViewerModal } from "./document-viewer-modal";
 import { TicketChatModal } from "./ticket-chat-modal";
+import { detectPortalIntent } from "../lib/portal-intent";
 
 type Tab = "Home" | "Chats" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
 const navigation: [Tab, any][] = [
@@ -621,23 +622,22 @@ export function StudentWorkspace() {
     
     let finalQuery = language === "sw" ? "(Please answer in Swahili) " + value : value;
 
-    // Check if query asks for student portal data (fee, balance, units, statement)
-    const lowerVal = value.toLowerCase();
-    const isPortalQuery = lowerVal.includes("fee") || lowerVal.includes("balance") || lowerVal.includes("statement") || lowerVal.includes("unit") || lowerVal.includes("clearance");
+    // Detect if question should be routed to student portal (https://portal.dkut.ac.ke/)
+    const portalIntent = detectPortalIntent(value);
 
-    if (isPortalQuery && profile?.id) {
+    if (portalIntent.isPortalQuery && profile?.id) {
       try {
         const syncRes = await fetch("/api/portal-sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: profile.id, action: lowerVal.includes("unit") ? "unit_registration" : "fee_statement" })
+          body: JSON.stringify({ userId: profile.id, action: portalIntent.action })
         });
         const syncJson = await syncRes.json();
         if (syncRes.ok && syncJson?.data) {
           const pData = syncJson.data;
-          let portalContextStr = "\n\n[LIVE STUDENT PORTAL SYNC DATA (AUTONOMOUS FETCH FROM PORTAL.DKUT.AC.KE)]:\n";
+          let portalContextStr = `\n\n[LIVE STUDENT PORTAL SYNC DATA (AUTONOMOUS FETCH FROM ${portalIntent.targetUrl})]:\n`;
           if (pData.feeStatement) {
-            portalContextStr += `Portal Target URL: https://portal.dkut.ac.ke/Financial/FeeStatementCard\nStudent Reg No: ${pData.feeStatement.studentRegNo || 'Student'}\nTotal Billed Amount: ${pData.feeStatement.billedAmount}\nTotal Paid Amount: ${pData.feeStatement.paidAmount}\nCurrent Net Fee Balance: ${pData.feeStatement.currentBalance}\nExam Clearance Status: ${pData.feeStatement.examClearanceStatus}\n`;
+            portalContextStr += `Portal Target URL: ${portalIntent.targetUrl}\nStudent Reg No: ${pData.feeStatement.studentRegNo || 'Student'}\nTotal Billed Amount: ${pData.feeStatement.billedAmount}\nTotal Paid Amount: ${pData.feeStatement.paidAmount}\nCurrent Net Fee Balance: ${pData.feeStatement.currentBalance}\nExam Clearance Status: ${pData.feeStatement.examClearanceStatus}\n`;
             if (pData.pdfDownloadUrl) {
               portalContextStr += `Official Summarized Fee Statement PDF Download Link: [ 📥 Download Official Fee Statement (PDF) ](${pData.pdfDownloadUrl})\n`;
             }
