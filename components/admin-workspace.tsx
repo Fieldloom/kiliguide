@@ -5,18 +5,20 @@ import {
   Activity, BarChart3, Bell, Bot, Building2, Check, ChevronDown, ChevronRight, ChevronUp,
   FileText, LayoutDashboard, LogOut, Menu, MessageSquareText, Search,
   ShieldCheck, Ticket, Upload, UploadCloud, UserX, Users, X, Settings, RefreshCw, Trash2, Archive, CheckCircle2, Sparkles, Globe, XCircle, Clock, Zap, Loader2,
-  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, EyeOff, FileCode, Folder, Pencil, Mail, AlertTriangle, Send
+  Plus, RotateCcw, SlidersHorizontal, Filter, ExternalLink, Eye, EyeOff, FileCode, Folder, Pencil, Mail, AlertTriangle, Send, BookOpenCheck
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { scrapeWebpage, scrapeDeKut, discoverPages, discoverDepartmentContacts } from "../app/actions";
 import { AdminChat } from "./admin-chat";
 import { InstallButton } from "./install-button";
 import { TicketChatModal } from "./ticket-chat-modal";
+import { AcademicResourcesModule } from "./academic-resources-module";
 
-type Tab = "Overview" | "AI Assistant" | "Documents" | "Notices" | "Tickets" | "Departments" | "Users" | "Analytics" | "System Health" | "Institutions" | "Web Crawler";
+type Tab = "Overview" | "AI Assistant" | "Academic Resources" | "Documents" | "Notices" | "Tickets" | "Departments" | "Users" | "Analytics" | "System Health" | "Institutions" | "Web Crawler";
 const nav: { label: Tab; icon: typeof LayoutDashboard }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "AI Assistant", icon: MessageSquareText },
+  { label: "Academic Resources", icon: BookOpenCheck },
   { label: "Documents", icon: FileText },
   { label: "Notices", icon: Bell },
   { label: "Tickets", icon: Ticket },
@@ -267,6 +269,8 @@ export function AdminWorkspace({ role }: { role?: string }) {
                 <Overview done={done} setDone={setDone} onTab={go} stats={stats} />
               ) : tab === "AI Assistant" ? (
                 <AdminChat />
+              ) : tab === "Academic Resources" ? (
+                <AcademicResourcesModule userRole="administrator" userName="System Administrator" />
               ) : (
                 <WorkspaceTab tab={tab} onCompose={() => setNoticeModal(true)} onUpload={() => setUploadModal(true)} />
               )}

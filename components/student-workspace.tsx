@@ -10,10 +10,11 @@ import { DocumentViewerModal } from "./document-viewer-modal";
 import { TicketChatModal } from "./ticket-chat-modal";
 import { detectPortalIntent } from "../lib/portal-intent";
 
-type Tab = "Home" | "Chats" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
+type Tab = "Home" | "Chats" | "Academic Resources" | "Documents" | "Notices" | "My timetable" | "Support" | "Profile" | "Settings";
 const navigation: [Tab, any][] = [
   ["Home", Home],
   ["Chats", MessageCircleMore],
+  ["Academic Resources", BookOpenCheck],
   ["Documents", FileText],
   ["Notices", Bell],
   ["My timetable", CalendarDays],
@@ -41,6 +42,7 @@ function groupByDate(convs: Conversation[]) {
 import { MarkdownRender as MarkdownMessage } from "./markdown-render";
 import { EscalateModal } from "./escalate-modal";
 import { LinkPortalModal } from "./link-portal-modal";
+import { AcademicResourcesModule } from "./academic-resources-module";
 
 export function StudentWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
@@ -1439,6 +1441,16 @@ export function StudentWorkspace() {
                   </motion.button>
                 </motion.div>
               </div>
+            </div>
+          </div>
+        ) : tab === "Academic Resources" ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
+            <div className="max-w-6xl mx-auto pb-24">
+              <AcademicResourcesModule
+                userRole="student"
+                userInstitutionId={institutionId}
+                userName={name}
+              />
             </div>
           </div>
         ) : tab === "Documents" ? (

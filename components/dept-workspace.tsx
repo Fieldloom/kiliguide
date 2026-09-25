@@ -6,10 +6,11 @@ import { AlertCircle, Bell, BookOpen, BookOpenCheck, Building2, Check, CheckCirc
 import { supabase } from "../lib/supabase";
 import { InstallButton } from "./install-button";
 
-type Tab = "Home" | "Chats" | "Documents" | "Notices" | "Manage Tickets" | "Support" | "Profile" | "Settings";
+type Tab = "Home" | "Chats" | "Academic Resources" | "Documents" | "Notices" | "Manage Tickets" | "Support" | "Profile" | "Settings";
 const navigation: [Tab, any][] = [
   ["Home", Home],
   ["Chats", MessageCircleMore],
+  ["Academic Resources", BookOpenCheck],
   ["Documents", FileText],
   ["Notices", Bell],
   ["Manage Tickets", Ticket],
@@ -38,6 +39,7 @@ function groupByDate(convs: Conversation[]) {
 
 import { EscalateModal } from "./escalate-modal";
 import { TicketChatModal } from "./ticket-chat-modal";
+import { AcademicResourcesModule } from "./academic-resources-module";
 
 export function DeptWorkspace() {
   const [tab, setTab] = useState<Tab>("Home");
@@ -1039,6 +1041,16 @@ export function DeptWorkspace() {
                   <motion.button onClick={() => ask()} disabled={!query.trim() || asking} style={{ width: 40, height: 40, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: query.trim() ? "#10b981" : "rgba(255,255,255,0.1)", border: "none" }}><Send size={18} color="#fff" /></motion.button>
                 </div>
               </div>
+            </div>
+          </div>
+        ) : tab === "Academic Resources" ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 relative">
+            <div className="max-w-6xl mx-auto pb-24">
+              <AcademicResourcesModule
+                userRole="department"
+                userInstitutionId={profile?.institution_id}
+                userName={deptName || "Department Admin"}
+              />
             </div>
           </div>
         ) : tab === "Documents" ? (
